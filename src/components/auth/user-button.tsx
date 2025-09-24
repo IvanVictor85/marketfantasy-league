@@ -1,0 +1,163 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { LoginModal } from './login-modal';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { 
+  User, 
+  LogOut, 
+  Settings, 
+  Wallet, 
+  Mail,
+  ChevronDown,
+  Loader2
+} from 'lucide-react';
+
+export function UserButton() {
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  if (isLoading) {
+    return (
+      <Button variant="ghost" size="sm" className="text-white" disabled>
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </Button>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-white hover:bg-orange-600"
+          onClick={() => setShowLoginModal(true)}
+        >
+          <User className="w-4 h-4 mr-2" />
+          Entrar
+        </Button>
+        
+        <LoginModal 
+          isOpen={showLoginModal} 
+          onClose={() => setShowLoginModal(false)} 
+        />
+      </>
+    );
+  }
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const getUserInitials = () => {
+    if (user.name) {
+      return user.name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return user.email ? user.email[0].toUpperCase() : 'U';
+  };
+
+  const getDisplayName = () => {
+    if (user.name) return user.name;
+    if (user.email) return user.email.split('@')[0];
+    if (user.walletAddress) {
+      return `${user.walletAddress.slice(0, 4)}...${user.walletAddress.slice(-4)}`;
+    }
+    return 'Usuário';
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 text-white hover:bg-orange-600 h-auto py-2 px-3"
+        >
+          <Avatar className="w-6 h-6">
+            <AvatarImage src={user.avatar} alt={getDisplayName()} />
+            <AvatarFallback className="text-xs bg-orange-500 text-white">
+              {getUserInitials()}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="flex flex-col items-start text-left">
+            <span className="text-sm font-medium leading-none">
+              {getDisplayName()}
+            </span>
+            <div className="flex items-center gap-1 mt-1">
+              <Badge 
+                variant="secondary" 
+                className="text-xs px-1 py-0 h-4 bg-orange-100 text-orange-800"
+              >
+                {user.loginMethod === 'email' ? (
+                  <Mail className="w-2 h-2 mr-1" />
+                ) : (
+                  <Wallet className="w-2 h-2 mr-1" />
+                )}
+                {user.loginMethod === 'email' ? 'Email' : 'Carteira'}
+              </Badge>
+            </div>
+          </div>
+          
+          <ChevronDown className="w-3 h-3 ml-1" />
+        </Button>
+      </DropdownMenuTrigger>
+      
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{getDisplayName()}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email || user.walletAddress}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuItem>
+          <User className="mr-2 h-4 w-4" />
+          <span>Perfil</span>
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Configurações</span>
+        </DropdownMenuItem>
+        
+        {user.loginMethod === 'wallet' && user.walletAddress && (
+          <DropdownMenuItem>
+            <Wallet className="mr-2 h-4 w-4" />
+            <span>Carteira</span>
+          </DropdownMenuItem>
+        )}
+        
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuItem 
+          onClick={handleLogout}
+          className="text-red-600 focus:text-red-600"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Sair</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model League {
+  id             String   @id @default(cuid())
+  name           String
+  entryFee       Float    // Entry fee in SOL
+  maxPlayers     Int      @default(100)
+  startTime      DateTime
+  endTime        DateTime
+  isActive       Boolean  @default(true)
+  treasuryPda    String   // Solana PDA address
+  adminWallet    String   // Admin wallet address
+  protocolWallet String   // Protocol treasury wallet
+  emblemUrl      String?  // URL of the selected emblem image
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  teams          Team[]
+  
+  @@map("leagues")
+}
+
+model Team {
+  id               String   @id @default(cuid())
+  leagueId         String
+  userWallet       String   // User's Solana wallet address
+  teamName         String
+  tokens           Json     // Array of selected token symbols and positions
+  totalScore       Float?   // Calculated performance score
+  rank             Int?     // Final ranking in the league
+  selectedMascotUrl String? // URL of the selected mascot image
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  league           League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  
+  @@unique([leagueId, userWallet])
+  @@map("teams")
+}
+
+model Token {
+  id          String   @id @default(cuid())
+  symbol      String   @unique
+  name        String
+  coingeckoId String   @unique
+  logoUrl     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("tokens")
+}
+
+model Competition {
+  id          String   @id @default(cuid())
+  leagueId    String
+  startTime   DateTime
+  endTime     DateTime
+  status      String   // "pending", "active", "completed"
+  winners     Json?    // Array of winner wallet addresses
+  prizePool   Float    // Total prize pool in SOL
+  distributed Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("competitions")
+}
+
+model PriceHistory {
+  id          String   @id @default(cuid())
+  tokenSymbol String
+  price       Float
+  timestamp   DateTime
+  source      String   @default("coingecko")
+  
+  @@map("price_history")
+  @@index([tokenSymbol, timestamp])
+}
