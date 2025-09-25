@@ -38,9 +38,20 @@ export function useExtensionDetector(): ExtensionDetection {
         conflictDetected,
       });
 
-      // Aggressively suppress MetaMask errors
-      if (hasMetaMask) {
-        // Override console.error to filter MetaMask errors
+      // Aggressively suppress MetaMask errors and prevent auto-connection
+      if (typeof window !== 'undefined') {
+        // Disable MetaMask auto-detection for Solana apps
+        if ((window as any).ethereum?.isMetaMask) {
+          try {
+            // Prevent MetaMask from auto-connecting
+            (window as any).ethereum.autoRefreshOnNetworkChange = false;
+            (window as any).ethereum._metamask = { ...((window as any).ethereum._metamask || {}), isUnlocked: false };
+          } catch (e) {
+            // Silently ignore if we can't modify MetaMask
+          }
+        }
+
+        // Override console methods to filter MetaMask errors
         const originalError = console.error;
         const originalWarn = console.warn;
         
@@ -53,7 +64,10 @@ export function useExtensionDetector(): ExtensionDetection {
             message.includes('inpage.js') ||
             message.includes('injected.js') ||
             message.includes('ethereum.request') ||
-            message.includes('wallet connection failed')
+            message.includes('wallet connection failed') ||
+            message.includes('Object.connect') ||
+            message.includes('async o') ||
+            message.includes('scripts/inpage.js')
           ) {
             // Silently ignore MetaMask errors
             return;
@@ -66,7 +80,8 @@ export function useExtensionDetector(): ExtensionDetection {
           if (
             message.includes('MetaMask') ||
             message.includes('chrome-extension') ||
-            message.includes('ethereum')
+            message.includes('ethereum') ||
+            message.includes('inpage.js')
           ) {
             // Silently ignore MetaMask warnings
             return;
@@ -75,12 +90,33 @@ export function useExtensionDetector(): ExtensionDetection {
         };
         
         // Block unhandled promise rejections from MetaMask
-        window.addEventListener('unhandledrejection', (event) => {
-          if (event.reason && 
-              (String(event.reason).includes('MetaMask') ||
-               String(event.reason).includes('chrome-extension') ||
-               String(event.reason).includes('Failed to connect'))) {
+        const handleRejection = (event: PromiseRejectionEvent) => {
+          const reason = String(event.reason || '');
+          if (
+            reason.includes('MetaMask') ||
+            reason.includes('chrome-extension') ||
+            reason.includes('Failed to connect') ||
+            reason.includes('inpage.js') ||
+            reason.includes('Object.connect') ||
+            reason.includes('ethereum.request')
+          ) {
             event.preventDefault();
+            return false;
+          }
+        };
+
+        window.addEventListener('unhandledrejection', handleRejection);
+        
+        // Also handle errors that might bubble up
+        window.addEventListener('error', (event) => {
+          const message = event.message || '';
+          if (
+            message.includes('MetaMask') ||
+            message.includes('chrome-extension') ||
+            message.includes('inpage.js')
+          ) {
+            event.preventDefault();
+            return false;
           }
         });
       }

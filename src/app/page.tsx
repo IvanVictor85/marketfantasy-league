@@ -2,10 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Navbar } from '@/components/layout/navbar';
+import { WalletConflictWarning } from '@/components/wallet/wallet-conflict-warning';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -56,12 +58,16 @@ export default function Home() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
+        <WalletConflictWarning />
         {/* Hero Section */}
         <div className="text-center max-w-4xl mx-auto mb-16">
           <Badge className="mb-4 bg-blue-100 text-blue-700 hover:bg-blue-200">
             <Coins className="w-3 h-3 mr-1" />
             Nova Era do Fantasy Sports
           </Badge>
+          
+
+          
           <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
             CryptoFantasy
             <span className="block text-4xl md:text-6xl">League</span>

@@ -28,6 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        <script src="/suppress-metamask.js" async />
+      </head>
       <body className={`${inter.variable} font-sans bg-background text-foreground antialiased`}>
         <WalletContextProvider>
           <AuthProvider>

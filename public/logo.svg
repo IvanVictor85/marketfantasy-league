@@ -1,0 +1,163 @@
+<svg width="300" height="360" viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradientes -->
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8C00;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#FF6B35;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B91C1C;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="metalGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8F9FA;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#E9ECEF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#CED4DA;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#ADB5BD;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#868E96;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="dragonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#F8F9FA;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#E9ECEF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#DEE2E6;stop-opacity:1" />
+    </linearGradient>
+    
+    <radialGradient id="circuitGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0099CC;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#006699;stop-opacity:0.6" />
+    </radialGradient>
+    
+    <!-- Filtros -->
+    <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    
+    <filter id="innerGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+  
+  <!-- Sombra do escudo -->
+  <path d="M150 45 C190 45 225 65 225 85 L225 200 Q225 250 150 290 Q75 250 75 200 L75 85 C75 65 110 45 150 45 Z" 
+        fill="#000000" opacity="0.25" transform="translate(0,12)"/>
+  
+  <!-- Borda metálica externa do escudo -->
+  <path d="M150 40 C195 40 235 62 235 85 L235 200 Q235 255 150 295 Q65 255 65 200 L65 85 C65 62 105 40 150 40 Z" 
+        fill="url(#metalGradient)" stroke="#6C757D" stroke-width="2" filter="url(#dropShadow)"/>
+  
+  <!-- Escudo principal -->
+  <path d="M150 45 C190 45 225 65 225 85 L225 200 Q225 250 150 290 Q75 250 75 200 L75 85 C75 65 110 45 150 45 Z" 
+        fill="url(#shieldGradient)" stroke="url(#metalGradient)" stroke-width="3"/>
+  
+  <!-- Padrão de circuitos circular -->
+  <g stroke="url(#circuitGlow)" stroke-width="3" fill="none" opacity="0.9">
+    <!-- Círculo principal de circuitos -->
+    <circle cx="150" cy="160" r="55" stroke-width="2" opacity="0.6"/>
+    <circle cx="150" cy="160" r="45" stroke-width="1.5" opacity="0.4"/>
+    
+    <!-- Nós de circuito -->
+    <circle cx="105" cy="160" r="4" fill="url(#circuitGlow)"/>
+    <circle cx="195" cy="160" r="4" fill="url(#circuitGlow)"/>
+    <circle cx="150" cy="105" r="3" fill="url(#circuitGlow)"/>
+    <circle cx="150" cy="215" r="3" fill="url(#circuitGlow)"/>
+    
+    <!-- Conexões diagonais -->
+    <circle cx="125" cy="135" r="3" fill="url(#circuitGlow)"/>
+    <circle cx="175" cy="135" r="3" fill="url(#circuitGlow)"/>
+    <circle cx="125" cy="185" r="3" fill="url(#circuitGlow)"/>
+    <circle cx="175" cy="185" r="3" fill="url(#circuitGlow)"/>
+    
+    <!-- Linhas de conexão -->
+    <path d="M105 160 L125 135" stroke-linecap="round"/>
+    <path d="M195 160 L175 135" stroke-linecap="round"/>
+    <path d="M105 160 L125 185" stroke-linecap="round"/>
+    <path d="M195 160 L175 185" stroke-linecap="round"/>
+    
+    <!-- Detalhes adicionais -->
+    <path d="M125 135 L150 105" stroke-linecap="round" stroke-width="2"/>
+    <path d="M175 135 L150 105" stroke-linecap="round" stroke-width="2"/>
+    <path d="M125 185 L150 215" stroke-linecap="round" stroke-width="2"/>
+    <path d="M175 185 L150 215" stroke-linecap="round" stroke-width="2"/>
+  </g>
+  
+  <!-- Dragão refinado -->
+  <g fill="url(#dragonGradient)" stroke="#CED4DA" stroke-width="1.5">
+    <!-- Corpo principal do dragão -->
+    <path d="M150 140 Q175 135 185 155 Q190 170 180 185 Q170 195 150 190 Q130 195 120 185 Q110 170 115 155 Q125 135 150 140 Z"/>
+    
+    <!-- Cabeça detalhada -->
+    <path d="M150 125 Q165 120 175 135 Q180 145 175 155 Q170 165 150 160 Q130 165 125 155 Q120 145 125 135 Q135 120 150 125 Z"/>
+    
+    <!-- Focinho agressivo -->
+    <path d="M150 160 Q160 155 170 165 Q175 175 165 185 Q155 190 150 185 Q145 190 135 185 Q125 175 130 165 Q140 155 150 160 Z"/>
+    
+    <!-- Narinas -->
+    <ellipse cx="145" cy="175" rx="2" ry="3" fill="#6C757D"/>
+    <ellipse cx="155" cy="175" rx="2" ry="3" fill="#6C757D"/>
+    
+    <!-- Olhos vermelhos brilhantes -->
+    <ellipse cx="140" cy="145" rx="4" ry="6" fill="#DC2626"/>
+    <ellipse cx="160" cy="145" rx="4" ry="6" fill="#DC2626"/>
+    <ellipse cx="142" cy="142" rx="1.5" ry="2" fill="#FFFFFF" opacity="0.8"/>
+    <ellipse cx="162" cy="142" rx="1.5" ry="2" fill="#FFFFFF" opacity="0.8"/>
+    
+    <!-- Chifres mais elaborados -->
+    <path d="M135 125 Q125 110 130 100 Q140 105 145 115 Z" fill="url(#dragonGradient)"/>
+    <path d="M165 125 Q175 110 170 100 Q160 105 155 115 Z" fill="url(#dragonGradient)"/>
+    
+    <!-- Crista dorsal -->
+    <path d="M150 125 Q145 115 150 105 Q155 115 150 125 Z" fill="url(#dragonGradient)" opacity="0.8"/>
+    
+    <!-- Asas estilizadas -->
+    <path d="M120 150 Q100 145 95 165 Q100 180 120 175 Q125 165 120 150 Z" opacity="0.9"/>
+    <path d="M180 150 Q200 145 205 165 Q200 180 180 175 Q175 165 180 150 Z" opacity="0.9"/>
+    
+    <!-- Detalhes das asas -->
+    <path d="M115 160 Q105 155 110 170" stroke="url(#dragonGradient)" stroke-width="1" fill="none"/>
+    <path d="M185 160 Q195 155 190 170" stroke="url(#dragonGradient)" stroke-width="1" fill="none"/>
+    
+    <!-- Cauda curvada -->
+    <path d="M150 190 Q165 205 160 220 Q155 230 145 225 Q135 220 140 205 Q145 195 150 190 Z"/>
+  </g>
+  
+  <!-- Texto CRYPTO -->
+  <text x="150" y="95" text-anchor="middle" font-family="Arial Black, sans-serif" 
+        font-size="22" font-weight="900" fill="#FFFFFF" 
+        stroke="#000000" stroke-width="0.8" filter="url(#textShadow)"
+        letter-spacing="2px">
+    CRYPTO
+  </text>
+  
+  <!-- Texto FANTASY -->
+  <text x="150" y="270" text-anchor="middle" font-family="Arial Black, sans-serif" 
+        font-size="18" font-weight="900" fill="#FF8C00" 
+        stroke="#000000" stroke-width="0.6" filter="url(#textShadow)"
+        letter-spacing="3px">
+    FANTASY
+  </text>
+  
+  <!-- Texto LEAGUE -->
+  <text x="150" y="310" text-anchor="middle" font-family="Arial Black, sans-serif" 
+        font-size="22" font-weight="900" fill="#FFFFFF" 
+        stroke="#000000" stroke-width="0.8" filter="url(#textShadow)"
+        letter-spacing="2px">
+    LEAGUE
+  </text>
+  
+  <!-- Brilho interno no escudo -->
+  <path d="M150 45 C190 45 225 65 225 85 L225 200 Q225 250 150 290 Q75 250 75 200 L75 85 C75 65 110 45 150 45 Z" 
+        fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" filter="url(#innerGlow)"/>
+  
+  <!-- Reflexo metálico -->
+  <path d="M150 45 C190 45 225 65 225 85 L225 120 Q200 100 150 100 Q100 100 75 120 L75 85 C75 65 110 45 150 45 Z" 
+        fill="rgba(255,255,255,0.15)" opacity="0.6"/>
+</svg>

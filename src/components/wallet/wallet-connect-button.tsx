@@ -137,8 +137,8 @@ export function PhantomWalletButton() {
     const checkPhantom = () => {
       const isInstalled = typeof window !== 'undefined' && 
         window.solana && 
-        window.solana.isPhantom;
-      setIsPhantomInstalled(isInstalled);
+        window.solana.isPhantom === true;
+      setIsPhantomInstalled(!!isInstalled);
     };
     
     checkPhantom();
