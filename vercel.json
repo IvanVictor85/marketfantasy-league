@@ -1,26 +1,8 @@
 {
   "version": 2,
-  "framework": "nextjs",
   "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "installCommand": "npm ci --production=false",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next@latest",
-      "config": {
-        "maxLambdaSize": "50mb",
-        "memory": 1024,
-        "maxDuration": 30
-      }
-    }
-  ],
-  "functions": {
-    "app/api/**": {
-      "maxDuration": 60
-    }
-  },
-  "regions": ["iad1"],
+  "installCommand": "npm ci",
+  "framework": "nextjs",
   "headers": [
     {
       "source": "/(.*)",
@@ -36,23 +18,8 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0"
         }
       ]
     }
-  ],
-  "cleanUrls": true,
-  "trailingSlash": false
+  ]
 }
