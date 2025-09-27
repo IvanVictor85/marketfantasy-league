@@ -1,10 +1,22 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Configuração estável
   reactStrictMode: false,
+  swcMinify: true,
+  compress: true,
   
-  // Desabilitar HMR completamente
+  // Otimizações de performance para Vercel
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', '@heroicons/react'],
+  },
+  
+  // Configuração de output para Vercel
+  output: 'standalone',
+  
+  // Desabilitar HMR completamente em desenvolvimento
   webpack: (config, { dev, isServer }) => {
     if (dev) {
       // Remover plugins de HMR
@@ -39,11 +51,38 @@ const nextConfig: NextConfig = {
         };
       }
     }
+    
+    // Otimizações para produção
+    if (!dev) {
+      // Otimizações de bundle
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            priority: 10,
+            reuseExistingChunk: true,
+          },
+        },
+      };
+      
+      // Aliases para reduzir tamanho do bundle
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@': path.resolve(__dirname, './'),
+      };
+    }
+    
     return config;
   },
   
-  // Configurações de imagem
+  // Configurações de imagem otimizadas
   images: {
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60,
     remotePatterns: [
       {
         protocol: 'https',
@@ -64,6 +103,12 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  
+  // Configuração de env vars
+  env: {
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    VERCEL_URL: process.env.VERCEL_URL,
   },
 };
 
