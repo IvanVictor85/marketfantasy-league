@@ -35,7 +35,7 @@ export default function MarketPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-      <Navbar />
+      
       
       <main className="container mx-auto px-4 py-8">
         {/* Page Header */}
@@ -185,17 +185,17 @@ export default function MarketPage() {
                     <div>
                       <p className="text-sm text-gray-600">24h</p>
                       <p className={`font-semibold ${
-                        selectedToken.change_24h > 0 ? 'text-green-600' : 'text-red-600'
+                        (selectedToken.change_24h || 0) > 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {selectedToken.change_24h > 0 ? '+' : ''}{selectedToken.change_24h.toFixed(2)}%
+                        {(selectedToken.change_24h || 0) > 0 ? '+' : ''}{(selectedToken.change_24h || 0).toFixed(2)}%
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">7 dias</p>
                       <p className={`font-semibold ${
-                        selectedToken.change_7d > 0 ? 'text-green-600' : 'text-red-600'
+                        (selectedToken.change_7d || 0) > 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {selectedToken.change_7d > 0 ? '+' : ''}{selectedToken.change_7d.toFixed(2)}%
+                        {(selectedToken.change_7d || 0) > 0 ? '+' : ''}{(selectedToken.change_7d || 0).toFixed(2)}%
                       </p>
                     </div>
                   </div>
@@ -203,14 +203,14 @@ export default function MarketPage() {
                   <div>
                     <p className="text-sm text-gray-600">Market Cap</p>
                     <p className="font-semibold">
-                      ${(selectedToken.market_cap / 1e9).toFixed(2)}B
+                      ${((selectedToken.market_cap || 0) / 1e9).toFixed(2)}B
                     </p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-600">Volume 24h</p>
                     <p className="font-semibold">
-                      ${(selectedToken.volume_24h / 1e6).toFixed(2)}M
+                      ${((selectedToken.volume_24h || 0) / 1e6).toFixed(2)}M
                     </p>
                   </div>
 

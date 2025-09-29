@@ -3,127 +3,250 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Navbar } from '@/components/layout/navbar';
-import { WalletConflictWarning } from '@/components/wallet/wallet-conflict-warning';
 import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
   Trophy, 
-  DollarSign, 
-  BarChart3,
-  Zap,
-  Star,
+  Wallet, 
+  LineChart, 
+  Lock, 
+  Zap, 
+  Key,
   ArrowRight,
+  Shield,
+  Bitcoin,
+  DollarSign,
+  CheckCircle,
+  Award,
+  TrendingUp,
+  Users,
   Coins
 } from 'lucide-react';
 
-export default function Home() {
-  const marketStats = [
-    {
-      title: 'Total em Prêmios',
-      value: '$125,000',
-      change: '+12.5%',
-      trend: 'up' as const,
-      icon: <DollarSign className="w-5 h-5" />
-    },
-    {
-      title: 'Jogadores Ativos',
-      value: '2,847',
-      change: '+8.2%',
-      trend: 'up' as const,
-      icon: <Users className="w-5 h-5" />
-    },
-    {
-      title: 'Ligas Ativas',
-      value: '156',
-      change: '+15.3%',
-      trend: 'up' as const,
-      icon: <Trophy className="w-5 h-5" />
-    },
-    {
-      title: 'Volume 24h',
-      value: '$45,230',
-      change: '-2.1%',
-      trend: 'down' as const,
-      icon: <BarChart3 className="w-5 h-5" />
-    }
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-      <Navbar />
-      
-      <div className="container mx-auto px-4 py-8">
-        <WalletConflictWarning />
-        {/* Hero Section */}
-        <div className="text-center max-w-4xl mx-auto mb-16">
-          <Badge className="mb-4 bg-blue-100 text-blue-700 hover:bg-blue-200">
-            <Coins className="w-3 h-3 mr-1" />
-            Nova Era do Fantasy Sports
-          </Badge>
-          
-
-          
-          <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
-            CryptoFantasy
-            <span className="block text-4xl md:text-6xl">League</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
-            Combine a emoção do fantasy sports com o dinamismo do mercado cripto.
-            <span className="block mt-2 font-semibold text-blue-600">
-              Monte seu time, compete e ganhe prêmios reais!
-            </span>
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/teams">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg">
-                <Trophy className="w-5 h-5 mr-2" />
-                Começar Agora
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-            <Link href="/leagues">
-              <Button size="lg" variant="outline" className="px-8 py-4 text-lg border-2">
-                <Users className="w-5 h-5 mr-2" />
-                Ver Ligas
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Market Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {marketStats.map((stat, index) => (
-            <Card key={index} className="hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-blue-600">{stat.icon}</div>
-                  <div className={`flex items-center text-sm ${
-                    stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {stat.trend === 'up' ? (
-                      <TrendingUp className="w-4 h-4 mr-1" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 mr-1" />
-                    )}
-                    {stat.change}
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {stat.title}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+// Seção Herói com tema Touro vs. Urso
+const HeroSection = () => (
+  <section className="relative py-24 overflow-hidden">
+    {/* Background com overlay */}
+    <div className="absolute inset-0">
+      <div 
+        className="absolute inset-0 opacity-100 bg-cover bg-center"
+        style={{
+          backgroundImage: 'url(/mascots/bull-bear-arena.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
       </div>
     </div>
+    
+    <div className="absolute inset-0 bg-gradient-to-b from-[#9945FF]/30 to-[#9945FF]/50" />
+    
+    <div className="container relative mx-auto px-4 py-16 text-center">
+      <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-lg">
+        O Fantasy Game do Universo Cripto.
+      </h1>
+      <p className="text-[#00FFA3] text-xl md:text-2xl max-w-3xl mx-auto mb-8 drop-shadow-md">
+        Desafie seus amigos e sua comunidade favorita. Monte seu time de cripto e conquiste prêmios reais em ligas seguras e 100% on-chain.
+      </p>
+      <Link href="/ligas">
+        <Button className="bg-[#F7931A] hover:bg-[#F7931A]/90 text-white text-lg px-8 py-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105">
+          Começar a Jogar
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
+      </Link>
+    </div>
+  </section>
+);
+
+// Seção "Jogue em Apenas 3 Passos"
+const HowItWorksSection = () => (
+  <section className="py-20 bg-[#F5F5F5]">
+    <div className="container mx-auto px-4">
+      <h2 className="text-3xl md:text-4xl font-bold text-center text-[#141414] mb-12">
+        Jogue em Apenas 3 Passos
+      </h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Passo 1 */}
+        <Card className="bg-white rounded-xl shadow-lg border-t-4 border-t-[#9945FF] border-x-0 border-b-0 hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="pt-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 rounded-full bg-[#9945FF]/10">
+                <Bitcoin className="h-10 w-10 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">1. Monte seu Time</h3>
+            <p className="text-slate-600 text-center">
+              Selecione até 5 criptomoedas para formar seu time dos sonhos baseado nas suas análises e estratégias.
+            </p>
+          </CardContent>
+        </Card>
+        
+        {/* Passo 2 */}
+        <Card className="bg-white rounded-xl shadow-lg border-t-4 border-t-[#9945FF] border-x-0 border-b-0 hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="pt-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 rounded-full bg-[#9945FF]/10">
+                <Trophy className="h-10 w-10 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">2. Entre em uma Liga</h3>
+            <p className="text-slate-600 text-center">
+              Escolha entre ligas gratuitas ou pagas e compita contra outros jogadores por prêmios reais em cripto.
+            </p>
+          </CardContent>
+        </Card>
+        
+        {/* Passo 3 */}
+        <Card className="bg-white rounded-xl shadow-lg border-t-4 border-t-[#9945FF] border-x-0 border-b-0 hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="pt-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 rounded-full bg-[#9945FF]/10">
+                <Award className="h-10 w-10 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">3. Ganhe Prêmios</h3>
+            <p className="text-slate-600 text-center">
+              Acompanhe o desempenho do seu time e ganhe prêmios baseados na performance das criptomoedas escolhidas.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </section>
+);
+
+// Seção de Proposta de Valor
+const ValuePropositionSection = () => (
+  <section className="py-20 bg-[#9945FF]">
+    <div className="container mx-auto px-4">
+      <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-12">
+        Por Que CryptoFantasy League?
+      </h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Card 1 */}
+        <Card className="bg-white rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-[#9945FF]/10">
+                <Shield className="h-8 w-8 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">100% Seguro</h3>
+            <p className="text-[#8A8A8A] text-center">
+              Contratos inteligentes auditados e transparentes garantem a segurança dos seus fundos.
+            </p>
+          </CardContent>
+        </Card>
+        
+        {/* Card 2 */}
+        <Card className="bg-white rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-[#9945FF]/10">
+                <Users className="h-8 w-8 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">Comunidade Vibrante</h3>
+            <p className="text-[#8A8A8A] text-center">
+              Participe de ligas com amigos ou entre em competições globais com milhares de jogadores.
+            </p>
+          </CardContent>
+        </Card>
+        
+        {/* Card 3 */}
+        <Card className="bg-white rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-[#9945FF]/10">
+                <Coins className="h-8 w-8 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">Prêmios Reais</h3>
+            <p className="text-[#8A8A8A] text-center">
+              Ganhe criptomoedas reais baseadas no desempenho do seu time nas ligas competitivas.
+            </p>
+          </CardContent>
+        </Card>
+        
+        {/* Card 4 */}
+        <Card className="bg-white rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-[#9945FF]/10">
+                <TrendingUp className="h-8 w-8 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">Dados em Tempo Real</h3>
+            <p className="text-[#8A8A8A] text-center">
+              Acompanhe o desempenho do seu time com dados de mercado atualizados em tempo real.
+            </p>
+          </CardContent>
+        </Card>
+        
+        {/* Card 5 */}
+        <Card className="bg-white rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-[#9945FF]/10">
+                <Zap className="h-8 w-8 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">Experiência Gamificada</h3>
+            <p className="text-[#8A8A8A] text-center">
+              Aprenda sobre criptomoedas enquanto se diverte com uma experiência totalmente gamificada.
+            </p>
+          </CardContent>
+        </Card>
+        
+        {/* Card 6 */}
+        <Card className="bg-white rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-[#9945FF]/10">
+                <Lock className="h-8 w-8 text-[#9945FF]" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-[#141414] mb-2">Multi-Chain</h3>
+            <p className="text-[#8A8A8A] text-center">
+              Plataforma agnóstica de blockchain, suportando múltiplas redes para máxima flexibilidade.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </section>
+);
+
+// Seção de CTA Final
+const FinalCTASection = () => (
+  <section className="py-20 bg-[#F5F5F5]">
+    <div className="container mx-auto px-4 text-center">
+      <h2 className="text-3xl md:text-4xl font-bold text-[#141414] mb-6">
+        Pronto para montar seu time dos sonhos?
+      </h2>
+      <p className="text-xl text-[#8A8A8A] max-w-2xl mx-auto mb-8">
+        Junte-se a milhares de jogadores e comece sua jornada no maior fantasy game de criptomoedas.
+      </p>
+      <Link href="/ligas">
+        <Button className="bg-[#F7931A] hover:bg-[#F7931A]/90 text-white text-lg px-8 py-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105">
+          Começar Agora
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
+      </Link>
+    </div>
+  </section>
+);
+
+// Componentes da página
+export default function Home() {
+  return (
+    <main className="min-h-screen">
+      <HeroSection />
+      <HowItWorksSection />
+      <ValuePropositionSection />
+      <FinalCTASection />
+    </main>
   );
 }

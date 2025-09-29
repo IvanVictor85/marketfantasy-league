@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Bear Mascot -->
+  <g>
+    <!-- Bear Body Structure -->
+    <path d="M100,120 C120,110 125,95 115,80 C105,65 85,60 70,70 C60,60 45,55 30,60 C15,65 5,75 0,90 C-10,85 -20,90 -25,100 C-30,110 -25,125 -15,130 C-20,140 -15,155 -5,160 C5,165 20,160 25,150 C35,160 50,165 65,160 C80,155 90,145 95,130 C105,135 115,130 120,120 C125,110 120,100 110,95 C115,105 110,115 100,120" fill="#ff6b6b" opacity="0.9"/>
+    
+    <!-- Bear Details -->
+    <path d="M70,70 C65,65 55,63 45,65 C35,68 28,73 25,80" fill="none" stroke="#7f1d1d" stroke-width="2"/>
+    <path d="M0,90 C-5,88 -13,88 -18,93" fill="none" stroke="#7f1d1d" stroke-width="2"/>
+    <path d="M25,150 C30,155 37,158 45,155 C52,153 57,148 60,140" fill="none" stroke="#7f1d1d" stroke-width="2"/>
+    
+    <!-- Bear Claws -->
+    <path d="M-15,130 C-20,135 -22,143 -17,148 C-12,153 -5,150 -3,145" fill="#ff6b6b" opacity="0.9"/>
+    <path d="M25,150 C20,158 22,165 30,168 C38,170 45,165 43,158" fill="#ff6b6b" opacity="0.9"/>
+    
+    <!-- Bear Eye -->
+    <circle cx="100" cy="90" r="5" fill="#ef4444"/>
+    <circle cx="100" cy="90" r="2" fill="#7f1d1d"/>
+    <circle cx="99" cy="89" r="1" fill="white"/>
+  </g>
+</svg>

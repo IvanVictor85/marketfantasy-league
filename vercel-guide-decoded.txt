@@ -1,0 +1,908 @@
+# PROMPT: Implantação e Otimização de Produção no Vercel
+
+## 🎯 OBJETIVO
+Implementar uma estratégia completa de implantação e otimização para produção no Vercel, incluindo configuração de build, otimização de performance, monitoramento, CI/CD, edge functions e estratégias de cache. Este prompt fornece um guia técnico abrangente para deploy profissional no Vercel.
+
+## 🚨 VERIFICAÇÕES CRÍTICAS OBRIGATÓRIAS
+
+### ⚠️ ANTES de fazer deploy, execute estas verificações para evitar falhas:
+
+```bash
+# 1. Verificar build local (CRÍTICO)
+npm run build
+
+# 2. Verificar tipos TypeScript (OBRIGATÓRIO)
+npx tsc --noEmit
+
+# 3. Verificar tamanho do bundle
+npm run build && du -sh .next/static/chunks/
+
+# 4. Verificar variáveis de ambiente
+node -e "console.log('DATABASE_URL:', process.env.DATABASE_URL ? '✅ Configurado' : '❌ Não configurado')"
+
+# 5. Verificar dependências de produção
+npm audit --production
+
+# 6. Testar em modo produção local
+npm run start
+
+# 7. Verificar Vercel CLI
+vercel --version
+```
+
+### 🔧 CORREÇÕES CRÍTICAS DE DEPLOY:
+
+#### 1. Configuração Incorreta do Build
+**Problema**: Build falha por configuração incorreta
+**Solução**: Configurar vercel.json corretamente
+
+```json
+// ❌ INCORRETO - Configuração incompleta
+{
+  "framework": "nextjs"
+}
+
+// ✅ CORRETO - Configuração otimizada
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm ci",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "memory": 1024
+      }
+    }
+  ],
+  "functions": {
+    "app/api/**": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "crons": []
+}
+```
+
+#### 2. Variáveis de Ambiente Não Configuradas
+**Problema**: Variáveis de ambiente não são acessíveis
+**Solução**: Configurar variáveis no dashboard e next.config.js
+
+```javascript
+// ❌ INCORRETO - Variáveis não expostas
+const nextConfig = {
+  reactStrictMode: true,
+};
+
+// ✅ CORRETO - Variáveis configuradas
+const nextConfig = {
+  reactStrictMode: true,
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+  publicRuntimeConfig: {
+    // Apenas variáveis públicas
+    API_URL: process.env.NEXT_PUBLIC_API_URL,
+  },
+  serverRuntimeConfig: {
+    // Variáveis privadas (servidor)
+    DATABASE_URL: process.env.DATABASE_URL,
+    SECRET_KEY: process.env.SECRET_KEY,
+  },
+};
+```
+
+#### 3. Edge Functions Mal Configuradas
+**Problema**: Edge functions não funcionam corretamente
+**Solução**: Configurar edge runtime adequadamente
+
+```typescript
+// ❌ INCORRETO - Runtime não especificado
+export default async function handler(req: NextRequest) {
+  // Código que não funciona no edge
+  const fs = require('fs');
+  return new Response('Hello');
+}
+
+// ✅ CORRETO - Edge runtime configurado
+export const runtime = 'edge';
+
+export default async function handler(req: NextRequest) {
+  // Código compatível com edge runtime
+  const country = req.geo?.country || 'US';
+  
+  return new Response(`Hello from ${country}`, {
+    headers: { 'content-type': 'text/plain' },
+  });
+}
+```
+
+#### 4. Otimização de Imagens Não Configurada
+**Problema**: Imagens não são otimizadas
+**Solução**: Configurar Next.js Image Optimization
+
+```javascript
+// ❌ INCORRETO - Sem otimização
+const nextConfig = {
+  images: {
+    domains: ['example.com'],
+  },
+};
+
+// ✅ CORRETO - Otimização completa
+const nextConfig = {
+  images: {
+    domains: ['example.com', 'cdn.example.com'],
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: false,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.example.com',
+        pathname: '/images/**',
+      },
+    ],
+  },
+};
+```
+
+## 📋 PRÉ-REQUISITOS
+
+### Dependências de Deploy:
+```bash
+# Vercel CLI
+npm install -g vercel
+
+# Dependências de otimização
+npm install @vercel/analytics @vercel/speed-insights
+npm install next-bundle-analyzer
+
+# Dependências de monitoramento
+npm install @vercel/og @vercel/edge-config
+```
+
+### Estrutura de Arquivos:
+```
+.
+├── vercel.json              # Configuração do Vercel
+├── next.config.js           # Configuração do Next.js
+├── public/
+│   └── robots.txt           # SEO
+├── app/
+│   ├── api/
+│   │   └── edge/            # Edge functions
+│   ├── globals.css          # Estilos globais
+│   └── layout.tsx           # Layout principal
+├── lib/
+│   ├── analytics.ts         # Analytics
+│   └── monitoring.ts        # Monitoramento
+└── scripts/
+    ├── deploy.sh            # Script de deploy
+    └── precheck.js          # Verificações pre-deploy
+```
+
+## 🚀 IMPLEMENTAÇÃO DO DEPLOY OTIMIZADO
+
+### 1. Configuração Completa do Vercel (vercel.json):
+
+```json
+{
+  "version": 2,
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm ci --production=false",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next@latest",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "memory": 1024,
+        "maxDuration": 30
+      }
+    }
+  ],
+  "functions": {
+    "app/api/upload/**": {
+      "maxDuration": 60
+    },
+    "app/api/heavy/**": {
+      "maxDuration": 300,
+      "memory": 3008
+    }
+  },
+  "regions": ["iad1", "sfo1"],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/proxy/:path*",
+      "destination": "https://api.external.com/:path*"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/old-path",
+      "destination": "/new-path",
+      "permanent": true
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "crons": [
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
+```
+
+### 2. Configuração Otimizada do Next.js (next.config.js):
+
+```javascript
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
+  compress: true,
+  
+  // Otimizações de performance
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client'],
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', '@heroicons/react'],
+  },
+
+  // Configuração de imagens
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60,
+    domains: ['example.com', 'cdn.example.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.vercel.app',
+      },
+    ],
+  },
+
+  // Headers de segurança
+  headers: async () => [
+    {
+      source: '/(.*)',
+      headers: [
+        {
+          key: 'Strict-Transport-Security',
+          value: 'max-age=31536000; includeSubDomains; preload',
+        },
+        {
+          key: 'Content-Security-Policy',
+          value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
+        },
+      ],
+    },
+  ],
+
+  // Configuração de cache
+  async rewrites() {
+    return [
+      {
+        source: '/api/cache/:path*',
+        destination: '/api/:path*',
+        has: [
+          {
+            type: 'header',
+            key: 'cache-control',
+            value: 'max-age=3600',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Configuração de redirects
+  async redirects() {
+    return [
+      {
+        source: '/old-dashboard',
+        destination: '/dashboard',
+        permanent: true,
+      },
+    ];
+  },
+
+  // Webpack customization
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Otimizações de bundle
+    config.optimization.splitChunks = {
+      chunks: 'all',
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          priority: 10,
+          reuseExistingChunk: true,
+        },
+      },
+    };
+
+    // Aliases para reduzir tamanho do bundle
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, './'),
+    };
+
+    return config;
+  },
+
+  // Configuração de output
+  output: 'standalone',
+  
+  // Configuração de trailing slash
+  trailingSlash: false,
+  
+  // Configuração de env vars
+  env: {
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    VERCEL_URL: process.env.VERCEL_URL,
+  },
+};
+
+module.exports = withBundleAnalyzer(nextConfig);
+```
+
+### 3. Edge Function Otimizada (app/api/edge/location/route.ts):
+
+```typescript
+export const runtime = 'edge';
+
+import { NextRequest, NextResponse } from 'next/server';
+import { geolocation } from '@vercel/edge';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Obter informações geográficas
+    const geo = geolocation(request);
+    
+    // Headers de cache otimizados
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60',
+      'CDN-Cache-Control': 'public, s-maxage=300',
+      'Vercel-CDN-Cache-Control': 'public, s-maxage=300',
+    });
+
+    // Personalização baseada na localização
+    const response = {
+      country: geo?.country || 'Unknown',
+      city: geo?.city || 'Unknown',
+      region: geo?.region || 'Unknown',
+      latitude: geo?.latitude || null,
+      longitude: geo?.longitude || null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timestamp: new Date().toISOString(),
+    };
+
+    return NextResponse.json(response, { headers });
+  } catch (error) {
+    console.error('Edge function error:', error);
+    
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### 4. Sistema de Monitoramento (lib/monitoring.ts):
+
+```typescript
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
+interface PerformanceMetrics {
+  FCP: number;
+  LCP: number;
+  FID: number;
+  CLS: number;
+  TTFB: number;
+}
+
+class VercelMonitoring {
+  private metrics: PerformanceMetrics[] = [];
+
+  // Enviar métricas customizadas
+  trackCustomMetric(name: string, value: number, unit: string = 'ms') {
+    if (typeof window !== 'undefined') {
+      // Usar Web Vitals API
+      const metric = {
+        name,
+        value,
+        unit,
+        timestamp: Date.now(),
+      };
+      
+      // Enviar para Vercel Analytics
+      this.sendToVercelAnalytics(metric);
+    }
+  }
+
+  // Monitorar Core Web Vitals
+  trackWebVitals() {
+    if (typeof window !== 'undefined') {
+      import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+        getCLS(this.onPerfEntry);
+        getFID(this.onPerfEntry);
+        getFCP(this.onPerfEntry);
+        getLCP(this.onPerfEntry);
+        getTTFB(this.onPerfEntry);
+      });
+    }
+  }
+
+  private onPerfEntry = (metric: any) => {
+    console.log(`${metric.name}: ${metric.value}${metric.unit}`);
+    
+    // Enviar para Vercel Analytics
+    this.sendToVercelAnalytics(metric);
+  };
+
+  private sendToVercelAnalytics(metric: any) {
+    if (typeof window !== 'undefined' && window.va) {
+      window.va.track('performance', metric);
+    }
+  }
+
+  // Monitorar erros
+  trackError(error: Error, context?: Record<string, any>) {
+    console.error('Application error:', error);
+    
+    const errorData = {
+      message: error.message,
+      stack: error.stack,
+      context,
+      timestamp: new Date().toISOString(),
+    };
+    
+    // Enviar para Vercel Analytics
+    if (typeof window !== 'undefined' && window.va) {
+      window.va.track('error', errorData);
+    }
+  }
+
+  // Monitorar APIs
+  trackAPICall(endpoint: string, method: string, duration: number, status: number) {
+    const metric = {
+      endpoint,
+      method,
+      duration,
+      status,
+      timestamp: Date.now(),
+    };
+    
+    // Log para desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`API Call: ${method} ${endpoint} - ${duration}ms (${status})`);
+    }
+    
+    // Enviar para analytics
+    if (typeof window !== 'undefined' && window.va) {
+      window.va.track('api_call', metric);
+    }
+  }
+}
+
+export const monitoring = new VercelMonitoring();
+
+// Componente de monitoramento
+export function MonitoringProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      <Analytics />
+      <SpeedInsights />
+    </>
+  );
+}
+```
+
+### 5. Script de Deploy (scripts/deploy.sh):
+
+```bash
+#!/bin/bash
+
+# Script de deploy otimizado para Vercel
+set -e
+
+echo "🚀 Iniciando deploy para Vercel..."
+
+# Verificações pré-deploy
+echo "🔍 Executando verificações pré-deploy..."
+
+# Verificar Node.js version
+NODE_VERSION=$(node --version)
+echo "Node.js version: $NODE_VERSION"
+
+# Verificar npm version
+NPM_VERSION=$(npm --version)
+echo "npm version: $NPM_VERSION"
+
+# Limpar cache
+echo "🧹 Limpando cache..."
+rm -rf .next
+rm -rf node_modules/.cache
+npm cache clean --force
+
+# Instalar dependências
+echo "📦 Instalando dependências..."
+npm ci
+
+# Verificar tipos TypeScript
+echo "🔍 Verificando tipos TypeScript..."
+npx tsc --noEmit
+
+# Executar testes
+echo "🧪 Executando testes..."
+npm test -- --passWithNoTests
+
+# Verificar build
+echo "🔨 Verificando build..."
+npm run build
+
+# Análise de bundle (opcional)
+if [ "$ANALYZE_BUNDLE" = "true" ]; then
+  echo "📊 Analisando bundle..."
+  ANALYZE=true npm run build
+fi
+
+# Verificar tamanho do bundle
+echo "📏 Verificando tamanho do bundle..."
+BUNDLE_SIZE=$(du -sh .next/static/chunks/ | cut -f1)
+echo "Tamanho do bundle: $BUNDLE_SIZE"
+
+# Deploy para Vercel
+echo "🚀 Fazendo deploy para Vercel..."
+
+if [ "$1" = "production" ]; then
+  echo "🎯 Deploy para PRODUÇÃO..."
+  vercel --prod --confirm
+else
+  echo "🧪 Deploy para PREVIEW..."
+  vercel --confirm
+fi
+
+echo "✅ Deploy concluído com sucesso!"
+
+# Verificar deploy
+echo "🔍 Verificando deploy..."
+DEPLOYMENT_URL=$(vercel ls --limit 1 | grep -o 'https://[^ ]*' | head -1)
+echo "URL do deployment: $DEPLOYMENT_URL"
+
+# Teste de saúde
+echo "🏥 Executando teste de saúde..."
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL/api/health")
+if [ "$HTTP_STATUS" = "200" ]; then
+  echo "✅ Teste de saúde passou!"
+else
+  echo "❌ Teste de saúde falhou (HTTP $HTTP_STATUS)"
+  exit 1
+fi
+
+echo "🎉 Deploy completado com sucesso!"
+```
+
+### 6. Verificações Pre-Deploy (scripts/precheck.js):
+
+```javascript
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+class PreDeployChecker {
+  constructor() {
+    this.errors = [];
+    this.warnings = [];
+  }
+
+  // Verificar arquivos essenciais
+  checkEssentialFiles() {
+    const requiredFiles = [
+      'package.json',
+      'next.config.js',
+      'app/layout.tsx',
+      'app/page.tsx',
+    ];
+
+    requiredFiles.forEach(file => {
+      if (!fs.existsSync(file)) {
+        this.errors.push(`Arquivo obrigatório não encontrado: ${file}`);
+      }
+    });
+  }
+
+  // Verificar dependências
+  checkDependencies() {
+    try {
+      execSync('npm audit --audit-level=high', { stdio: 'pipe' });
+    } catch (error) {
+      this.warnings.push('Vulnerabilidades encontradas nas dependências');
+    }
+  }
+
+  // Verificar build
+  checkBuild() {
+    try {
+      execSync('npm run build', { stdio: 'pipe' });
+      console.log('✅ Build executado com sucesso');
+    } catch (error) {
+      this.errors.push('Build falhou: ' + error.message);
+    }
+  }
+
+  // Verificar tipos TypeScript
+  checkTypeScript() {
+    try {
+      execSync('npx tsc --noEmit', { stdio: 'pipe' });
+      console.log('✅ Tipos TypeScript verificados');
+    } catch (error) {
+      this.errors.push('Erro de tipos TypeScript: ' + error.message);
+    }
+  }
+
+  // Verificar variáveis de ambiente
+  checkEnvironmentVariables() {
+    const requiredEnvVars = [
+      'DATABASE_URL',
+      'NEXTAUTH_SECRET',
+      'NEXTAUTH_URL',
+    ];
+
+    requiredEnvVars.forEach(envVar => {
+      if (!process.env[envVar]) {
+        this.errors.push(`Variável de ambiente obrigatória não configurada: ${envVar}`);
+      }
+    });
+  }
+
+  // Verificar tamanho do bundle
+  checkBundleSize() {
+    const bundlePath = '.next/static/chunks/';
+    if (fs.existsSync(bundlePath)) {
+      const { execSync } = require('child_process');
+      const size = execSync(`du -sh ${bundlePath}`, { encoding: 'utf8' });
+      const sizeValue = parseFloat(size.split('\t')[0]);
+      
+      if (sizeValue > 50) { // 50MB
+        this.warnings.push(`Bundle muito grande: ${size.trim()}`);
+      }
+    }
+  }
+
+  // Verificar performance
+  checkPerformance() {
+    const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    
+    // Verificar dependências pesadas
+    const heavyDependencies = [
+      'lodash',
+      'moment',
+      'jquery',
+    ];
+    
+    heavyDependencies.forEach(dep => {
+      if (packageJson.dependencies && packageJson.dependencies[dep]) {
+        this.warnings.push(`Dependência pesada encontrada: ${dep}`);
+      }
+    });
+  }
+
+  // Executar todas as verificações
+  async runAllChecks() {
+    console.log('🔍 Iniciando verificações pré-deploy...\n');
+    
+    this.checkEssentialFiles();
+    this.checkDependencies();
+    this.checkBuild();
+    this.checkTypeScript();
+    this.checkEnvironmentVariables();
+    this.checkBundleSize();
+    this.checkPerformance();
+    
+    // Mostrar resultados
+    console.log('\n📋 Resultados das verificações:');
+    
+    if (this.errors.length > 0) {
+      console.log('\n❌ ERROS ENCONTRADOS:');
+      this.errors.forEach(error => console.log(`  - ${error}`));
+    }
+    
+    if (this.warnings.length > 0) {
+      console.log('\n⚠️  AVISOS:');
+      this.warnings.forEach(warning => console.log(`  - ${warning}`));
+    }
+    
+    if (this.errors.length === 0 && this.warnings.length === 0) {
+      console.log('\n✅ Todas as verificações passaram!');
+    }
+    
+    // Sair com erro se houver problemas críticos
+    if (this.errors.length > 0) {
+      console.log('\n❌ Deploy não pode prosseguir devido aos erros acima.');
+      process.exit(1);
+    }
+    
+    console.log('\n🚀 Pronto para deploy!');
+  }
+}
+
+// Executar verificações
+const checker = new PreDeployChecker();
+checker.runAllChecks();
+```
+
+## ⚙️ CONFIGURAÇÕES AVANÇADAS
+
+### 1. Edge Config (lib/edge-config.ts):
+
+```typescript
+import { get } from '@vercel/edge-config';
+
+export async function getFeatureFlags() {
+  try {
+    const flags = await get('feature-flags');
+    return flags || {};
+  } catch (error) {
+    console.error('Erro ao buscar feature flags:', error);
+    return {};
+  }
+}
+
+export async function isFeatureEnabled(feature: string): Promise<boolean> {
+  try {
+    const flags = await getFeatureFlags();
+    return flags[feature] === true;
+  } catch (error) {
+    console.error(`Erro ao verificar feature ${feature}:`, error);
+    return false;
+  }
+}
+```
+
+### 2. Middleware de Performance (middleware.ts):
+
+```typescript
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const start = Date.now();
+  
+  // Headers de performance
+  const response = NextResponse.next();
+  
+  // Adicionar headers de cache baseados na rota
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    response.headers.set('Cache-Control', 'no-store');
+  } else if (request.nextUrl.pathname.startsWith('/static/')) {
+    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+  
+  // Adicionar timing header
+  const duration = Date.now() - start;
+  response.headers.set('X-Response-Time', `${duration}ms`);
+  
+  return response;
+}
+
+export const config = {
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+};
+```
+
+## 🛠️ TROUBLESHOOTING
+
+### Problema 1: Build timeout
+**Causa**: Build muito lento ou dependências pesadas
+**Solução**: Otimizar dependências e usar build cache
+
+### Problema 2: Cold start lento
+**Causa**: Bundle muito grande ou muitas dependências
+**Solução**: Code splitting e tree shaking
+
+### Problema 3: Edge functions falham
+**Causa**: Código incompatível com edge runtime
+**Solução**: Usar apenas APIs compatíveis com edge
+
+### Problema 4: Cache não funciona
+**Causa**: Headers incorretos ou invalidação prematura
+**Solução**: Configurar headers de cache corretamente
+
+## ✅ CHECKLIST FINAL DE DEPLOY
+
+### Verificações Obrigatórias:
+- [ ] **Build**: Build local executa sem erros
+- [ ] **TypeScript**: Tipos verificados sem erros
+- [ ] **Testes**: Todos os testes passando
+- [ ] **Variáveis**: Env vars configuradas no Vercel
+- [ ] **Performance**: Bundle otimizado
+- [ ] **Cache**: Headers de cache configurados
+- [ ] **Segurança**: Headers de segurança aplicados
+- [ ] **Monitoramento**: Analytics configurado
+- [ ] **Edge**: Edge functions testadas
+- [ ] **Domínio**: Domínio personalizado configurado
+
+### Comandos de Validação Final:
+```bash
+# Executar verificações
+node scripts/precheck.js
+
+# Deploy
+./scripts/deploy.sh production
+
+# Verificar deployment
+vercel ls
+
+# Testar URLs
+curl -I https://your-domain.vercel.app
+```
+
+## 🎉 CONCLUSÃO
+
+Este prompt implementa uma estratégia completa de deploy e otimização para Vercel, incluindo:
+- ✅ **Configuração otimizada** para máxima performance
+- ✅ **Sistema de monitoramento** integrado
+- ✅ **Edge functions** para baixa latência
+- ✅ **Cache inteligente** para velocidade
+- ✅ **Verificações automatizadas** pre-deploy
+- ✅ **Scripts de deployment** profissionais
+
+**Monitore regularmente as métricas de performance e mantenha as configurações atualizadas!** 

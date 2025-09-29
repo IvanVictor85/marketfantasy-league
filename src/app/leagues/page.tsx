@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Navbar } from '@/components/layout/navbar';
 import { CartolaCard, LeagueCard } from '@/components/cartola-card';
 import { Plus, Users, Trophy, Clock, Coins, Crown, TrendingDown } from 'lucide-react';
 
@@ -146,8 +145,6 @@ export default function LeaguesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-      <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         {/* Header da Página */}
         <div className="mb-8">

@@ -18,7 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, Wallet, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -215,7 +215,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </div>
 
           {/* Email Login/Register Section */}
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'register')}>
+          <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'login' | 'register')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Cadastrar</TabsTrigger>

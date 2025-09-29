@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/providers/wallet-provider";
 import { AuthProvider } from "@/contexts/auth-context";
+import { Navbar } from "@/components/layout/navbar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,14 +32,11 @@ export default function RootLayout({
       <head>
         <script src="/suppress-metamask.js" async />
       </head>
-      <body className={`${inter.variable} font-sans bg-background text-foreground antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         <WalletContextProvider>
           <AuthProvider>
-            <div className="min-h-screen bg-background">
-              <div className="max-w-7xl mx-auto">
-                {children}
-              </div>
-            </div>
+            <Navbar />
+            {children}
           </AuthProvider>
         </WalletContextProvider>
       </body>

@@ -19,7 +19,11 @@
     'Object.connect',
     'async o',
     'scripts/inpage.js',
-    'wallet connection failed'
+    'wallet connection failed',
+    'chrome-extension://',
+    'ethereum',
+    'provider',
+    'web3'
   ];
   
   // Function to check if message contains MetaMask patterns
@@ -113,6 +117,7 @@
     const reason = String(event.reason || '');
     if (isMetaMaskError(reason)) {
       event.preventDefault();
+      event.stopPropagation();
       // Show user-friendly notification
       if (document.body) {
         showMetaMaskErrorNotification();
@@ -121,13 +126,15 @@
       }
       return false;
     }
-  });
+  }, true);
   
   // Handle general errors
   window.addEventListener('error', function(event) {
     const message = event.message || '';
-    if (isMetaMaskError(message)) {
+    const stack = event.error?.stack || '';
+    if (isMetaMaskError(message) || isMetaMaskError(stack)) {
       event.preventDefault();
+      event.stopPropagation();
       // Show user-friendly notification
       if (document.body) {
         showMetaMaskErrorNotification();
@@ -136,7 +143,7 @@
       }
       return false;
     }
-  });
+  }, true);
   
   // Disable MetaMask auto-refresh on network change if present
   if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {

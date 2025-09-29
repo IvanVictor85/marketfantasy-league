@@ -4,7 +4,7 @@ import path from "path";
 const nextConfig: NextConfig = {
   // Configuração estável
   reactStrictMode: false,
-  swcMinify: false, // Desativando swcMinify para evitar problemas
+  // swcMinify removido pois não é reconhecido na versão atual do Next.js
   compress: true,
   
   // Otimizações de performance para Vercel

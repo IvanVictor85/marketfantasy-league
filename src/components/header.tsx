@@ -34,11 +34,11 @@ export function Header() {
               Dashboard
             </Link>
             <Link 
-              href="/leagues" 
-              className="text-white hover:text-orange-100 transition-colors font-medium"
-            >
-              Ligas
-            </Link>
+                href="/ligas" 
+                className="text-white hover:text-orange-100 transition-colors font-medium"
+              >
+                Ligas
+              </Link>
             <Link 
               href="/teams" 
               className="text-white hover:text-orange-100 transition-colors font-medium"

@@ -37,6 +37,7 @@ interface SoccerFieldProps {
   formation?: '433' | '442' | '352';
   selectedToken?: TokenMarketData | null;
   onTokenAdd?: (token: TokenMarketData, position: number) => void;
+  selectedPosition?: number | null;
 }
 
 const defaultPlayers: Player[] = [];
@@ -49,20 +50,8 @@ export function SoccerField({
   selectedToken,
   onTokenAdd
 }: SoccerFieldProps) {
-  const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
   const [dragOverPosition, setDragOverPosition] = useState<number | null>(null);
-
-  const handlePositionClick = (position: number) => {
-    const existingPlayer = players.find(p => p.position === position);
-    
-    if (existingPlayer) {
-      // If there's a player, remove them
-      onRemovePlayer(position);
-    } else {
-      // If no player, add one
-      onAddPlayer(position);
-    }
-  };
+  const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
 
   // Formation layouts - positions on the field (x, y coordinates as percentages) - 10 players
   const formations: Record<'433' | '442' | '352', Record<number, { x: number; y: number }>> = {
@@ -251,7 +240,7 @@ export function SoccerField({
                         {/* Círculo do jogador */}
                         <div 
                           className={`w-16 h-16 rounded-full border-4 ${getRarityColor(player.rarity)} flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg bg-white relative overflow-hidden`}
-                          onClick={() => setSelectedPosition(positionNum)}
+                          onClick={() => onRemovePlayer(positionNum)}
                         >
                           {player.image ? (
                             <>
@@ -320,11 +309,12 @@ export function SoccerField({
                     </div>
                   ) : (
                     <div
-                      className={`w-16 h-16 rounded-full border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${dragOverPosition === positionNum ? 'border-blue-400 bg-blue-400/50 scale-110' : selectedToken ? 'border-green-400 bg-green-400/30 hover:bg-green-400/50' : 'border-white/60 bg-white/20 hover:bg-white/30'}`}
+                      className={`w-16 h-16 rounded-full border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${dragOverPosition === positionNum ? 'border-blue-400 bg-blue-400/50 scale-110' : selectedToken ? 'border-green-400 bg-green-400/30 hover:bg-green-400/50' : selectedPosition === positionNum ? 'border-primary bg-primary/30 hover:bg-primary/50' : 'border-white/50 bg-black/30 hover:bg-black/50'}`}
                       onClick={() => {
                         if (selectedToken && onTokenAdd) {
                           onTokenAdd(selectedToken, positionNum);
                         } else {
+                          setSelectedPosition(positionNum);
                           onAddPlayer?.(positionNum);
                         }
                       }}
@@ -332,8 +322,8 @@ export function SoccerField({
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, positionNum)}
                     >
-                      <Plus className={`w-6 h-6 mb-1 ${dragOverPosition === positionNum ? 'text-blue-100' : selectedToken ? 'text-green-100' : 'text-white'}`} />
-                      <div className={`text-xs font-bold ${dragOverPosition === positionNum ? 'text-blue-100' : selectedToken ? 'text-green-100' : 'text-white'}`}>
+                      <Plus className={`w-6 h-6 mb-1 ${dragOverPosition === positionNum ? 'text-blue-100' : selectedToken ? 'text-green-100' : selectedPosition === positionNum ? 'text-primary-foreground' : 'text-white'}`} />
+                      <div className={`text-xs font-bold ${dragOverPosition === positionNum ? 'text-blue-100' : selectedToken ? 'text-green-100' : selectedPosition === positionNum ? 'text-primary-foreground' : 'text-white'}`}>
                         {positionNum}
                       </div>
                       {dragOverPosition === positionNum && (
@@ -367,29 +357,7 @@ export function SoccerField({
         </CardContent>
       </Card>
 
-      {/* Position Legend */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Crown className="w-4 h-4 text-yellow-600" />
-              <span>1 - Goleiro</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-blue-600" />
-              <span>2-5 - Zagueiros</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-green-600" />
-              <span>6-8 - Meio-campo</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-red-600" />
-              <span>9-10 - Atacantes</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
     </div>
   );
 }

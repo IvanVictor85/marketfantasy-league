@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Bull Mascot -->
+  <g>
+    <!-- Bull Body Structure -->
+    <path d="M100,120 C80,110 75,95 85,80 C95,65 115,60 130,70 C140,60 155,55 170,60 C185,65 195,75 200,90 C210,85 220,90 225,100 C230,110 225,125 215,130 C220,140 215,155 205,160 C195,165 180,160 175,150 C165,160 150,165 135,160 C120,155 110,145 105,130 C95,135 85,130 80,120 C75,110 80,100 90,95 C85,105 90,115 100,120" fill="#48cae4" opacity="0.9"/>
+    
+    <!-- Bull Details -->
+    <path d="M130,70 C135,65 145,63 155,65 C165,68 172,73 175,80" fill="none" stroke="#023e8a" stroke-width="2"/>
+    <path d="M200,90 C205,88 213,88 218,93" fill="none" stroke="#023e8a" stroke-width="2"/>
+    <path d="M175,150 C170,155 163,158 155,155 C148,153 143,148 140,140" fill="none" stroke="#023e8a" stroke-width="2"/>
+    
+    <!-- Bull Horns -->
+    <path d="M85,80 C75,70 70,55 75,40 C80,25 95,20 105,30" fill="#48cae4" opacity="0.9"/>
+    <path d="M130,70 C125,60 128,45 138,35 C148,25 163,30 165,45" fill="#48cae4" opacity="0.9"/>
+    
+    <!-- Bull Eye -->
+    <circle cx="100" cy="90" r="5" fill="#0096c7"/>
+    <circle cx="100" cy="90" r="2" fill="#023e8a"/>
+    <circle cx="99" cy="89" r="1" fill="white"/>
+  </g>
+</svg>

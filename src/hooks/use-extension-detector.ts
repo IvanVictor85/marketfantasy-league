@@ -104,7 +104,7 @@ export function useExtensionDetector(): ExtensionDetection {
             return false;
           }
         };
-
+        
         window.addEventListener('unhandledrejection', handleRejection);
         
         // Also handle errors that might bubble up
