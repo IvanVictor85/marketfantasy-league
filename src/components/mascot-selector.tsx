@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -109,11 +110,11 @@ export function MascotSelector({
 
               {/* Mascot Image */}
               <div className="mb-3">
-                <img
+                <Image
                   src={mascot.url}
                   alt={mascot.name}
-                  width="80"
-                  height="80"
+                  width={80}
+                  height={80}
                   className="mx-auto object-contain filter drop-shadow-lg transition-transform duration-300 hover:scale-110"
                 />
               </div>
@@ -141,11 +142,11 @@ export function MascotSelector({
       {selectedMascot && (
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-center gap-4">
-            <img
+            <Image
               src={selectedMascot}
               alt="Mascote selecionado"
-              width="60"
-              height="60"
+              width={60}
+              height={60}
               className="object-contain filter drop-shadow-lg"
             />
             <div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 
 interface User {
@@ -51,6 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkExistingSession();
   }, []);
 
+  const logout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem('cryptofantasy_user');
+    
+    // If user was logged in with wallet, disconnect it
+    if (user?.loginMethod === 'wallet' && connected) {
+      disconnect();
+    }
+  }, [user?.loginMethod, connected, disconnect]);
+
   useEffect(() => {
     // Handle wallet connection changes
     if (connected && publicKey && user?.loginMethod === 'wallet') {
@@ -59,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If wallet disconnects, logout the user
       logout();
     }
-  }, [connected, publicKey, user?.loginMethod]);
+  }, [connected, publicKey, user?.loginMethod, logout]);
 
   const loginWithEmail = async (email: string, password: string) => {
     setIsLoading(true);
@@ -195,16 +205,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Falha no cadastro. Tente novamente.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('cryptofantasy_user');
-    
-    // If user was logged in with wallet, disconnect it
-    if (user?.loginMethod === 'wallet' && connected) {
-      disconnect();
     }
   };
 

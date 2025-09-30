@@ -2,6 +2,7 @@
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,9 +60,11 @@ export function WalletConnectButton() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               {wallet?.adapter.icon && (
-                <img 
+                <Image 
                   src={wallet.adapter.icon} 
                   alt={wallet.adapter.name}
+                  width={24}
+                  height={24}
                   className="w-6 h-6 rounded-full"
                 />
               )}
@@ -161,9 +164,11 @@ export function PhantomWalletButton() {
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg">
           {wallet?.adapter.icon && (
-            <img 
+            <Image 
               src={wallet.adapter.icon} 
               alt={wallet.adapter.name}
+              width={20}
+              height={20}
               className="w-5 h-5 rounded-full"
             />
           )}

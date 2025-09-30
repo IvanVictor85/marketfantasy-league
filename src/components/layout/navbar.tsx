@@ -22,9 +22,9 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <a href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2">
             <span className="text-xl font-bold text-primary-foreground">CryptoFantasy League</span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation - Center */}
           <div className="hidden md:flex md:items-center md:justify-center md:space-x-8">
@@ -32,7 +32,7 @@ export function Navbar() {
               const isActive = pathname === item.href;
               
               return (
-                <a
+                <Link
                   key={item.name}
                   href={item.href}
                   className={`px-3 py-2 text-sm font-medium transition-colors ${
@@ -42,7 +42,7 @@ export function Navbar() {
                   }`}
                 >
                   {item.name}
-                </a>
+                </Link>
               );
             })}
           </div>
