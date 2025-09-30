@@ -1,7 +1,8 @@
-import type { NextConfig } from "next";
-import path from "path";
+// next.config.js
+const path = require("path");
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Configuração estável
   reactStrictMode: false,
   // swcMinify removido pois não é reconhecido na versão atual do Next.js
@@ -20,7 +21,7 @@ const nextConfig: NextConfig = {
   webpack: (config, { dev, isServer }) => {
     if (dev) {
       // Remover plugins de HMR
-      config.plugins = config.plugins.filter((plugin: any) => {
+      config.plugins = config.plugins.filter((plugin) => {
         return plugin.constructor.name !== 'HotModuleReplacementPlugin';
       });
       
@@ -39,7 +40,7 @@ const nextConfig: NextConfig = {
           // Filtrar entradas relacionadas ao HMR
           Object.keys(entries).forEach(key => {
             if (Array.isArray(entries[key])) {
-              entries[key] = entries[key].filter((entry: string) => 
+              entries[key] = entries[key].filter((entry) => 
                 !entry.includes('webpack/hot') && 
                 !entry.includes('webpack-hot-middleware') &&
                 !entry.includes('react-refresh')
@@ -112,4 +113,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
