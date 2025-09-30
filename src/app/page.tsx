@@ -25,35 +25,51 @@ import {
 
 // Seção Herói com tema Touro vs. Urso
 const HeroSection = () => (
-  <section className="relative py-24 overflow-hidden">
+  <section className="relative py-16 md:py-20 lg:py-28 overflow-hidden h-[500px] md:h-[600px] lg:h-[700px]">
     {/* Background com overlay */}
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 bg-[#9945FF]/30">
       <div 
-        className="absolute inset-0 opacity-100 bg-cover bg-center"
+        className="absolute inset-0 opacity-90 scale-110 md:scale-105 lg:scale-100"
         style={{
           backgroundImage: 'url(/mascots/bull-bear-arena.png)',
           backgroundSize: 'cover',
-          backgroundPosition: 'center'
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat',
+          width: '100%',
+          height: '100%',
         }}
       >
       </div>
     </div>
     
-    <div className="absolute inset-0 bg-gradient-to-b from-[#9945FF]/30 to-[#9945FF]/50" />
+    {/* Gradiente para melhor contraste */}
+    <div className="absolute inset-0 bg-gradient-to-b from-[#9945FF]/30 to-[#9945FF]/60" />
     
-    <div className="container relative mx-auto px-4 py-16 text-center">
-      <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-lg">
-        O Fantasy Game do Universo Cripto.
+    <div className="container relative mx-auto px-4 py-12 md:py-20 text-center">
+      
+      <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 md:mb-8 drop-shadow-lg tracking-tight leading-tight">
+        O Fantasy Game do <span className="text-[#F7931A]">Universo Cripto</span>.
       </h1>
-      <p className="text-[#00FFA3] text-xl md:text-2xl max-w-3xl mx-auto mb-8 drop-shadow-md">
+      
+      <p className="text-[#00FFA3] text-xl md:text-2xl lg:text-3xl max-w-4xl mx-auto mb-8 md:mb-10 drop-shadow-md font-medium">
         Desafie seus amigos e sua comunidade favorita. Monte seu time de cripto e conquiste prêmios reais em ligas seguras e 100% on-chain.
       </p>
-      <Link href="/ligas">
-        <Button className="bg-[#F7931A] hover:bg-[#F7931A]/90 text-white text-lg px-8 py-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105">
-          Começar a Jogar
-          <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
-      </Link>
+      
+      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
+        <Link href="/ligas">
+          <Button className="bg-[#F7931A] hover:bg-[#F7931A]/90 text-white text-lg md:text-xl px-8 md:px-10 py-6 md:py-7 rounded-xl shadow-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl z-10 relative font-bold">
+            Começar a Jogar
+            <ArrowRight className="ml-2 h-6 w-6" />
+          </Button>
+        </Link>
+        
+        <Link href="/dashboard">
+          <Button variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10 text-lg md:text-xl px-8 md:px-10 py-6 md:py-7 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 z-10 relative font-medium">
+            Ver Dashboard
+          </Button>
+        </Link>
+      </div>
+      
     </div>
   </section>
 );

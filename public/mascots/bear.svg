@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <style>
+    .bear-body { fill: #4C1D95; }
+    .bear-highlight { fill: #6D28D9; }
+    .bear-shadow { fill: #3B0764; }
+  </style>
+  <g transform="translate(50, 50) scale(0.8)">
+    <!-- Bear Silhouette -->
+    <path class="bear-body" d="M400,300 C450,250 450,150 400,100 C350,50 250,50 200,100 C150,150 150,250 200,300 C250,350 350,350 400,300 Z" />
+    <path class="bear-shadow" d="M200,300 C150,250 150,150 200,100 C180,120 170,150 170,200 C170,250 180,280 200,300 Z" />
+    <path class="bear-highlight" d="M400,100 C350,50 250,50 200,100 C220,80 300,80 350,100 C400,120 420,200 400,300 C420,280 430,250 430,200 C430,150 420,120 400,100 Z" />
+    
+    <!-- Bear Ears -->
+    <circle cx="180" cy="100" r="40" class="bear-body" />
+    <circle cx="420" cy="100" r="40" class="bear-body" />
+    
+    <!-- Bear Eyes -->
+    <circle cx="180" cy="180" r="15" fill="#FFFFFF" />
+    <circle cx="420" cy="180" r="15" fill="#FFFFFF" />
+    <circle cx="180" cy="180" r="8" fill="#000000" />
+    <circle cx="420" cy="180" r="8" fill="#000000" />
+    
+    <!-- Bear Nose -->
+    <path d="M300,220 C320,240 280,240 300,220 Z" fill="#000000" />
+  </g>
+</svg>

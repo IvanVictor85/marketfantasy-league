@@ -379,8 +379,18 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                 </div>
                 
                 <div className="col-span-2 text-sm font-medium text-right">
-                  <span className={getPercentageColorClass(token.change_24h)}>
-                    {formatPercentage(token.change_24h)}
+                  <span className={getPercentageColorClass(
+                    selectedPeriod === 'oneHour' ? token.change_1h :
+                    selectedPeriod === 'twentyFourHour' ? token.change_24h :
+                    selectedPeriod === 'sevenDay' ? token.change_7d :
+                    selectedPeriod === 'thirtyDay' ? token.change_1w : 0
+                  )}>
+                    {formatPercentage(
+                      selectedPeriod === 'oneHour' ? token.change_1h :
+                      selectedPeriod === 'twentyFourHour' ? token.change_24h :
+                      selectedPeriod === 'sevenDay' ? token.change_7d :
+                      selectedPeriod === 'thirtyDay' ? token.change_1w : 0
+                    )}
                   </span>
                 </div>
                 

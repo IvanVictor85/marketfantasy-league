@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { WalletContextProvider } from "@/components/providers/wallet-provider";
 import { AuthProvider } from "@/contexts/auth-context";
@@ -30,7 +31,17 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
-        <script src="/suppress-metamask.js" async />
+        {/* Script carregado no início para suprimir erros do MetaMask */}
+        {/* 
+          Usando o componente Script com a estratégia lazyOnload para evitar conflitos de hidratação
+          com extensões do navegador como Magic Eden e MetaMask 
+        */}
+        <Script 
+          src="/suppress-metamask.js"
+          id="suppress-metamask"
+          strategy="lazyOnload"
+          data-nscript="lazyOnload"
+        />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <WalletContextProvider>

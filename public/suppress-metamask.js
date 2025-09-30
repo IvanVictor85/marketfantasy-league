@@ -7,23 +7,25 @@
   // Store original console methods
   const originalError = console.error;
   const originalWarn = console.warn;
+  const originalLog = console.log;
   
-  // MetaMask error patterns to handle
+  // MetaMask error patterns to handle - expanded to catch more patterns
   const metamaskPatterns = [
     'MetaMask',
-    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn',
-    'Failed to connect to MetaMask',
+    'chrome-extension://',
+    'Failed to connect',
     'inpage.js',
     'injected.js',
-    'ethereum.request',
+    'ethereum',
     'Object.connect',
     'async o',
-    'scripts/inpage.js',
-    'wallet connection failed',
-    'chrome-extension://',
-    'ethereum',
+    'scripts/inpage',
+    'wallet connection',
     'provider',
-    'web3'
+    'web3',
+    'nkbihfbeogaeaoehlefnkodbefgpgknn',
+    'Call Stack',
+    'Cannot redefine property'
   ];
   
   // Function to check if message contains MetaMask patterns
@@ -112,10 +114,21 @@
     originalWarn.apply(console, args);
   };
   
-  // Handle unhandled promise rejections
+  // Override console.log to catch MetaMask errors that might be logged
+  console.log = function(...args) {
+    const message = args.join(' ');
+    if (isMetaMaskError(message)) {
+      return;
+    }
+    originalLog.apply(console, args);
+  };
+  
+  // Handle unhandled promise rejections - captura mais agressivamente
   window.addEventListener('unhandledrejection', function(event) {
     const reason = String(event.reason || '');
-    if (isMetaMaskError(reason)) {
+    const stack = event.reason?.stack || '';
+    
+    if (isMetaMaskError(reason) || isMetaMaskError(stack)) {
       event.preventDefault();
       event.stopPropagation();
       // Show user-friendly notification
@@ -145,13 +158,37 @@
     }
   }, true);
   
-  // Disable MetaMask auto-refresh on network change if present
-  if (typeof window !== 'undefined' && window.ethereum?.isMetaMask) {
-    try {
-      window.ethereum.autoRefreshOnNetworkChange = false;
-    } catch (e) {
-      // Silently ignore
+  // Interceptar e bloquear scripts do MetaMask
+  const originalCreateElement = document.createElement;
+  document.createElement = function(tagName) {
+    const element = originalCreateElement.call(document, tagName);
+    
+    if (tagName.toLowerCase() === 'script') {
+      const originalSetAttribute = element.setAttribute;
+      element.setAttribute = function(name, value) {
+        if (name === 'src' && isMetaMaskError(value)) {
+          // Bloquear carregamento de scripts do MetaMask
+          return;
+        }
+        return originalSetAttribute.call(this, name, value);
+      };
     }
+    
+    return element;
+  };
+  
+  // Criar um objeto ethereum falso para evitar erros
+  if (typeof window !== 'undefined' && !window.ethereum) {
+    window.ethereum = {
+      isMetaMask: false,
+      isPhantom: true,
+      request: function() {
+        return Promise.resolve(null);
+      },
+      on: function() {},
+      removeListener: function() {},
+      autoRefreshOnNetworkChange: false
+    };
   }
   
 })();

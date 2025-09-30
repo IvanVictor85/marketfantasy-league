@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <style>
+    .bull-body { fill: #F7931A; }
+    .bull-highlight { fill: #FFC069; }
+    .bull-shadow { fill: #D97A00; }
+  </style>
+  <g transform="translate(50, 50) scale(0.8)">
+    <!-- Bull Silhouette -->
+    <path class="bull-body" d="M400,300 C450,250 450,150 400,100 C350,50 250,50 200,100 C150,150 150,250 200,300 C250,350 350,350 400,300 Z" />
+    <path class="bull-shadow" d="M200,300 C150,250 150,150 200,100 C180,120 170,150 170,200 C170,250 180,280 200,300 Z" />
+    <path class="bull-highlight" d="M400,100 C350,50 250,50 200,100 C220,80 300,80 350,100 C400,120 420,200 400,300 C420,280 430,250 430,200 C430,150 420,120 400,100 Z" />
+    
+    <!-- Bull Horns -->
+    <path class="bull-body" d="M150,150 C100,100 50,120 30,150 C20,170 30,200 50,220 C70,240 100,250 130,230 C150,220 160,200 150,150 Z" />
+    <path class="bull-body" d="M450,150 C500,100 550,120 570,150 C580,170 570,200 550,220 C530,240 500,250 470,230 C450,220 440,200 450,150 Z" />
+    
+    <!-- Bull Eyes -->
+    <circle cx="180" cy="180" r="15" fill="#FFFFFF" />
+    <circle cx="420" cy="180" r="15" fill="#FFFFFF" />
+    <circle cx="180" cy="180" r="8" fill="#000000" />
+    <circle cx="420" cy="180" r="8" fill="#000000" />
+    
+    <!-- Bull Nose -->
+    <path d="M300,250 C320,270 280,270 300,250 Z" fill="#000000" />
+  </g>
+</svg>
