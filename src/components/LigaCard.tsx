@@ -35,6 +35,10 @@ export function LigaCard({
 }: LigaCardProps) {
   const isPrincipal = type === 'principal';
 
+  // Define o logo padrão para a liga principal
+  const defaultLogoUrl = isPrincipal ? '/league-logos/main-league-trophy.png' : '';
+  const finalLogoUrl = logoUrl || defaultLogoUrl;
+
   return (
     <Card 
       className={`bg-white rounded-xl shadow-md hover:shadow-lg transition-all ${
@@ -43,9 +47,9 @@ export function LigaCard({
     >
       <CardHeader className="pb-2 flex items-center justify-center">
         <div className="relative w-16 h-16 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
-          {logoUrl ? (
+          {finalLogoUrl ? (
             <Image 
-              src={logoUrl} 
+              src={finalLogoUrl} 
               alt={`Logo da liga ${name}`} 
               fill 
               className="object-cover"
