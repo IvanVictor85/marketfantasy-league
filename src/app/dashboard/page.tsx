@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,85 +34,116 @@ import {
   ShoppingCart
 } from 'lucide-react';
 
-// Mock Data Types
-interface Token {
-  name: string;
-  symbol: string;
-  logoUrl: string;
-  performance: number;
-}
-
-interface League {
-  leagueName: string;
-  rank: number;
-  totalParticipants: number;
-  partialScore: number;
-  lastRoundScore: number;
-  team: Token[];
-}
-
-interface UserData {
-  teamName: string;
-  userName: string;
-  mascot: {
-    animal: string;
-    shirt: string;
-  };
-  leagues: League[];
-}
+// Importando os novos tipos
+import { 
+  UserData, 
+  League, 
+  Token, 
+  LeagueTeam, 
+  MainTeam, 
+  TeamSelectOption, 
+  DashboardData 
+} from '@/types/teams';
 
 // Mock Data
 const mockUserData: UserData = {
+  id: "user-1",
   teamName: "Sport Club Receba",
   userName: "Ivan Victor",
   mascot: {
     animal: "doge",
     shirt: "solana"
   },
+  mainTeam: {
+    id: "main-team-1",
+    userId: "user-1",
+    formation: "433",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    players: [
+      { id: "sol", position: 1, name: "Solana", token: "SOL", image: "", price: 100, points: 85, rarity: "legendary", change_24h: 12.5 },
+      { id: "btc", position: 2, name: "Bitcoin", token: "BTC", image: "", price: 45000, points: 92, rarity: "legendary", change_24h: 5.2 },
+      { id: "eth", position: 3, name: "Ethereum", token: "ETH", image: "", price: 2500, points: 88, rarity: "epic", change_24h: 3.8 },
+      { id: "ada", position: 4, name: "Cardano", token: "ADA", image: "", price: 0.5, points: 75, rarity: "rare", change_24h: 1.5 },
+      { id: "dot", position: 5, name: "Polkadot", token: "DOT", image: "", price: 7, points: 78, rarity: "rare", change_24h: 2.7 },
+      { id: "link", position: 6, name: "Chainlink", token: "LINK", image: "", price: 15, points: 82, rarity: "epic", change_24h: 4.3 },
+      { id: "avax", position: 7, name: "Avalanche", token: "AVAX", image: "", price: 35, points: 80, rarity: "rare", change_24h: 6.1 },
+      { id: "matic", position: 8, name: "Polygon", token: "MATIC", image: "", price: 1, points: 76, rarity: "common", change_24h: 3.2 },
+      { id: "doge", position: 9, name: "Dogecoin", token: "DOGE", image: "", price: 0.08, points: 65, rarity: "common", change_24h: -4.2 },
+      { id: "uni", position: 10, name: "Uniswap", token: "UNI", image: "", price: 6, points: 72, rarity: "rare", change_24h: 0.8 }
+    ]
+  },
+  leagueTeams: [
+    {
+      id: "team-liga-1",
+      leagueId: "liga-1",
+      userId: "user-1",
+      formation: "433",
+      isMainTeam: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      players: [
+        { id: "sol", position: 1, name: "Solana", token: "SOL", image: "", price: 100, points: 85, rarity: "legendary", change_24h: 12.5 },
+        { id: "btc", position: 2, name: "Bitcoin", token: "BTC", image: "", price: 45000, points: 92, rarity: "legendary", change_24h: 5.2 },
+        { id: "eth", position: 3, name: "Ethereum", token: "ETH", image: "", price: 2500, points: 88, rarity: "epic", change_24h: 3.8 },
+        { id: "ada", position: 4, name: "Cardano", token: "ADA", image: "", price: 0.5, points: 75, rarity: "rare", change_24h: 1.5 },
+        { id: "dot", position: 5, name: "Polkadot", token: "DOT", image: "", price: 7, points: 78, rarity: "rare", change_24h: 2.7 },
+        { id: "link", position: 6, name: "Chainlink", token: "LINK", image: "", price: 15, points: 82, rarity: "epic", change_24h: 4.3 },
+        { id: "avax", position: 7, name: "Avalanche", token: "AVAX", image: "", price: 35, points: 80, rarity: "rare", change_24h: 6.1 },
+        { id: "matic", position: 8, name: "Polygon", token: "MATIC", image: "", price: 1, points: 76, rarity: "common", change_24h: 3.2 },
+        { id: "doge", position: 9, name: "Dogecoin", token: "DOGE", image: "", price: 0.08, points: 65, rarity: "common", change_24h: -4.2 },
+        { id: "uni", position: 10, name: "Uniswap", token: "UNI", image: "", price: 6, points: 72, rarity: "rare", change_24h: 0.8 }
+      ]
+    },
+    {
+      id: "team-liga-2",
+      leagueId: "liga-2",
+      userId: "user-1",
+      formation: "442",
+      isMainTeam: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      players: [
+        { id: "btc", position: 1, name: "Bitcoin", token: "BTC", image: "", price: 45000, points: 92, rarity: "legendary", change_24h: 5.2 },
+        { id: "eth", position: 2, name: "Ethereum", token: "ETH", image: "", price: 2500, points: 88, rarity: "epic", change_24h: 3.8 },
+        { id: "bnb", position: 3, name: "Binance Coin", token: "BNB", image: "", price: 300, points: 85, rarity: "epic", change_24h: 7.1 },
+        { id: "xrp", position: 4, name: "Ripple", token: "XRP", image: "", price: 0.6, points: 70, rarity: "common", change_24h: 2.3 },
+        { id: "ada", position: 5, name: "Cardano", token: "ADA", image: "", price: 0.5, points: 75, rarity: "rare", change_24h: 1.5 },
+        { id: "sol", position: 6, name: "Solana", token: "SOL", image: "", price: 100, points: 85, rarity: "legendary", change_24h: 12.5 },
+        { id: "dot", position: 7, name: "Polkadot", token: "DOT", image: "", price: 7, points: 78, rarity: "rare", change_24h: 2.7 },
+        { id: "doge", position: 8, name: "Dogecoin", token: "DOGE", image: "", price: 0.08, points: 65, rarity: "common", change_24h: -4.2 },
+        { id: "avax", position: 9, name: "Avalanche", token: "AVAX", image: "", price: 35, points: 80, rarity: "rare", change_24h: 6.1 },
+        { id: "shib", position: 10, name: "Shiba Inu", token: "SHIB", image: "", price: 0.00001, points: 60, rarity: "common", change_24h: -2.5 }
+      ]
+    }
+  ],
   leagues: [
     {
+      id: "liga-1",
       leagueName: "Liga Principal",
       rank: 128,
       totalParticipants: 1500,
       partialScore: 8.34,
       lastRoundScore: 2.10,
-      team: [
-        { name: "Solana", symbol: "SOL", logoUrl: "", performance: 12.5 },
-        { name: "Bitcoin", symbol: "BTC", logoUrl: "", performance: 5.2 },
-        { name: "Ethereum", symbol: "ETH", logoUrl: "", performance: 3.8 },
-        { name: "Cardano", symbol: "ADA", logoUrl: "", performance: 1.5 },
-        { name: "Polkadot", symbol: "DOT", logoUrl: "", performance: 2.7 },
-        { name: "Chainlink", symbol: "LINK", logoUrl: "", performance: 4.3 },
-        { name: "Avalanche", symbol: "AVAX", logoUrl: "", performance: 6.1 },
-        { name: "Polygon", symbol: "MATIC", logoUrl: "", performance: 3.2 },
-        { name: "Dogecoin", symbol: "DOGE", logoUrl: "", performance: -4.2 },
-        { name: "Uniswap", symbol: "UNI", logoUrl: "", performance: 0.8 }
-      ]
+      status: "active"
     },
     {
+      id: "liga-2",
       leagueName: "Liga dos Amigos",
       rank: 3,
       totalParticipants: 12,
       partialScore: 10.45,
       lastRoundScore: 3.20,
-      team: [
-        { name: "Bitcoin", symbol: "BTC", logoUrl: "", performance: 5.2 },
-        { name: "Ethereum", symbol: "ETH", logoUrl: "", performance: 3.8 },
-        { name: "Binance Coin", symbol: "BNB", logoUrl: "", performance: 7.1 },
-        { name: "Ripple", symbol: "XRP", logoUrl: "", performance: 2.3 },
-        { name: "Cardano", symbol: "ADA", logoUrl: "", performance: 1.5 },
-        { name: "Solana", symbol: "SOL", logoUrl: "", performance: 12.5 },
-        { name: "Polkadot", symbol: "DOT", logoUrl: "", performance: 2.7 },
-        { name: "Dogecoin", symbol: "DOGE", logoUrl: "", performance: -4.2 },
-        { name: "Avalanche", symbol: "AVAX", logoUrl: "", performance: 6.1 },
-        { name: "Shiba Inu", symbol: "SHIB", logoUrl: "", performance: -2.5 }
-      ]
+      status: "active"
     }
   ]
 };
 
 // Dashboard Sidebar Component
-const DashboardSidebar = ({ userData, selectedLeague }: { userData: UserData, selectedLeague: League }) => {
+const DashboardSidebar = ({ userData, selectedTeamData }: { 
+  userData: UserData, 
+  selectedTeamData: { league: League | null, team: LeagueTeam | MainTeam | null, isMainTeam: boolean } 
+}) => {
   return (
     <div className="flex flex-col gap-4 w-full lg:w-64">
       {/* Card de Perfil */}
@@ -144,15 +175,22 @@ const DashboardSidebar = ({ userData, selectedLeague }: { userData: UserData, se
           <div className="space-y-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">RANK NA LIGA</p>
-              <p className="text-2xl font-bold">{selectedLeague.rank} / {selectedLeague.totalParticipants}</p>
+              <p className="text-2xl font-bold">
+                {selectedTeamData.isMainTeam ? "Time Principal" : 
+                 `${selectedTeamData.league?.rank || 0} / ${selectedTeamData.league?.totalParticipants || 0}`}
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">VALORIZAÇÃO PARCIAL</p>
-              <p className="text-2xl font-bold text-green-600">+{selectedLeague.partialScore.toFixed(2)}%</p>
+              <p className="text-2xl font-bold text-green-600">
+                {selectedTeamData.isMainTeam ? "N/A" : `+${selectedTeamData.league?.partialScore?.toFixed(2) || 0}%`}
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">ÚLTIMA RODADA</p>
-              <p className="text-2xl font-bold text-green-600">+{selectedLeague.lastRoundScore.toFixed(2)}%</p>
+              <p className="text-xl font-bold">
+                {selectedTeamData.isMainTeam ? "N/A" : `+${selectedTeamData.league?.lastRoundScore?.toFixed(2) || 0}`}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -191,14 +229,19 @@ const DashboardSidebar = ({ userData, selectedLeague }: { userData: UserData, se
 };
 
 // Dashboard Content Component
-const DashboardContent = ({ userData, selectedLeague, onLeagueChange }: { 
-  userData: UserData, 
-  selectedLeague: League,
-  onLeagueChange: (league: League) => void
+const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
+  userData: UserData,
+  selectedTeamData: { league: League | null, team: LeagueTeam | MainTeam | null, isMainTeam: boolean },
+  onLeagueChange: (leagueId: string) => void
 }) => {
   // Encontrar o melhor e pior token do time
-  const bestToken = [...selectedLeague.team].sort((a, b) => b.performance - a.performance)[0];
-  const worstToken = [...selectedLeague.team].sort((a, b) => a.performance - b.performance)[0];
+  const teamPlayers = selectedTeamData.team?.players || [];
+  const bestToken = teamPlayers.length > 0 ? teamPlayers.reduce((best, current) => 
+    (current.change_24h ?? 0) > (best.change_24h ?? 0) ? current : best
+  ) : null;
+  const worstToken = teamPlayers.length > 0 ? teamPlayers.reduce((worst, current) => 
+    (current.change_24h ?? 0) < (worst.change_24h ?? 0) ? current : worst
+  ) : null;
 
   return (
     <div className="flex flex-col gap-4 w-full">
@@ -207,18 +250,22 @@ const DashboardContent = ({ userData, selectedLeague, onLeagueChange }: {
         <h2 className="text-2xl font-bold">Meu Desempenho</h2>
         <div className="w-full md:w-auto">
           <Select 
-            defaultValue={selectedLeague.leagueName}
+            defaultValue={selectedTeamData.isMainTeam ? "main" : selectedTeamData.league?.id || ""}
             onValueChange={(value: string) => {
-              const league = userData.leagues.find(l => l.leagueName === value);
-              if (league) onLeagueChange(league);
+              if (value === "main") {
+                onLeagueChange("main");
+              } else {
+                onLeagueChange(value);
+              }
             }}
           >
             <SelectTrigger className="w-full md:w-[200px]">
               <SelectValue placeholder="Selecione uma liga" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="main">Time Principal</SelectItem>
               {userData.leagues.map((league) => (
-                <SelectItem key={league.leagueName} value={league.leagueName}>
+                <SelectItem key={league.id} value={league.id}>
                   {league.leagueName}
                 </SelectItem>
               ))}
@@ -235,7 +282,9 @@ const DashboardContent = ({ userData, selectedLeague, onLeagueChange }: {
       {/* Card de Gráfico de Desempenho */}
       <Card>
         <CardHeader>
-          <CardTitle>Evolução da Carteira na Liga: {selectedLeague.leagueName}</CardTitle>
+          <CardTitle>{selectedTeamData.isMainTeam 
+            ? "Evolução da Carteira - Time Principal" 
+            : `Evolução da Carteira na Liga: ${selectedTeamData.league?.leagueName || 'N/A'}`}</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="h-64 w-full bg-slate-100 flex items-center justify-center rounded-md">
@@ -247,44 +296,48 @@ const DashboardContent = ({ userData, selectedLeague, onLeagueChange }: {
       {/* Card "Meu Time na Rodada" (Destaques) */}
       <Card>
         <CardHeader>
-          <CardTitle>Destaques do seu time em: {selectedLeague.leagueName}</CardTitle>
+          <CardTitle>Destaques do seu time em: {selectedTeamData.isMainTeam ? "Time Principal" : selectedTeamData.league?.leagueName || 'N/A'}</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-green-100 p-4 rounded-md">
-              <div className="flex items-center mb-2">
-                <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
-                <h3 className="font-bold">Sua Gema da Rodada</h3>
-              </div>
-              <div className="flex items-center">
-                <div className="w-10 h-10 relative mr-3">
-                  <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
-                    {bestToken.symbol.substring(0, 1)}
+            {bestToken && (
+              <div className="bg-green-100 p-4 rounded-md">
+                <div className="flex items-center mb-2">
+                  <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+                  <h3 className="font-bold">Sua Gema da Rodada</h3>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 relative mr-3">
+                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                      {bestToken.token.substring(0, 1)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium">{bestToken.name} ({bestToken.token})</p>
+                    <p className="text-green-600 font-bold">+{(bestToken.change_24h ?? 0).toFixed(1)}%</p>
                   </div>
                 </div>
-                <div>
-                  <p className="font-medium">{bestToken.name} (${bestToken.symbol})</p>
-                  <p className="text-green-600 font-bold">+{bestToken.performance.toFixed(1)}%</p>
+              </div>
+            )}
+            {worstToken && (
+              <div className="bg-red-100 p-4 rounded-md">
+                <div className="flex items-center mb-2">
+                  <TrendingDown className="h-5 w-5 mr-2 text-red-600" />
+                  <h3 className="font-bold">Sua Âncora da Rodada</h3>
                 </div>
-              </div>
-            </div>
-            <div className="bg-red-100 p-4 rounded-md">
-              <div className="flex items-center mb-2">
-                <TrendingDown className="h-5 w-5 mr-2 text-red-600" />
-                <h3 className="font-bold">Sua Âncora da Rodada</h3>
-              </div>
-              <div className="flex items-center">
-                <div className="w-10 h-10 relative mr-3">
-                  <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
-                    {worstToken.symbol.substring(0, 1)}
+                <div className="flex items-center">
+                  <div className="w-10 h-10 relative mr-3">
+                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                      {worstToken.token.substring(0, 1)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium">{worstToken.name} ({worstToken.token})</p>
+                    <p className="text-red-600 font-bold">{(worstToken.change_24h ?? 0).toFixed(1)}%</p>
                   </div>
                 </div>
-                <div>
-                  <p className="font-medium">{worstToken.name} (${worstToken.symbol})</p>
-                  <p className="text-red-600 font-bold">{worstToken.performance.toFixed(1)}%</p>
-                </div>
               </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -292,7 +345,7 @@ const DashboardContent = ({ userData, selectedLeague, onLeagueChange }: {
       {/* Card "Composição do Time" */}
       <Card>
         <CardHeader>
-          <CardTitle>Sua escalação para: {selectedLeague.leagueName}</CardTitle>
+          <CardTitle>Sua escalação para: {selectedTeamData.isMainTeam ? "Time Principal" : selectedTeamData.league?.leagueName || 'N/A'}</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <Table>
@@ -304,12 +357,12 @@ const DashboardContent = ({ userData, selectedLeague, onLeagueChange }: {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {selectedLeague.team.map((token) => (
-                <TableRow key={token.symbol}>
-                  <TableCell className="font-medium">{token.name}</TableCell>
-                  <TableCell>${token.symbol}</TableCell>
-                  <TableCell className={`text-right font-medium ${token.performance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {token.performance >= 0 ? '+' : ''}{token.performance.toFixed(1)}%
+              {teamPlayers.map((player) => (
+                <TableRow key={player.token}>
+                  <TableCell className="font-medium">{player.name}</TableCell>
+                  <TableCell>{player.token}</TableCell>
+                  <TableCell className={`text-right font-medium ${(player.change_24h ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {(player.change_24h ?? 0) >= 0 ? '+' : ''}{(player.change_24h ?? 0).toFixed(1)}%
                   </TableCell>
                 </TableRow>
               ))}
@@ -338,16 +391,35 @@ const DashboardContent = ({ userData, selectedLeague, onLeagueChange }: {
 };
 
 export default function Dashboard() {
-  const [selectedLeague, setSelectedLeague] = useState(mockUserData.leagues[0]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("main");
+
+  const selectedTeamData = useMemo(() => {
+    if (selectedTeamId === "main") {
+      return {
+        league: null,
+        team: mockUserData.mainTeam || null,
+        isMainTeam: true
+      };
+    }
+    
+    const league = mockUserData.leagues.find(l => l.id === selectedTeamId);
+    const team = mockUserData.leagueTeams.find(t => t.leagueId === selectedTeamId);
+    
+    return {
+      league: league || null,
+      team: team || null,
+      isMainTeam: false
+    };
+  }, [selectedTeamId]);
 
   return (
     <main className="container mx-auto py-6 px-4">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
-        <DashboardSidebar userData={mockUserData} selectedLeague={selectedLeague} />
+        <DashboardSidebar userData={mockUserData} selectedTeamData={selectedTeamData} />
         <DashboardContent 
           userData={mockUserData} 
-          selectedLeague={selectedLeague} 
-          onLeagueChange={setSelectedLeague}
+          selectedTeamData={selectedTeamData} 
+          onLeagueChange={setSelectedTeamId}
         />
       </div>
     </main>

@@ -383,13 +383,13 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                     selectedPeriod === 'oneHour' ? token.change_1h :
                     selectedPeriod === 'twentyFourHour' ? token.change_24h :
                     selectedPeriod === 'sevenDay' ? token.change_7d :
-                    selectedPeriod === 'thirtyDay' ? token.change_1w : 0
+                    selectedPeriod === 'thirtyDay' ? token.change_30d : 0
                   )}>
                     {formatPercentage(
                       selectedPeriod === 'oneHour' ? token.change_1h :
                       selectedPeriod === 'twentyFourHour' ? token.change_24h :
                       selectedPeriod === 'sevenDay' ? token.change_7d :
-                      selectedPeriod === 'thirtyDay' ? token.change_1w : 0
+                      selectedPeriod === 'thirtyDay' ? token.change_30d : 0
                     )}
                   </span>
                 </div>

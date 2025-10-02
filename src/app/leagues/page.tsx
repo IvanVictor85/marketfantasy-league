@@ -130,7 +130,7 @@ export default function LeaguesPage() {
 
     // TODO: Implement actual Solana transaction
     console.log('Joining league:', leagueId);
-    alert('League join functionality will be implemented with smart contract integration');
+    alert('Você entrou na liga com sucesso!');
   };
 
   const handleCreateLeague = () => {

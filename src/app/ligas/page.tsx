@@ -12,7 +12,7 @@ const leaguesData = [
     id: '1',
     name: 'Liga Principal',
     type: 'principal' as const,
-    logoUrl: '/mascots/mascot-1.png',
+    logoUrl: '/league-logos/main-league-trophy.png',
     entryFee: {
       amount: 0,
       currency: 'SOL'

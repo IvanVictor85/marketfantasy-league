@@ -1,16 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Trophy, Target, HelpCircle, Wallet } from 'lucide-react';
+import { Menu, Trophy, Target, HelpCircle, Wallet, Gift } from 'lucide-react';
 import { useState } from 'react';
 
 const navigation = [
   { name: 'Ligas', href: '/ligas', icon: Trophy },
   { name: 'Meu Time', href: '/teams', icon: HelpCircle },
   { name: 'Dashboard', href: '/dashboard', icon: Target },
+  { name: 'Recompensas', href: '/rewards', icon: Gift },
 ];
 
 export function Navbar() {
@@ -22,8 +24,18 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-primary-foreground">CryptoFantasy League</span>
+          <Link href="/" className="flex items-center">
+            <Image 
+              src="/icons/cfl-minimal-logo.png" 
+              alt="CFL Logo" 
+              width={40} 
+              height={40}
+              className="mr-3"
+            />
+            <span className="text-lg md:text-xl font-bold text-primary-foreground truncate">
+              <span className="hidden sm:inline">CryptoFantasy League</span>
+              <span className="sm:hidden">CFL</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation - Center */}
