@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { XStockApiResponse, XStockApiItem } from '@/app/api/xstocks/route';
 
 export interface UseXstocksTokensOptions {
@@ -36,14 +36,20 @@ export function useXstocksTokens(options: UseXstocksTokensOptions = {}): UseXsto
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(undefined);
+  const isLoadingRef = useRef(false);
 
   /**
    * Função para buscar dados da API
    */
   const fetchTokens = useCallback(async () => {
-    if (loading) return;
+    // Evitar múltiplas chamadas simultâneas
+    if (isLoadingRef.current) {
+      console.log('🔍 [useXstocksTokens] Requisição já em andamento, ignorando...');
+      return;
+    }
     
     console.log('🔍 [useXstocksTokens] Iniciando busca de tokens...');
+    isLoadingRef.current = true;
     setLoading(true);
     setError(null);
     
@@ -95,30 +101,29 @@ export function useXstocksTokens(options: UseXstocksTokensOptions = {}): UseXsto
       setTokens([]);
       setLastUpdated(null);
     } finally {
+      isLoadingRef.current = false;
       setLoading(false);
     }
-  }, [minVolumeUsd, revalidate, debug, loading]);
+  }, [minVolumeUsd, revalidate, debug]);
 
   // Auto-fetch na montagem do componente
   useEffect(() => {
     if (autoFetch) {
       fetchTokens();
     }
-  }, [fetchTokens, autoFetch, loading]);
+  }, [fetchTokens, autoFetch]);
 
   // Refresh automático baseado no intervalo
   useEffect(() => {
     if (!refreshInterval || refreshInterval <= 0) return;
 
     const interval = setInterval(() => {
-      if (!loading) {
-        console.log('Refresh automático dos tokens xStocks');
-        fetchTokens();
-      }
+      console.log('Refresh automático dos tokens xStocks');
+      fetchTokens();
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [refreshInterval, loading, fetchTokens]);
+  }, [refreshInterval, fetchTokens]);
 
   return {
     tokens,
