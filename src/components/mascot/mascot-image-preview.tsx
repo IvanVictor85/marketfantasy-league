@@ -90,7 +90,7 @@ export function MascotImagePreview({
               ✨ Mascote gerado com IA
             </p>
             <p className="text-xs text-orange-600 font-medium">
-              Clique em "Salvar Alterações" para confirmar
+              Clique em &quot;Salvar Alterações&quot; para confirmar
             </p>
           </div>
         )}

@@ -455,8 +455,8 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                 <div className="col-span-4">
                   <div className="flex items-center gap-3">
                     {token.image.startsWith('/') ? (
-                      // Use img tag for local images (xStocks)
-                      <img 
+                      // Use Next.js Image component for local images (xStocks)
+                      <Image 
                         src={token.image} 
                         alt={`${token.name} logo`} 
                         width={32} 

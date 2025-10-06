@@ -168,7 +168,7 @@ export function MascotCustomizationForm({
             <div className="flex items-start space-x-2">
               <div className="w-4 h-4 rounded-full bg-orange-500 mt-0.5 flex-shrink-0"></div>
               <p className="text-xs text-muted-foreground">
-                <strong>Lembre-se:</strong> O mascote só será salvo permanentemente quando você clicar em "Salvar Alterações".
+                <strong>Lembre-se:</strong> O mascote só será salvo permanentemente quando você clicar em &quot;Salvar Alterações&quot;.
               </p>
             </div>
           </div>

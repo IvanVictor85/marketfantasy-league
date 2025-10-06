@@ -97,14 +97,14 @@ export function useXstocksTokens(options: UseXstocksTokensOptions = {}): UseXsto
     } finally {
       setLoading(false);
     }
-  }, [minVolumeUsd, revalidate, debug]);
+  }, [minVolumeUsd, revalidate, debug, loading]);
 
   // Auto-fetch na montagem do componente
   useEffect(() => {
     if (autoFetch) {
       fetchTokens();
     }
-  }, [fetchTokens, autoFetch]);
+  }, [fetchTokens, autoFetch, loading]);
 
   // Refresh automático baseado no intervalo
   useEffect(() => {
@@ -118,7 +118,7 @@ export function useXstocksTokens(options: UseXstocksTokensOptions = {}): UseXsto
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [refreshInterval]);
+  }, [refreshInterval, loading, fetchTokens]);
 
   return {
     tokens,

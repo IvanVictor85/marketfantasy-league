@@ -213,7 +213,7 @@ export default function XStocksTestPage() {
             <CardContent>
               {selectedTokens.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
-                  Nenhum token selecionado. Use o botão "+" na tabela para adicionar tokens.
+                  Nenhum token selecionado. Use o botão &quot;+&quot; na tabela para adicionar tokens.
                 </p>
               ) : (
                 <div className="space-y-2">

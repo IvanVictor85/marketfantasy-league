@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { MascotImagePreview } from '@/components/mascot/mascot-image-preview';
 import { MascotCustomizationForm, MascotFormData } from '@/components/mascot/mascot-customization-form';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // Interface para o mascote gerado via API
 interface GeneratedMascot {
@@ -169,10 +170,12 @@ export default function PerfilPage() {
               <CardContent>
                 <div className="flex flex-col items-center space-y-4">
                   <div className="w-64 h-64 relative">
-                    <img
+                    <Image
                       src={savedMascot.imageUrl}
                       alt="Seu Mascote da Sorte"
-                      className="w-full h-full object-cover rounded-lg border-2 border-orange-200"
+                      fill
+                      className="object-cover rounded-lg border-2 border-orange-200"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                   </div>
                   <div className="text-center">
