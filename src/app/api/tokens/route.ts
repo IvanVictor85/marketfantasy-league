@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { mockTokens } from '@/lib/mock-data/tokens';
 
+
+
 // Esta função irá lidar com requisições GET para /api/tokens
 export async function GET() {
   try {
     // URL da API da CoinGecko para buscar os top 100 tokens por capitalização de mercado em USD
-    const COINGECKO_URL = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1';
+    // Incluindo price_change_percentage para obter dados de 1h, 24h, 7d e 30d
+    const COINGECKO_URL = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h,24h,7d,30d';
 
     try {
       // Faz a chamada para a API.
@@ -18,7 +21,7 @@ export async function GET() {
       // Se a resposta da CoinGecko não for bem-sucedida, usa dados mock
       if (!response.ok) {
         console.warn(`CoinGecko API não disponível. Status: ${response.status}. Usando dados mock.`);
-        return NextResponse.json(formatMockTokens());
+        return NextResponse.json(await formatMockTokens());
       }
 
       // Converte a resposta para JSON
@@ -26,18 +29,16 @@ export async function GET() {
 
       // Mapeia os dados para o formato que nossa aplicação espera
       const formattedTokens = data.map((token: any) => {
-        // Gerar valores aleatórios para variação quando os valores reais são zero ou não existem
-        const change24h = token.price_change_percentage_24h || (Math.random() * 10 - 5); // Entre -5% e +5%
-        const change7d = token.price_change_percentage_7d_in_currency || (Math.random() * 20 - 10); // Entre -10% e +10%
-        
         return {
           id: token.id,
           symbol: token.symbol.toUpperCase(),
           name: token.name,
           image: token.image,
           price: token.current_price || 0,
-          change_24h: change24h,
-          change_7d: change7d,
+          change_1h: token.price_change_percentage_1h_in_currency || 0,
+          change_24h: token.price_change_percentage_24h || 0,
+          change_7d: token.price_change_percentage_7d_in_currency || 0,
+          change_30d: token.price_change_percentage_30d_in_currency || 0,
           market_cap: token.market_cap || 0,
           volume_24h: token.total_volume || 0,
           rank: token.market_cap_rank || 999,
@@ -46,26 +47,26 @@ export async function GET() {
         };
       });
 
-      // Retorna os dados para o frontend que chamou esta API.
+      // Retorna apenas os tokens da CoinGecko (sem xStocks)
       return NextResponse.json(formattedTokens);
     } catch (apiError) {
       console.warn('[API_FETCH_ERROR]', apiError);
       console.log('Usando dados mock devido a erro na API');
-      return NextResponse.json(formatMockTokens());
+      return NextResponse.json(await formatMockTokens());
     }
   } catch (error) {
     // Em caso de erro, loga no console do servidor e retorna dados mock
     console.error('[API_TOKENS_ERROR]', error);
-    return NextResponse.json(formatMockTokens());
+    return NextResponse.json(await formatMockTokens());
   }
 }
 
 // Função para formatar os dados mock no formato esperado pela aplicação
-function formatMockTokens() {
-  return mockTokens.map(token => {
-    // Garantir que os valores de variação não sejam zero
-    const change24h = token.price_change_percentage_24h || (Math.random() * 10 - 5); // Entre -5% e +5%
-    const change7d = token.price_change_percentage_7d || (Math.random() * 20 - 10); // Entre -10% e +10%
+async function formatMockTokens() {
+  // Formatar tokens mock
+  const formattedMockTokens = mockTokens.map(token => {
+    const change24h = token.price_change_percentage_24h || (Math.random() * 10 - 5);
+    const change7d = token.price_change_percentage_7d || (Math.random() * 20 - 10);
     
     return {
       id: token.id,
@@ -73,8 +74,10 @@ function formatMockTokens() {
       name: token.name,
       image: token.image,
       price: token.price,
+      change_1h: 0,
       change_24h: change24h,
       change_7d: change7d,
+      change_30d: 0,
       market_cap: token.market_cap,
       volume_24h: token.total_volume,
       rank: token.market_cap_rank,
@@ -82,6 +85,9 @@ function formatMockTokens() {
       rarity: token.rarity
     };
   });
+
+  // Retornar apenas tokens mock (sem xStocks)
+  return formattedMockTokens;
 }
 
 // Função para determinar a raridade baseada no ranking de market cap

@@ -199,7 +199,7 @@ export function SoccerField({
       {/* Soccer Field */}
       <Card className="bg-gradient-to-b from-green-400 to-green-600">
         <CardContent className="p-6">
-          <div className="relative w-full h-[600px] bg-green-500 rounded-lg border-4 border-white overflow-hidden">
+          <div className="relative w-full h-[400px] bg-green-500 rounded-lg border-4 border-white overflow-hidden">
             {/* Field markings */}
             <div className="absolute inset-0">
               {/* Center circle */}

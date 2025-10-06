@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, Users, Coins } from 'lucide-react';
@@ -35,8 +36,8 @@ export function LigaCard({
 }: LigaCardProps) {
   const isPrincipal = type === 'principal';
 
-  // Define o logo padrão para a liga principal
-  const defaultLogoUrl = isPrincipal ? '/league-logos/main-league-trophy.png' : '';
+  // Define o logo padrão para a liga principal com cache-busting
+  const defaultLogoUrl = isPrincipal ? `/league-logos/main-league-trophy.png?v=${Date.now()}` : '';
   const finalLogoUrl = logoUrl || defaultLogoUrl;
 
   return (
@@ -45,14 +46,14 @@ export function LigaCard({
         isPrincipal ? 'border-[#F4A261] border-2' : 'border-slate-200 hover:border-[#2A9D8F]'
       }`}
     >
-      <CardHeader className="pb-2 flex items-center justify-center">
-        <div className="relative w-16 h-16 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
+      <CardHeader className="pb-2 pt-3 px-2 flex items-center justify-center">
+        <div className="relative w-56 h-56 bg-transparent flex items-center justify-center">
           {finalLogoUrl ? (
             <Image 
               src={finalLogoUrl} 
               alt={`Logo da liga ${name}`} 
               fill 
-              className="object-cover"
+              className="object-contain"
             />
           ) : (
             <Trophy className="h-8 w-8 text-[#2A9D8F]" />
@@ -101,8 +102,10 @@ export function LigaCard({
       </CardContent>
       
       <CardFooter>
-        <Button className="w-full bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white">
-          Entrar na Liga
+        <Button asChild className="w-full bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white">
+          <Link href={`/teams?league=${id}`}>
+            Entrar na Liga
+          </Link>
         </Button>
       </CardFooter>
     </Card>

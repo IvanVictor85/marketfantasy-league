@@ -4,9 +4,12 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Navbar } from '@/components/layout/navbar';
+
 import { TokenMarket } from '@/components/market/token-market';
+import { XStocksMarket } from '@/components/market/xstocks-market';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { type TokenMarketData } from '@/data/expanded-tokens';
+import type { XStockApiItem } from '@/app/api/xstocks/route';
 import { 
   TrendingUp, 
   BarChart3, 
@@ -20,7 +23,9 @@ import {
 
 export default function MarketPage() {
   const [selectedToken, setSelectedToken] = useState<TokenMarketData | null>(null);
+  const [selectedXStockToken, setSelectedXStockToken] = useState<XStockApiItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('xstocks');
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -31,6 +36,10 @@ export default function MarketPage() {
 
   const handleTokenSelect = (token: TokenMarketData | null) => {
     setSelectedToken(token);
+  };
+
+  const handleXStockTokenSelect = (token: XStockApiItem | null) => {
+    setSelectedXStockToken(token);
   };
 
   return (
@@ -133,149 +142,277 @@ export default function MarketPage() {
         </div>
 
         {/* Market Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Token Market - Main Content */}
-          <div className="lg:col-span-2">
-            <TokenMarket 
-              selectedToken={selectedToken}
-              onTokenSelect={handleTokenSelect}
-            />
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="traditional">Mercado Tradicional</TabsTrigger>
+            <TabsTrigger value="xstocks">xStocks Market</TabsTrigger>
+          </TabsList>
 
-          {/* Token Details Sidebar */}
-          <div className="space-y-6">
-            {selectedToken ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {selectedToken.symbol.charAt(0)}
-                      </span>
-                    </div>
-                    {selectedToken.name}
-                  </CardTitle>
-                  <CardDescription>
-                    Detalhes do token selecionado
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Símbolo</p>
-                      <p className="font-semibold">{selectedToken.symbol}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Ranking</p>
-                      <p className="font-semibold">#{selectedToken.rank}</p>
-                    </div>
-                  </div>
+          <TabsContent value="traditional" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Token Market - Main Content */}
+              <div className="lg:col-span-2">
+                <TokenMarket 
+                  selectedToken={selectedToken}
+                  onTokenSelect={handleTokenSelect}
+                />
+              </div>
+              
+              {/* Token Details Sidebar */}
+              <div className="space-y-6">
+                {selectedToken ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-bold">
+                            {selectedToken.symbol.charAt(0)}
+                          </span>
+                        </div>
+                        {selectedToken.name}
+                        <Badge variant="outline">{selectedToken.symbol}</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Preço Atual</p>
+                        <p className="text-2xl font-bold">
+                          ${selectedToken.price?.toFixed(6) || '0.00'}
+                        </p>
+                      </div>
 
-                  <div>
-                    <p className="text-sm text-gray-600">Preço Atual</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${selectedToken.price.toLocaleString('en-US', { 
-                        minimumFractionDigits: 2, 
-                        maximumFractionDigits: 6 
-                      })}
-                    </p>
-                  </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">24 horas</p>
+                          <p className={`font-semibold ${
+                            (selectedToken.change_24h || 0) > 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {(selectedToken.change_24h || 0) > 0 ? '+' : ''}{(selectedToken.change_24h || 0).toFixed(2)}%
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">7 dias</p>
+                          <p className={`font-semibold ${
+                            (selectedToken.change_7d || 0) > 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {(selectedToken.change_7d || 0) > 0 ? '+' : ''}{(selectedToken.change_7d || 0).toFixed(2)}%
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-600">24h</p>
-                      <p className={`font-semibold ${
-                        (selectedToken.change_24h || 0) > 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {(selectedToken.change_24h || 0) > 0 ? '+' : ''}{(selectedToken.change_24h || 0).toFixed(2)}%
+                      <div>
+                        <p className="text-sm text-gray-600">Market Cap</p>
+                        <p className="font-semibold">
+                          ${((selectedToken.market_cap || 0) / 1e9).toFixed(2)}B
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-600">Volume 24h</p>
+                        <p className="font-semibold">
+                          ${((selectedToken.volume_24h || 0) / 1e6).toFixed(2)}M
+                        </p>
+                      </div>
+
+                      {selectedToken.rarity && (
+                        <div>
+                          <p className="text-sm text-gray-600">Raridade</p>
+                          <Badge 
+                            variant={
+                              selectedToken.rarity === 'legendary' ? 'default' :
+                              selectedToken.rarity === 'epic' ? 'secondary' :
+                              selectedToken.rarity === 'rare' ? 'outline' : 'secondary'
+                            }
+                            className={
+                              selectedToken.rarity === 'legendary' ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white' :
+                              selectedToken.rarity === 'epic' ? 'bg-gradient-to-r from-purple-400 to-pink-500 text-white' :
+                              selectedToken.rarity === 'rare' ? 'bg-gradient-to-r from-blue-400 to-cyan-500 text-white' :
+                              'bg-gray-100 text-gray-700'
+                            }
+                          >
+                            {selectedToken.rarity.charAt(0).toUpperCase() + selectedToken.rarity.slice(1)}
+                          </Badge>
+                        </div>
+                      )}
+
+                      <Button className="w-full" size="sm">
+                        Adicionar ao Time
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Selecione um Token
+                      </h3>
+                      <p className="text-gray-600">
+                        Clique em um token na lista para ver seus detalhes aqui
                       </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">7 dias</p>
-                      <p className={`font-semibold ${
-                        (selectedToken.change_7d || 0) > 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {(selectedToken.change_7d || 0) > 0 ? '+' : ''}{(selectedToken.change_7d || 0).toFixed(2)}%
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Quick Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Ações Rápidas</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filtros Avançados
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar Dados
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Star className="w-4 h-4 mr-2" />
+                      Meus Favoritos
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="xstocks" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* xStocks Market - Main Content */}
+              <div className="lg:col-span-2">
+                <XStocksMarket 
+                  selectedToken={selectedXStockToken}
+                  onSelectToken={handleXStockTokenSelect}
+                />
+              </div>
+
+              {/* xStocks Token Details Sidebar */}
+              <div className="space-y-6">
+                {selectedXStockToken ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-bold">
+                            {selectedXStockToken.symbol.charAt(0)}
+                          </span>
+                        </div>
+                        {selectedXStockToken.name}
+                        <Badge variant="outline">{selectedXStockToken.symbol}</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-600">xSymbol</p>
+                        <p className="text-lg font-bold text-purple-600">
+                          {selectedXStockToken.xSymbol}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-600">Preço USD</p>
+                        <p className="text-2xl font-bold">
+                          {selectedXStockToken.priceUsd ? `$${selectedXStockToken.priceUsd.toFixed(6)}` : 'N/A'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-600">Volume 24h</p>
+                        <p className="font-semibold">
+                          {selectedXStockToken.volume24hUsd ? 
+                            `$${(selectedXStockToken.volume24hUsd / 1e6).toFixed(2)}M` : 
+                            'N/A'
+                          }
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-600">Mint Address</p>
+                        <p className="text-xs font-mono bg-gray-100 p-2 rounded break-all">
+                          {selectedXStockToken.mint}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-600">Fontes de Dados</p>
+                        <div className="flex gap-2">
+                          {selectedXStockToken.sources.xstocks && (
+                            <Badge variant="secondary" className="text-xs">
+                              xStocks
+                            </Badge>
+                          )}
+                          {selectedXStockToken.sources.coingecko && (
+                            <Badge variant="secondary" className="text-xs">
+                              CoinGecko
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Button 
+                          className="w-full" 
+                          size="sm"
+                          onClick={() => window.open(selectedXStockToken.links.solscan, '_blank')}
+                        >
+                          Ver no Solscan
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="w-full" 
+                          size="sm"
+                          onClick={() => window.open(selectedXStockToken.links.product, '_blank')}
+                        >
+                          Ver no xStocks
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Selecione um Token xStocks
+                      </h3>
+                      <p className="text-gray-600">
+                        Clique em um token na lista para ver seus detalhes aqui
                       </p>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                  <div>
-                    <p className="text-sm text-gray-600">Market Cap</p>
-                    <p className="font-semibold">
-                      ${((selectedToken.market_cap || 0) / 1e9).toFixed(2)}B
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-600">Volume 24h</p>
-                    <p className="font-semibold">
-                      ${((selectedToken.volume_24h || 0) / 1e6).toFixed(2)}M
-                    </p>
-                  </div>
-
-                  {selectedToken.rarity && (
-                    <div>
-                      <p className="text-sm text-gray-600">Raridade</p>
-                      <Badge 
-                        variant={
-                          selectedToken.rarity === 'legendary' ? 'default' :
-                          selectedToken.rarity === 'epic' ? 'secondary' :
-                          selectedToken.rarity === 'rare' ? 'outline' : 'secondary'
-                        }
-                        className={
-                          selectedToken.rarity === 'legendary' ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white' :
-                          selectedToken.rarity === 'epic' ? 'bg-gradient-to-r from-purple-400 to-pink-500 text-white' :
-                          selectedToken.rarity === 'rare' ? 'bg-gradient-to-r from-blue-400 to-cyan-500 text-white' :
-                          'bg-gray-100 text-gray-700'
-                        }
-                      >
-                        {selectedToken.rarity.charAt(0).toUpperCase() + selectedToken.rarity.slice(1)}
-                      </Badge>
-                    </div>
-                  )}
-
-                  <Button className="w-full" size="sm">
-                    Adicionar ao Time
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Selecione um Token
-                  </h3>
-                  <p className="text-gray-600">
-                    Clique em um token na lista para ver seus detalhes aqui
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Ações Rápidas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filtros Avançados
-                </Button>
-                <Button variant="outline" className="w-full justify-start" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
-                  Exportar Dados
-                </Button>
-                <Button variant="outline" className="w-full justify-start" size="sm">
-                  <Star className="w-4 h-4 mr-2" />
-                  Meus Favoritos
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                {/* xStocks Quick Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Ações xStocks</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start" 
+                      size="sm"
+                      onClick={() => window.open('https://xstocks.fi/products', '_blank')}
+                    >
+                      <Globe className="w-4 h-4 mr-2" />
+                      Visitar xStocks
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filtrar por Volume
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" size="sm">
+                      <Star className="w-4 h-4 mr-2" />
+                      Favoritos xStocks
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

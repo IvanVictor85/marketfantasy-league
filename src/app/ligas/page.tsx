@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Navbar } from '@/components/layout/navbar';
 import { LigaCard } from '@/components/LigaCard';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -181,7 +180,6 @@ export default function LigasPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      
       {/* Header da Página */}
       <header className="py-12 bg-white border-b border-slate-200">
         <div className="container mx-auto px-4 text-center">

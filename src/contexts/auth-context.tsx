@@ -10,6 +10,10 @@ interface User {
   name?: string;
   avatar?: string;
   loginMethod: 'email' | 'wallet';
+  // Campos de perfil adicionais
+  twitter?: string;
+  discord?: string;
+  bio?: string;
 }
 
 interface AuthContextType {
@@ -21,6 +25,8 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   logout: () => void;
   register: (email: string, password: string, name: string) => Promise<void>;
+  // Novo método para atualizar o perfil do usuário
+  updateUserProfile: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -208,6 +214,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Atualiza perfil do usuário e persiste no localStorage
+  const updateUserProfile = (updates: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updates };
+      localStorage.setItem('cryptofantasy_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated,
@@ -216,7 +232,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithWallet,
     loginWithGoogle,
     logout,
-    register
+    register,
+    updateUserProfile
   };
 
   return (

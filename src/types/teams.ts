@@ -64,15 +64,35 @@ export interface League {
 }
 
 // Dados do usuário com múltiplos times
+// Tipos para customização do mascote
+export interface MascotColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+}
+
+export interface MascotAccessories {
+  hat?: string;
+  glasses?: string;
+  shoes?: string;
+  extra?: string;
+}
+
+export interface Mascot {
+  animal: string; // 'dog', 'cat', 'lion', 'eagle', 'bear', etc.
+  colors: MascotColors;
+  accessories: MascotAccessories;
+  shirt: string; // Camisa do time (padrão: camisa de futebol)
+  pose: string; // 'default', 'celebrating', 'playing', etc.
+  ball: boolean; // Se tem bola de futebol (padrão: true)
+}
+
 export interface UserData {
   id: string;
   teamName: string;
   userName: string;
   walletAddress?: string;
-  mascot: {
-    animal: string;
-    shirt: string;
-  };
+  mascot: Mascot;
   mainTeam?: MainTeam; // Time Principal
   leagueTeams: LeagueTeam[]; // Times específicos por liga
   leagues: League[]; // Ligas que o usuário participa

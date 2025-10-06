@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useTokens, type Token } from '@/hooks/use-tokens';
+import { type TokenMarketData } from '@/data/expanded-tokens';
+import { useXstocksTokens, type UseXstocksTokensReturn } from '@/hooks/useXstocksTokens';
 import Image from 'next/image';
 
 // Time periods for filtering
@@ -27,6 +29,48 @@ const timePeriods = [
   { label: '30d', value: 'thirtyDay' }
 ];
 
+// Função para aplicar filtro fixo baseado no tipo de liga
+function applyFixedFilter(token: Token, filterType: 'xstocks' | 'defi' | 'meme' | 'gaming'): boolean {
+  const tokenSymbol = token.symbol.toLowerCase();
+  const tokenName = token.name.toLowerCase();
+  
+  switch (filterType) {
+    case 'xstocks':
+      // Filtrar apenas tokens xStocks reais baseados nos dados de xstocks.fi e coingecko
+      const xStockSymbols = [
+        'tslax', 'spyx', 'mstrx', 'nvdax', 'crclx', 'googlx', 'aaplx', 'qqqx', 'coinx', 'metax',
+        // Fallback para símbolos antigos
+        'xtsla', 'xaapl', 'xgoogl', 'xmsft', 'xamzn'
+      ];
+      const stockRelatedTokens = ['tsla', 'aapl', 'googl', 'msft', 'amzn', 'nvda', 'meta', 'coin']; // Tokens relacionados a ações (fallback)
+      
+      const isXStock = xStockSymbols.includes(tokenSymbol) ||
+             stockRelatedTokens.includes(tokenSymbol) ||
+             tokenName.toLowerCase().includes('xstock') ||
+             (tokenName.toLowerCase().includes('stock') && !tokenName.toLowerCase().includes('gamestock'));
+      
+      return isXStock;
+    
+    case 'defi':
+      // Filtrar tokens DeFi conhecidos
+      const defiTokens = ['uni', 'aave', 'comp', 'mkr', 'snx', 'crv', 'sushi', 'yfi', '1inch', 'link'];
+      return defiTokens.some(defi => tokenSymbol.includes(defi) || tokenName.includes(defi));
+    
+    case 'meme':
+      // Filtrar meme coins
+      const memeTokens = ['doge', 'shib', 'pepe', 'floki', 'bonk', 'wif', 'popcat'];
+      return memeTokens.some(meme => tokenSymbol.includes(meme) || tokenName.includes(meme));
+    
+    case 'gaming':
+      // Filtrar tokens de gaming
+      const gamingTokens = ['axs', 'sand', 'mana', 'ape', 'gmt', 'stepn', 'ilv'];
+      return gamingTokens.some(gaming => tokenSymbol.includes(gaming) || tokenName.includes(gaming));
+    
+    default:
+      return true;
+  }
+}
+
 interface TokenMarketProps {
   onSelectToken?: (token: Token) => void;
   selectedPosition?: string;
@@ -34,27 +78,79 @@ interface TokenMarketProps {
   onTokenSelect?: (token: Token | null) => void;
   usedTokens?: string[]; // Array of token IDs already used in the team
   onAddToField?: (token: Token) => void;
+  fixedFilter?: {
+    type: 'xstocks' | 'defi' | 'meme' | 'gaming';
+    label: string;
+  };
 }
 
-export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, onTokenSelect, usedTokens = [] }: TokenMarketProps) {
-  const { tokens, loading, error, refetch } = useTokens();
+export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, onTokenSelect, usedTokens = [], fixedFilter }: TokenMarketProps) {
+  // Use different hooks based on filter type
+  const isXStocks = fixedFilter?.type === 'xstocks';
+  
+  // Regular tokens hook
+  const regularTokensData = useTokens();
+  
+  // XStocks tokens hook
+  const xstocksTokensData = useXstocksTokens({
+    autoFetch: isXStocks,
+    debug: false
+  });
+  
+  // Memoize the mapped xStocks tokens to prevent recreation on every render
+  const mappedXStocksTokens = useMemo(() => {
+    return xstocksTokensData.tokens.map((xstock, index) => ({
+      id: xstock.mint,
+      rank: index + 1,
+      name: xstock.name,
+      symbol: xstock.symbol,
+      image: xstock.image || '/icons/default-token.svg',
+      price: xstock.priceUsd || 0,
+      change_5m: 0,
+      change_15m: 0,
+      change_30m: 0,
+      change_1h: 0,
+      change_4h: 0,
+      change_12h: 0,
+      change_24h: xstock.change24h || 0,
+      change_1d: xstock.change24h || 0,
+      change_1w: 0,
+      change_7d: 0,
+      change_30d: 0,
+      market_cap: xstock.marketCapUsd || 0,
+      volume_24h: xstock.volume24hUsd || 0,
+      circulating_supply: 0,
+      rarity: 'common' as const
+    }));
+  }, [xstocksTokensData.tokens]);
+  
+  // Select the appropriate data source
+  const rawTokens = isXStocks ? mappedXStocksTokens : regularTokensData.tokens;
+  const loading = isXStocks ? xstocksTokensData.loading : regularTokensData.loading;
+  const error = isXStocks ? xstocksTokensData.error : regularTokensData.error;
+  const refetch = isXStocks ? xstocksTokensData.refetch : regularTokensData.refetch;
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'rank' | 'price' | 'change_24h' | 'change_7d' | 'market_cap' | string>('market_cap');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [filteredTokens, setFilteredTokens] = useState<Token[]>([]);
-  const [isClient, setIsClient] = useState(false);
+  const [filteredTokens, setFilteredTokens] = useState<TokenMarketData[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('twentyFourHour');
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // Removed isClient logic to fix hydration issues
 
   useEffect(() => {
-    if (!tokens.length) return;
+    if (!rawTokens.length) return;
     
-    let filtered = tokens.filter(token => {
+    let filtered = rawTokens.filter(token => {
       const matchesSearch = token.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            token.symbol.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Aplicar filtro fixo se especificado (apenas para tokens não-xStocks)
+      if (fixedFilter && !isXStocks) {
+        const matchesFixedFilter = applyFixedFilter(token, fixedFilter.type);
+        return matchesSearch && matchesFixedFilter;
+      }
+      
       return matchesSearch;
     });
 
@@ -81,7 +177,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
     });
 
     setFilteredTokens(filtered);
-  }, [tokens, searchTerm, sortBy, sortOrder, selectedPeriod]);
+  }, [rawTokens, searchTerm, sortBy, sortOrder, selectedPeriod, fixedFilter, isXStocks]);
 
   const formatPrice = (price: number) => {
     if (price >= 1000) {
@@ -186,7 +282,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
     }
   };
 
-  if (!isClient || loading) {
+  if (loading) {
     return (
       <Card className="h-full">
         <CardHeader className="pb-4">
@@ -243,10 +339,18 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
     <Card className="h-full flex flex-col p-0 m-0">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-blue-600" />
-            Token Market
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-600" />
+              Token Market
+            </CardTitle>
+            {fixedFilter && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Filter className="w-3 h-3" />
+                {fixedFilter.label}
+              </Badge>
+            )}
+          </div>
           
           <div className="flex gap-2">
             <Button 
@@ -301,7 +405,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
         {/* Table Header */}
         <div className="sticky top-0 grid grid-cols-12 gap-2 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
           <div className="col-span-1 text-center">#</div>
-          <div className="col-span-3">TOKEN</div>
+          <div className="col-span-4">TOKEN</div>
           <div className="col-span-2 text-right">PREÇO</div>
           <div className="col-span-1 text-right">7d %</div>
           <div className="col-span-2 text-right">
@@ -320,7 +424,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
               ))}
             </select>
           </div>
-          <div className="col-span-2 text-right">MCAP</div>
+          <div className="col-span-1 text-right">MCAP</div>
           <div className="col-span-1 text-right">AÇÃO</div>
         </div>
         
@@ -348,20 +452,32 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   {index + 1}
                 </div>
                 
-                <div className="col-span-3">
+                <div className="col-span-4">
                   <div className="flex items-center gap-3">
-                    <Image 
-                      src={token.image} 
-                      alt={`${token.name} logo`} 
-                      width={32} 
-                      height={32} 
-                      className="rounded-full shadow-sm"
-                    />
+                    {token.image.startsWith('/') ? (
+                      // Use img tag for local images (xStocks)
+                      <img 
+                        src={token.image} 
+                        alt={`${token.name} logo`} 
+                        width={32} 
+                        height={32} 
+                        className="rounded-full shadow-sm"
+                      />
+                    ) : (
+                      // Use Next.js Image component for external images
+                      <Image 
+                        src={token.image} 
+                        alt={`${token.name} logo`} 
+                        width={32} 
+                        height={32} 
+                        className="rounded-full shadow-sm"
+                      />
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-sm truncate" title={token.name}>
                         {token.name}
                       </div>
-                      <div className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block">
+                      <div className="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded inline-block mt-0.5">
                         {token.symbol}
                       </div>
                     </div>
@@ -394,7 +510,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   </span>
                 </div>
                 
-                <div className="col-span-2 text-sm font-medium text-right">
+                <div className="col-span-1 text-sm font-medium text-right">
                   {formatMarketCap(token.market_cap)}
                 </div>
                 

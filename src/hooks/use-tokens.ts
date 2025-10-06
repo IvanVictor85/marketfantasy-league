@@ -12,15 +12,14 @@ export function useTokens() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchTokens() {
+    const fetchTokens = async () => {
       try {
         setLoading(true);
         setError(null);
-        
         const response = await fetch('/api/tokens');
         
         if (!response.ok) {
-          throw new Error(`Failed to fetch tokens: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
@@ -31,7 +30,7 @@ export function useTokens() {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchTokens();
   }, []);

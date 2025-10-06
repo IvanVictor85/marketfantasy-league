@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { LoginModal } from './login-modal';
 import { Button } from '@/components/ui/button';
@@ -131,9 +132,11 @@ export function UserButton() {
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem>
-          <User className="mr-2 h-4 w-4" />
-          <span>Perfil</span>
+        <DropdownMenuItem asChild>
+          <Link href="/perfil" className="flex items-center">
+            <User className="mr-2 h-4 w-4" />
+            <span>Perfil</span>
+          </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem>

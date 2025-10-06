@@ -24,7 +24,7 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
+          <Link href="/" prefetch={false} className="flex items-center">
             <Image 
               src="/icons/cfl-minimal-logo.png" 
               alt="CFL Logo" 
@@ -47,6 +47,7 @@ export function Navbar() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  prefetch={false}
                   className={`px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? 'text-accent-foreground font-semibold'
@@ -89,9 +90,10 @@ export function Navbar() {
                     const isActive = pathname === item.href;
                     
                     return (
-                      <a
+                      <Link
                         key={item.name}
                         href={item.href}
+                        prefetch={false}
                         onClick={() => setIsOpen(false)}
                         className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                           isActive
@@ -101,7 +103,7 @@ export function Navbar() {
                       >
                         <Icon className="h-5 w-5" />
                         <span>{item.name}</span>
-                      </a>
+                      </Link>
                     );
                   })}
                 </div>

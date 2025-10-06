@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useAuth } from '@/contexts/auth-context';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +46,16 @@ import {
   DashboardData 
 } from '@/types/teams';
 
+// Interface para o mascote salvo
+interface SavedMascot {
+  id: string;
+  imageUrl: string;
+  character: string;
+  uniformStyle: string;
+  accessory?: string;
+  createdAt: string;
+}
+
 // Mock Data
 const mockUserData: UserData = {
   id: "user-1",
@@ -52,7 +63,20 @@ const mockUserData: UserData = {
   userName: "Ivan Victor",
   mascot: {
     animal: "doge",
-    shirt: "solana"
+    colors: {
+      primary: "#F59E0B",
+      secondary: "#EAB308", 
+      accent: "#FCD34D"
+    },
+    accessories: {
+      hat: "none",
+      glasses: "sunglasses",
+      shoes: "cleats",
+      extra: "none"
+    },
+    shirt: "solana",
+    pose: "default",
+    ball: true
   },
   mainTeam: {
     id: "main-team-1",
@@ -140,9 +164,10 @@ const mockUserData: UserData = {
 };
 
 // Dashboard Sidebar Component
-const DashboardSidebar = ({ userData, selectedTeamData }: { 
+const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: { 
   userData: UserData, 
-  selectedTeamData: { league: League | null, team: LeagueTeam | MainTeam | null, isMainTeam: boolean } 
+  selectedTeamData: { league: League | null, team: LeagueTeam | MainTeam | null, isMainTeam: boolean },
+  savedMascot: SavedMascot | null
 }) => {
   return (
     <div className="flex flex-col gap-4 w-full lg:w-64">
@@ -150,18 +175,29 @@ const DashboardSidebar = ({ userData, selectedTeamData }: {
       <Card>
         <CardContent className="p-6 flex flex-col items-center">
           <div className="w-32 h-32 relative mb-4">
-            <Image 
-              src={`/mascots/Gemini_Generated_Image_frnm54frnm54frnm.png`} 
-              alt="Mascote do time" 
-              fill 
-              className="object-contain"
-            />
+            {savedMascot ? (
+              <Image 
+                src={savedMascot.imageUrl} 
+                alt="Seu Mascote da Sorte" 
+                fill 
+                className="object-contain rounded-lg"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🎭</div>
+                  <p className="text-xs text-gray-600">Sem mascote</p>
+                </div>
+              </div>
+            )}
           </div>
           <h3 className="text-xl font-bold text-center">{userData.teamName}</h3>
           <p className="text-sm text-muted-foreground mb-4">{userData.userName}</p>
-          <Button variant="outline" className="w-full" size="sm">
-            <Edit className="h-4 w-4 mr-2" />
-            Ver/Editar Perfil
+          <Button variant="outline" className="w-full" size="sm" asChild>
+            <Link href="/perfil" prefetch={false}>
+              <Edit className="h-4 w-4 mr-2" />
+              Ver/Editar Perfil
+            </Link>
           </Button>
         </CardContent>
       </Card>
@@ -204,19 +240,19 @@ const DashboardSidebar = ({ userData, selectedTeamData }: {
         <CardContent className="p-6">
           <div className="space-y-2">
             <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/ligas">
+              <Link href="/ligas" prefetch={false}>
                 <Trophy className="h-4 w-4 mr-2 text-[#F4A261]" />
                 Minhas Ligas
               </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/market">
+              <Link href="/market" prefetch={false}>
                 <ShoppingCart className="h-4 w-4 mr-2 text-[#2A9D8F]" />
                 Mercado de Tokens
               </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/help">
+              <Link href="/help" prefetch={false}>
                 <HelpCircle className="h-4 w-4 mr-2 text-[#F4A261]" />
                 Entenda o Jogo
               </Link>
@@ -391,7 +427,57 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
 };
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string>("main");
+  const [savedMascot, setSavedMascot] = useState<SavedMascot | null>(null);
+
+  // Carregar mascote salvo do localStorage
+  useEffect(() => {
+    if (user) {
+      try {
+        const key = `savedMascot_${user.id}`;
+        const savedMascotData = localStorage.getItem(key);
+        
+        if (savedMascotData) {
+          const mascot = JSON.parse(savedMascotData);
+          setSavedMascot(mascot);
+        } else {
+          // Fallback: tentar carregar com chave do mockUserData para compatibilidade
+          const fallbackKey = `savedMascot_${mockUserData.id}`;
+          const fallbackData = localStorage.getItem(fallbackKey);
+          if (fallbackData) {
+            const mascot = JSON.parse(fallbackData);
+            setSavedMascot(mascot);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar mascote salvo:', error);
+      }
+    } else {
+      // Se não há usuário autenticado, tentar carregar com dados mock
+      try {
+        const key = `savedMascot_${mockUserData.id}`;
+        const savedMascotData = localStorage.getItem(key);
+        if (savedMascotData) {
+          const mascot = JSON.parse(savedMascotData);
+          setSavedMascot(mascot);
+        } else {
+          // Criar um mascote de exemplo para demonstração
+          const exampleMascot = {
+            id: 'example-mascot',
+            imageUrl: '/mascots/Gemini_Generated_Image_c6qn3c6qn3c6qn3c.png',
+            character: 'Doge Guerreiro',
+            uniformStyle: 'classic-cfl',
+            createdAt: new Date().toISOString()
+          };
+          localStorage.setItem(key, JSON.stringify(exampleMascot));
+          setSavedMascot(exampleMascot);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar mascote mock:', error);
+      }
+    }
+  }, [user]);
 
   const selectedTeamData = useMemo(() => {
     if (selectedTeamId === "main") {
@@ -415,7 +501,11 @@ export default function Dashboard() {
   return (
     <main className="container mx-auto py-6 px-4">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
-        <DashboardSidebar userData={mockUserData} selectedTeamData={selectedTeamData} />
+        <DashboardSidebar 
+          userData={mockUserData} 
+          selectedTeamData={selectedTeamData} 
+          savedMascot={savedMascot}
+        />
         <DashboardContent 
           userData={mockUserData} 
           selectedTeamData={selectedTeamData} 

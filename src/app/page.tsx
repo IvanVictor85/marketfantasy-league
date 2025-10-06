@@ -56,14 +56,14 @@ const HeroSection = () => (
       </p>
       
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
-        <Link href="/ligas">
+        <Link href="/ligas" prefetch={false}>
           <Button className="bg-[#F7931A] hover:bg-[#F7931A]/90 text-white text-lg md:text-xl px-8 md:px-10 py-6 md:py-7 rounded-xl shadow-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl z-10 relative font-bold">
             Começar a Jogar
             <ArrowRight className="ml-2 h-6 w-6" />
           </Button>
         </Link>
         
-        <Link href="/dashboard">
+        <Link href="/dashboard" prefetch={false}>
           <Button variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10 text-lg md:text-xl px-8 md:px-10 py-6 md:py-7 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 z-10 relative font-medium">
             Ver Dashboard
           </Button>

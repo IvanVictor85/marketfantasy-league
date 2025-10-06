@@ -14,6 +14,22 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@heroicons/react'],
   },
   
+  // Configuração de headers que exclui completamente requisições RSC
+  async headers() {
+    return [
+      {
+        // Aplicar apenas para páginas HTML, excluindo todas as requisições RSC
+        source: '/((?!.*_rsc).*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
+  
   // Configuração de output para Vercel
   output: 'standalone',
   
@@ -96,6 +112,12 @@ const nextConfig = {
         hostname: 'coin-images.coingecko.com',
         port: '',
         pathname: '/coins/images/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
       },
       {
         protocol: 'http',
