@@ -38,19 +38,25 @@ export default function PerfilPage() {
   const [savedMascot, setSavedMascot] = useState<GeneratedMascot | null>(null);
 
   useEffect(() => {
+    // Carregar dados do perfil se usuário autenticado
     if (user) {
       setTwitter(user.twitter || '');
       setDiscord(user.discord || '');
       setBio(user.bio || '');
-      // Carregar mascote salvo do localStorage
-      const savedMascotData = localStorage.getItem(`savedMascot_${user.id}`);
-      if (savedMascotData) {
-        try {
-          const mascot = JSON.parse(savedMascotData);
-          setSavedMascot(mascot);
-        } catch (error) {
-          console.error('Erro ao carregar mascote salvo:', error);
-        }
+    }
+    
+    // Carregar mascote salvo do localStorage (funciona com ou sem usuário)
+    const userId = user?.id || 'user-1';
+    const key = `savedMascot_${userId}`;
+    
+    const savedMascotData = localStorage.getItem(key);
+    
+    if (savedMascotData) {
+      try {
+        const mascot = JSON.parse(savedMascotData);
+        setSavedMascot(mascot);
+      } catch (error) {
+        console.error('Erro ao carregar mascote salvo:', error);
       }
     }
   }, [user]);
@@ -113,12 +119,19 @@ export default function PerfilPage() {
   };
 
   const handleSaveMascot = () => {
-    if (generatedMascot && user) {
-      // Salvar no localStorage
-      localStorage.setItem(`savedMascot_${user.id}`, JSON.stringify(generatedMascot));
-      setSavedMascot(generatedMascot);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+    if (generatedMascot) {
+      // Usar ID do usuário se autenticado, senão usar ID padrão
+      const userId = user?.id || 'user-1';
+      const key = `savedMascot_${userId}`;
+      
+      try {
+        localStorage.setItem(key, JSON.stringify(generatedMascot));
+        setSavedMascot(generatedMascot);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      } catch (error) {
+        console.error('Erro ao salvar no localStorage:', error);
+      }
     }
   };
 

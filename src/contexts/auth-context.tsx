@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for existing session on mount
     const checkExistingSession = () => {
       const savedUser = localStorage.getItem('cryptofantasy_user');
+      
       if (savedUser) {
         try {
           const userData = JSON.parse(savedUser);
