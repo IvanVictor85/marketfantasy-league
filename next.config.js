@@ -14,12 +14,12 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@heroicons/react'],
   },
   
-  // Configuração de headers que exclui completamente requisições RSC
+  // Configuração de headers simplificada
   async headers() {
     return [
       {
-        // Aplicar apenas para páginas HTML, excluindo todas as requisições RSC
-        source: '/((?!.*_rsc).*)',
+        // Aplicar para todas as páginas
+        source: '/(.*)',
         headers: [
           {
             key: 'Cache-Control',
