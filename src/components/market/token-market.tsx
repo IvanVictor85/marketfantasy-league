@@ -531,12 +531,12 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   </span>
                 </div>
                 
-                <div className="col-span-2 text-sm font-medium text-right flex items-center justify-between">
+                <div className="col-span-2 text-sm font-medium text-right flex items-center justify-end gap-2">
                   <span>{formatMarketCap(token.market_cap)}</span>
                   <Button
                     size="sm"
                     variant={isUsed ? "destructive" : isSelected ? "default" : "outline"}
-                    className={`h-6 w-6 p-0 flex items-center justify-center ml-2 ${
+                    className={`h-6 w-6 p-0 flex items-center justify-center ${
                       isUsed 
                         ? 'bg-red-100 text-red-600 cursor-not-allowed' 
                         : isSelected 
