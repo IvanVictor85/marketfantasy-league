@@ -115,7 +115,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       change_24h: xstock.change24h || 0,
       change_1d: xstock.change24h || 0,
       change_1w: 0,
-      change_7d: 0,
+      change_7d: xstock.change7d || 0,
       change_30d: 0,
       market_cap: xstock.marketCapUsd || 0,
       volume_24h: xstock.volume24hUsd || 0,
@@ -373,19 +373,19 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
           </div>
         </div>
         
-        <div className="mt-4 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <div className="mt-4 relative px-2 md:px-0">
+          <Search className="absolute left-5 md:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Buscar token..."
-            className="pl-9 w-full"
+            className="pl-11 md:pl-9 w-full mx-2 md:mx-0"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         
-        <div className="mt-4">
+        <div className="mt-4 px-2 md:px-0">
           <select 
-            className="text-sm border rounded p-1 w-full"
+            className="text-sm border rounded p-2 w-full mx-2 md:mx-0"
             value={selectedPeriod}
             onChange={(e) => {
               setSelectedPeriod(e.target.value);
@@ -402,13 +402,13 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       </CardHeader>
       
       <CardContent className="p-0 flex-grow overflow-auto pb-0 mb-0">
-        {/* Table Header */}
-        <div className="sticky top-0 grid grid-cols-12 gap-2 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
+        {/* Desktop Table Header */}
+        <div className="hidden md:grid sticky top-0 grid-cols-12 gap-1 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
           <div className="col-span-1 text-center">#</div>
-          <div className="col-span-4">TOKEN</div>
+          <div className="col-span-3">TOKEN</div>
           <div className="col-span-2 text-right">PREÇO</div>
           <div className="col-span-1 text-right">7d %</div>
-          <div className="col-span-2 text-right">
+          <div className="col-span-1 text-right">
             <select 
               className="text-sm font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
               value={selectedPeriod}
@@ -424,8 +424,29 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
               ))}
             </select>
           </div>
-          <div className="col-span-1 text-right">MCAP</div>
+          <div className="col-span-3 text-right">MCAP</div>
           <div className="col-span-1 text-right">AÇÃO</div>
+        </div>
+
+        {/* Mobile Table Header */}
+        <div className="md:hidden sticky top-0 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
+          <div className="flex justify-between items-center">
+            <span>TOKENS</span>
+            <select 
+              className="text-sm font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
+              value={selectedPeriod}
+              onChange={(e) => {
+                setSelectedPeriod(e.target.value);
+                setSortBy(e.target.value);
+              }}
+            >
+              {timePeriods.map((period) => (
+                <option key={period.value} value={period.value}>
+                  {period.label} %
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         
         {/* Token List */}
@@ -435,42 +456,43 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
             const isUsed = usedTokens.includes(token.id);
             
             return (
-              <div 
-                key={token.id} 
-                className={`grid grid-cols-12 gap-2 px-4 py-3 border-b transition-colors ${
-                  isUsed 
-                    ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' 
-                    : isSelected 
-                      ? 'bg-primary/10 border-primary/30 cursor-pointer' 
-                      : 'hover:bg-gray-50 cursor-pointer'
-                }`}
-                onClick={() => !isUsed && handleTokenClick(token)}
-                draggable={!isUsed}
-                onDragStart={(e) => !isUsed && handleDragStart(e, token)}
-              >
+              <div key={token.id}>
+                {/* Desktop Layout */}
+                <div 
+                  className={`hidden md:grid grid-cols-12 gap-1 px-4 py-3 border-b transition-colors ${
+                    isUsed 
+                      ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' 
+                      : isSelected 
+                        ? 'bg-primary/10 border-primary/30 cursor-pointer' 
+                        : 'hover:bg-gray-50 cursor-pointer'
+                  }`}
+                  onClick={() => !isUsed && handleTokenClick(token)}
+                  draggable={!isUsed}
+                  onDragStart={(e) => !isUsed && handleDragStart(e, token)}
+                >
                 <div className="col-span-1 text-sm text-gray-600 text-center">
                   {index + 1}
                 </div>
                 
-                <div className="col-span-4">
-                  <div className="flex items-center gap-3">
+                <div className="col-span-3">
+                  <div className="flex items-center gap-2">
                     {token.image.startsWith('/') ? (
                       // Use Next.js Image component for local images (xStocks)
                       <Image 
                         src={token.image} 
                         alt={`${token.name} logo`} 
-                        width={32} 
-                        height={32} 
-                        className="rounded-full shadow-sm"
+                        width={28} 
+                        height={28} 
+                        className="rounded-full shadow-sm flex-shrink-0"
                       />
                     ) : (
                       // Use Next.js Image component for external images
                       <Image 
                         src={token.image} 
                         alt={`${token.name} logo`} 
-                        width={32} 
-                        height={32} 
-                        className="rounded-full shadow-sm"
+                        width={28} 
+                        height={28} 
+                        className="rounded-full shadow-sm flex-shrink-0"
                       />
                     )}
                     <div className="min-w-0 flex-1">
@@ -494,7 +516,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   </span>
                 </div>
                 
-                <div className="col-span-2 text-sm font-medium text-right">
+                <div className="col-span-1 text-sm font-medium text-right">
                   <span className={getPercentageColorClass(
                     selectedPeriod === 'oneHour' ? token.change_1h :
                     selectedPeriod === 'twentyFourHour' ? token.change_24h :
@@ -510,7 +532,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   </span>
                 </div>
                 
-                <div className="col-span-1 text-sm font-medium text-right">
+                <div className="col-span-3 text-sm font-medium text-right">
                   {formatMarketCap(token.market_cap)}
                 </div>
                 
@@ -539,6 +561,112 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   >
                     {isUsed ? '✗' : isSelected && selectedPosition ? '✓' : '+'}
                   </Button>
+                </div>
+                </div>
+
+                {/* Mobile Layout */}
+                <div 
+                  className={`md:hidden px-4 py-3 border-b transition-colors ${
+                    isUsed 
+                      ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' 
+                      : isSelected 
+                        ? 'bg-primary/10 border-primary/30 cursor-pointer' 
+                        : 'hover:bg-gray-50 cursor-pointer'
+                  }`}
+                  onClick={() => !isUsed && handleTokenClick(token)}
+                  draggable={!isUsed}
+                  onDragStart={(e) => !isUsed && handleDragStart(e, token)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className="text-sm text-gray-600 font-medium w-6 text-center flex-shrink-0">
+                        {index + 1}
+                      </span>
+                      {token.image.startsWith('/') ? (
+                        <Image 
+                          src={token.image} 
+                          alt={`${token.name} logo`} 
+                          width={32} 
+                          height={32} 
+                          className="rounded-full shadow-sm flex-shrink-0"
+                        />
+                      ) : (
+                        <Image 
+                          src={token.image} 
+                          alt={`${token.name} logo`} 
+                          width={32} 
+                          height={32} 
+                          className="rounded-full shadow-sm flex-shrink-0"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm truncate" title={token.name}>
+                          {token.name}
+                        </div>
+                        <div className="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded inline-block">
+                          {token.symbol}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        size="sm"
+                        variant={isUsed ? "destructive" : isSelected ? "default" : "outline"}
+                        className={`h-8 w-8 p-0 flex items-center justify-center ${
+                          isUsed 
+                            ? 'bg-red-100 text-red-600 cursor-not-allowed' 
+                            : isSelected 
+                              ? 'bg-primary text-white' 
+                              : ''
+                        }`}
+                        disabled={isUsed}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isUsed) {
+                            if (isSelected && selectedPosition) {
+                              handleAddToField(token);
+                            } else {
+                              handleTokenClick(token);
+                            }
+                          }
+                        }}
+                      >
+                        {isUsed ? '✗' : isSelected && selectedPosition ? '✓' : '+'}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="text-gray-500">Preço</div>
+                      <div className="font-medium">{formatCurrency(token.price)}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-500">7d %</div>
+                      <div className={`font-medium ${getPercentageColorClass(token.change_7d)}`}>
+                        {formatPercentage(token.change_7d)}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-500">
+                        {timePeriods.find(p => p.value === selectedPeriod)?.label} %
+                      </div>
+                      <div className={`font-medium ${getPercentageColorClass(
+                        selectedPeriod === 'oneHour' ? token.change_1h :
+                        selectedPeriod === 'twentyFourHour' ? token.change_24h :
+                        selectedPeriod === 'sevenDay' ? token.change_7d :
+                        selectedPeriod === 'thirtyDay' ? token.change_30d : 0
+                      )}`}>
+                        {formatPercentage(
+                          selectedPeriod === 'oneHour' ? token.change_1h :
+                          selectedPeriod === 'twentyFourHour' ? token.change_24h :
+                          selectedPeriod === 'sevenDay' ? token.change_7d :
+                          selectedPeriod === 'thirtyDay' ? token.change_30d : 0
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
