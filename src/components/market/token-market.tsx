@@ -403,12 +403,12 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       
       <CardContent className="p-0 flex-grow overflow-auto pb-0 mb-0">
         {/* Desktop Table Header */}
-        <div className="hidden md:grid sticky top-0 grid-cols-12 gap-1 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
+        <div className="hidden md:grid sticky top-0 grid-cols-12 gap-3 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
           <div className="col-span-1 text-center">#</div>
           <div className="col-span-3">TOKEN</div>
           <div className="col-span-2 text-right">PREÇO</div>
-          <div className="col-span-1 text-right">7d %</div>
-          <div className="col-span-1 text-right">
+          <div className="col-span-2 text-right">7d %</div>
+          <div className="col-span-2 text-right">
             <select 
               className="text-sm font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
               value={selectedPeriod}
@@ -424,8 +424,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
               ))}
             </select>
           </div>
-          <div className="col-span-3 text-right">MCAP</div>
-          <div className="col-span-1 text-right">AÇÃO</div>
+          <div className="col-span-2 text-right">MCAP</div>
         </div>
 
         {/* Mobile Table Header */}
@@ -459,7 +458,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
               <div key={token.id}>
                 {/* Desktop Layout */}
                 <div 
-                  className={`hidden md:grid grid-cols-12 gap-1 px-4 py-3 border-b transition-colors ${
+                  className={`hidden md:grid grid-cols-12 gap-3 px-4 py-3 border-b transition-colors ${
                     isUsed 
                       ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' 
                       : isSelected 
@@ -510,13 +509,13 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   {formatCurrency(token.price)}
                 </div>
                 
-                <div className="col-span-1 text-sm font-medium text-right">
+                <div className="col-span-2 text-sm font-medium text-right">
                   <span className={getPercentageColorClass(token.change_7d)}>
                     {formatPercentage(token.change_7d)}
                   </span>
                 </div>
                 
-                <div className="col-span-1 text-sm font-medium text-right">
+                <div className="col-span-2 text-sm font-medium text-right">
                   <span className={getPercentageColorClass(
                     selectedPeriod === 'oneHour' ? token.change_1h :
                     selectedPeriod === 'twentyFourHour' ? token.change_24h :
@@ -532,15 +531,12 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   </span>
                 </div>
                 
-                <div className="col-span-3 text-sm font-medium text-right">
-                  {formatMarketCap(token.market_cap)}
-                </div>
-                
-                <div className="col-span-1 flex items-center justify-end">
+                <div className="col-span-2 text-sm font-medium text-right flex items-center justify-between">
+                  <span>{formatMarketCap(token.market_cap)}</span>
                   <Button
                     size="sm"
                     variant={isUsed ? "destructive" : isSelected ? "default" : "outline"}
-                    className={`h-6 w-6 p-0 flex items-center justify-center ${
+                    className={`h-6 w-6 p-0 flex items-center justify-center ml-2 ${
                       isUsed 
                         ? 'bg-red-100 text-red-600 cursor-not-allowed' 
                         : isSelected 
@@ -637,20 +633,14 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                     </div>
                   </div>
                   
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                  <div className="mt-2 grid grid-cols-3 gap-3 text-xs">
                     <div className="text-center">
-                      <div className="text-gray-500">Preço</div>
+                      <div className="text-gray-500 mb-1">Preço</div>
                       <div className="font-medium">{formatCurrency(token.price)}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-gray-500">7d %</div>
-                      <div className={`font-medium ${getPercentageColorClass(token.change_7d)}`}>
-                        {formatPercentage(token.change_7d)}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-gray-500">
-                        {timePeriods.find(p => p.value === selectedPeriod)?.label} %
+                      <div className="text-gray-500 mb-1">
+                        {timePeriods.find(p => p.value === selectedPeriod)?.label || 'N/A'} %
                       </div>
                       <div className={`font-medium ${getPercentageColorClass(
                         selectedPeriod === 'oneHour' ? token.change_1h :
@@ -665,6 +655,10 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                           selectedPeriod === 'thirtyDay' ? token.change_30d : 0
                         )}
                       </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-gray-500 mb-1">MCAP</div>
+                      <div className="font-medium">{formatMarketCap(token.market_cap)}</div>
                     </div>
                   </div>
                 </div>
