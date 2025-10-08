@@ -3,7 +3,8 @@ import {
   Transaction, 
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
-  TransactionInstruction
+  TransactionInstruction,
+  LAMPORTS_PER_SOL
 } from '@solana/web3.js';
 import { WalletContextState } from '@solana/wallet-adapter-react';
 import { connection, PROGRAM_ID } from './connection';
@@ -134,6 +135,24 @@ export const distributePrizesInstruction = async (
 };
 
 // Helper function to send and confirm transaction
+// Cache for the last used blockhash to avoid duplicates
+let lastBlockhash: string | null = null;
+let lastBlockhashTime = 0;
+
+// Cache for recent transactions to avoid duplicates
+const recentTransactions = new Map<string, { signature: string; timestamp: number }>();
+const TRANSACTION_CACHE_DURATION = 30000; // 30 seconds
+
+// Clean old transactions from cache
+const cleanTransactionCache = () => {
+  const now = Date.now();
+  for (const [key, value] of recentTransactions.entries()) {
+    if (now - value.timestamp > TRANSACTION_CACHE_DURATION) {
+      recentTransactions.delete(key);
+    }
+  }
+};
+
 export const sendAndConfirmTransaction = async (
   wallet: WalletContextState,
   transaction: Transaction
@@ -142,21 +161,113 @@ export const sendAndConfirmTransaction = async (
     throw new Error('Wallet not connected');
   }
 
-  // Get recent blockhash
-  const { blockhash } = await connection.getLatestBlockhash();
+  // Clean old transactions from cache
+  cleanTransactionCache();
+
+  // Create a unique key for this transaction based on instructions and payer
+  const transactionKey = JSON.stringify({
+    instructions: transaction.instructions.map(ix => ({
+      programId: ix.programId.toString(),
+      keys: ix.keys.map(k => ({ pubkey: k.pubkey.toString(), isSigner: k.isSigner, isWritable: k.isWritable })),
+      data: Array.from(ix.data)
+    })),
+    feePayer: wallet.publicKey.toString()
+  });
+
+  // Check if we've recently sent this exact transaction
+  const cachedTransaction = recentTransactions.get(transactionKey);
+  if (cachedTransaction) {
+    console.log('Transaction already sent recently, returning cached signature');
+    return cachedTransaction.signature;
+  }
+
+  // Get a fresh blockhash, ensuring it's different from the last one
+  let blockhash: string;
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  do {
+    const blockHashInfo = await connection.getLatestBlockhash('finalized');
+    blockhash = blockHashInfo.blockhash;
+    
+    // If this is a different blockhash or enough time has passed, use it
+    if (blockhash !== lastBlockhash || Date.now() - lastBlockhashTime > 1000) {
+      break;
+    }
+    
+    // Wait a bit before trying again
+    await new Promise(resolve => setTimeout(resolve, 200));
+    attempts++;
+  } while (attempts < maxAttempts);
+
+  // Update cache
+  lastBlockhash = blockhash;
+  lastBlockhashTime = Date.now();
+
   transaction.recentBlockhash = blockhash;
   transaction.feePayer = wallet.publicKey;
 
   // Sign transaction
   const signedTransaction = await wallet.signTransaction(transaction);
 
-  // Send transaction
-  const signature = await connection.sendRawTransaction(signedTransaction.serialize());
+  // Send transaction with error handling for duplicates
+  try {
+    const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+      skipPreflight: false,
+      preflightCommitment: 'processed'
+    });
 
-  // Confirm transaction
-  await connection.confirmTransaction(signature, 'confirmed');
+    // Cache this transaction
+    recentTransactions.set(transactionKey, {
+      signature,
+      timestamp: Date.now()
+    });
 
-  return signature;
+    // Confirm transaction
+    await connection.confirmTransaction(signature, 'confirmed');
+
+    return signature;
+  } catch (error: any) {
+    // If it's a duplicate transaction error, check if we can find the signature
+    if (error.message?.includes('already been processed') || error.message?.includes('This transaction has already been processed')) {
+      console.warn('Transaction already processed, checking for existing signature...');
+      
+      // Try to get recent signatures for this wallet
+      try {
+        const signatures = await connection.getSignaturesForAddress(wallet.publicKey, { limit: 10 });
+        const recentSignature = signatures.find(sig => 
+          Math.abs(Date.now() / 1000 - (sig.blockTime || 0)) < 60 // Within last minute
+        );
+        
+        if (recentSignature) {
+          console.log('Found recent signature:', recentSignature.signature);
+          // Cache this transaction for future reference
+          recentTransactions.set(transactionKey, {
+            signature: recentSignature.signature,
+            timestamp: Date.now()
+          });
+          return recentSignature.signature;
+        }
+      } catch (searchError) {
+        console.warn('Could not search for existing signature:', searchError);
+      }
+      
+      // If we can't find the signature, throw a user-friendly error
+      throw new Error('Esta transação já foi processada. Verifique seu saldo e tente novamente se necessário.');
+    }
+    
+    // Handle other common errors
+    if (error.message?.includes('Blockhash not found')) {
+      throw new Error('Erro de rede. Tente novamente em alguns segundos.');
+    }
+    
+    if (error.message?.includes('insufficient funds')) {
+      throw new Error('Saldo insuficiente para completar a transação.');
+    }
+    
+    // For other errors, throw the original error
+    throw error;
+  }
 };
 
 // Fetch league account data
@@ -187,4 +298,123 @@ export const fetchLeagueAccount = async (leagueKey: PublicKey): Promise<League |
     console.error('Error fetching league account:', error);
     return null;
   }
+};
+
+// Generate PDA for user deposit account
+export const getUserDepositPDA = async (user: PublicKey): Promise<[PublicKey, number]> => {
+  return await PublicKey.findProgramAddress(
+    [Buffer.from('user_deposit'), user.toBuffer()],
+    PROGRAM_ID
+  );
+};
+
+// Temporary platform treasury (in production, this would be managed by the smart contract)
+const PLATFORM_TREASURY = new PublicKey('11111111111111111111111111111112'); // System Program as placeholder treasury
+
+// Deposit SOL to platform (temporary implementation using direct transfer)
+export const depositSolInstruction = async (
+  user: PublicKey,
+  amount: number // amount in lamports
+): Promise<TransactionInstruction> => {
+  // For now, we'll use a simple transfer to a platform treasury
+  // In production, this would be handled by a smart contract
+  return SystemProgram.transfer({
+    fromPubkey: user,
+    toPubkey: PLATFORM_TREASURY,
+    lamports: amount,
+  });
+};
+
+// Deposit SOL to platform (high-level function)
+export const depositSol = async (
+  wallet: WalletContextState,
+  amountSol: number
+): Promise<string> => {
+  if (!wallet.publicKey || !wallet.signTransaction) {
+    throw new Error('Wallet not connected');
+  }
+
+  const amountLamports = Math.floor(amountSol * LAMPORTS_PER_SOL);
+  
+  const transaction = new Transaction();
+  const depositInstruction = await depositSolInstruction(wallet.publicKey, amountLamports);
+  transaction.add(depositInstruction);
+
+  const signature = await sendAndConfirmTransaction(wallet, transaction);
+  
+  // Update local storage with the deposited amount
+  updateUserDepositedBalance(wallet.publicKey, amountLamports);
+  
+  return signature;
+};
+
+// Temporary storage for user deposits (in production, this would be on-chain)
+const getUserDepositsKey = (user: PublicKey) => `user_deposits_${user.toString()}`;
+
+// Get user's deposited balance (temporary implementation using localStorage)
+export const getUserDepositedBalance = async (user: PublicKey): Promise<number> => {
+  try {
+    if (typeof window === 'undefined') return 0;
+    
+    const depositsKey = getUserDepositsKey(user);
+    const storedBalance = localStorage.getItem(depositsKey);
+    
+    return storedBalance ? parseInt(storedBalance, 10) : 0;
+  } catch (error) {
+    console.error('Error fetching user deposit balance:', error);
+    return 0;
+  }
+};
+
+// Update user's deposited balance (temporary implementation)
+const updateUserDepositedBalance = (user: PublicKey, amount: number) => {
+  try {
+    if (typeof window === 'undefined') return;
+    
+    const depositsKey = getUserDepositsKey(user);
+    const currentBalance = parseInt(localStorage.getItem(depositsKey) || '0', 10);
+    const newBalance = currentBalance + amount;
+    
+    localStorage.setItem(depositsKey, newBalance.toString());
+  } catch (error) {
+    console.error('Error updating user deposit balance:', error);
+  }
+};
+
+// Check if user has sufficient deposited balance
+export const hasDepositedBalance = async (user: PublicKey, requiredAmount: number): Promise<boolean> => {
+  const depositedBalance = await getUserDepositedBalance(user);
+  return depositedBalance >= requiredAmount;
+};
+
+// Withdraw SOL from platform (temporary implementation)
+export const withdrawSol = async (wallet: WalletContextState, amountSol: number): Promise<string> => {
+  if (!wallet.publicKey || !wallet.signTransaction) {
+    throw new Error('Wallet not connected');
+  }
+
+  const amountLamports = solToLamports(amountSol);
+  
+  // Check if user has sufficient deposited balance
+  const depositedBalance = await getUserDepositedBalance(wallet.publicKey);
+  if (depositedBalance < amountLamports) {
+    throw new Error('Saldo insuficiente na plataforma para retirada');
+  }
+
+  // Create withdrawal transaction (transfer from platform treasury to user)
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: PLATFORM_TREASURY,
+      toPubkey: wallet.publicKey,
+      lamports: amountLamports,
+    })
+  );
+
+  // Send and confirm transaction
+  const signature = await sendAndConfirmTransaction(wallet, transaction);
+
+  // Update user's deposited balance (subtract withdrawn amount)
+  updateUserDepositedBalance(wallet.publicKey, -amountLamports);
+
+  return signature;
 };

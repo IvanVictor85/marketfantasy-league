@@ -1,12 +1,13 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Trophy, Target, HelpCircle, Wallet, Gift } from 'lucide-react';
+import { Menu, Trophy, Target, HelpCircle, Gift } from 'lucide-react';
 import { useState } from 'react';
+import { WalletConnectButton } from '@/components/layout/WalletConnectButton';
 
 const navigation = [
   { name: 'Ligas', href: '/ligas', icon: Trophy },
@@ -62,9 +63,7 @@ export function Navbar() {
 
           {/* Wallet Connection */}
           <div className="hidden md:flex md:items-center">
-            <Button className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-md">
-              <Wallet className="mr-2 h-4 w-4" /> Conectar Carteira
-            </Button>
+            <WalletConnectButton />
           </div>
 
           {/* Mobile Menu */}
@@ -79,9 +78,7 @@ export function Navbar() {
                 <div className="flex flex-col space-y-4 mt-8">
                   {/* Mobile Wallet Connection */}
                   <div className="pb-4 border-b space-y-3">
-                    <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-md">
-                      <Wallet className="mr-2 h-4 w-4" /> Conectar Carteira
-                    </Button>
+                    <WalletConnectButton className="w-full" />
                   </div>
 
                   {/* Mobile Navigation */}

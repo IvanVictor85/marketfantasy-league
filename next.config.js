@@ -1,4 +1,4 @@
-// next.config.js
+﻿// next.config.js
 const path = require("path");
 
 /** @type {import('next').NextConfig} */
@@ -33,64 +33,8 @@ const nextConfig = {
   // Configuração de output para Vercel
   output: 'standalone',
   
-  // Desabilitar HMR completamente em desenvolvimento
-  webpack: (config, { dev, isServer }) => {
-    if (dev) {
-      // Remover plugins de HMR
-      config.plugins = config.plugins.filter((plugin) => {
-        return plugin.constructor.name !== 'HotModuleReplacementPlugin';
-      });
-      
-      // Desabilitar watch
-      config.watchOptions = {
-        poll: false,
-        ignored: ['**/node_modules/**', '**/.git/**'],
-      };
-      
-      // Desabilitar HMR no entry
-      if (!isServer && config.entry) {
-        const originalEntry = config.entry;
-        config.entry = async () => {
-          const entries = await (typeof originalEntry === 'function' ? originalEntry() : originalEntry);
-          
-          // Filtrar entradas relacionadas ao HMR
-          Object.keys(entries).forEach(key => {
-            if (Array.isArray(entries[key])) {
-              entries[key] = entries[key].filter((entry) => 
-                !entry.includes('webpack/hot') && 
-                !entry.includes('webpack-hot-middleware') &&
-                !entry.includes('react-refresh')
-              );
-            }
-          });
-          
-          return entries;
-        };
-      }
-    }
-    
-    // Otimizações para produção
-    if (!dev) {
-      // Otimizações de bundle
-      config.optimization.splitChunks = {
-        chunks: 'all',
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            priority: 10,
-            reuseExistingChunk: true,
-          },
-        },
-      };
-      
-      // Aliases para reduzir tamanho do bundle
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        '@': path.resolve(__dirname, './'),
-      };
-    }
-    
+  // Mantém a configuração padrão do webpack sem desabilitar HMR
+  webpack: (config) => {
     return config;
   },
   

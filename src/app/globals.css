@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Solana Wallet Adapter Styles */
+@import '@solana/wallet-adapter-react-ui/styles.css';
+
 :root {
   --radius: 0.75rem;
   /* Cartola FC Color Scheme - HSL format for Tailwind */

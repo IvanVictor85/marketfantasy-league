@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -33,6 +33,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [walletConnectionCancelled, setWalletConnectionCancelled] = useState(false);
   
   // Form states
   const [email, setEmail] = useState('');
@@ -48,12 +49,22 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setError('');
     setSuccess('');
     setShowPassword(false);
+    setWalletConnectionCancelled(false);
   };
 
   const handleClose = () => {
     resetForm();
     onClose();
   };
+
+  // Detectar quando a conexão da carteira é cancelada
+  useEffect(() => {
+    // Se o modal está aberto e não há conexão, mas havia uma tentativa anterior
+    if (isOpen && !connected && walletConnectionCancelled) {
+      setError('');
+      setWalletConnectionCancelled(false);
+    }
+  }, [connected, isOpen, walletConnectionCancelled]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +121,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     
     if (!connected || !publicKey) {
       setError('Por favor, conecte sua carteira primeiro');
+      setWalletConnectionCancelled(true);
       return;
     }
 
@@ -120,7 +132,15 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         handleClose();
       }, 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro no login com carteira');
+      const errorMessage = err instanceof Error ? err.message : 'Erro no login com carteira';
+      
+      // Não mostrar erro se o usuário cancelou a conexão
+      if (errorMessage.includes('User rejected') || errorMessage.includes('rejected the request')) {
+        setWalletConnectionCancelled(true);
+        return;
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -363,6 +383,15 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {walletConnectionCancelled && !error && (
+            <Alert className="border-blue-200 bg-blue-50 text-blue-800">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Conexão da carteira cancelada. Clique no botão "Connect Wallet" acima para tentar novamente.
+              </AlertDescription>
             </Alert>
           )}
 

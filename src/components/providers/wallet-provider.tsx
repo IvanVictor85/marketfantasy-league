@@ -7,6 +7,11 @@ import {
 } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork, WalletError } from '@solana/wallet-adapter-base';
 import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+  TorusWalletAdapter,
+} from '@solana/wallet-adapter-wallets';
+import {
   WalletModalProvider,
 } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
@@ -27,11 +32,34 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
     return clusterApiUrl(network);
   }, [network]);
 
-  // Empty wallets array for now to avoid dependency issues
-  const wallets = useMemo(() => [], []);
+  // Configure wallets for Solana
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      new TorusWalletAdapter(),
+    ],
+    []
+  );
 
   const onError = useCallback((error: WalletError) => {
     console.error('Wallet error:', error);
+    
+    // Handle specific error types
+    if (error.message?.includes('User rejected') || error.message?.includes('rejected the request')) {
+      console.log('User cancelled wallet connection');
+      // Don't show error toast for user cancellation
+      return;
+    }
+    
+    // Handle other wallet errors
+    if (error.message?.includes('Wallet not found')) {
+      console.error('Wallet not found - please install a Solana wallet');
+    } else if (error.message?.includes('Connection failed')) {
+      console.error('Failed to connect to wallet');
+    } else {
+      console.error('Unexpected wallet error:', error.message);
+    }
   }, []);
 
   return (
