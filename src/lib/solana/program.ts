@@ -7,7 +7,7 @@ import {
   LAMPORTS_PER_SOL
 } from '@solana/web3.js';
 import { WalletContextState } from '@solana/wallet-adapter-react';
-import { connection, PROGRAM_ID } from './connection';
+import { connection, PROGRAM_ID, solToLamports } from './connection';
 
 // League account structure
 export interface League {

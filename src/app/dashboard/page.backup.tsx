@@ -269,9 +269,7 @@ const { publicKey, connected } = wallet;
       toast.info('Confirmando transação...');
       
       // Confirm transaction with timeout
-      const confirmation = await connection.confirmTransaction(sig!, {
-        commitment: 'confirmed',
-      });
+      const confirmation = await connection.confirmTransaction(sig!, 'confirmed');
       
       if (confirmation.value.err) {
         throw new Error(`Transaction failed: ${confirmation.value.err}`);

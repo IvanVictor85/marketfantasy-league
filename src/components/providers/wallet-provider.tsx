@@ -45,10 +45,22 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
   const onError = useCallback((error: WalletError) => {
     console.error('Wallet error:', error);
     
+    // Handle WalletDisconnectedError specifically
+    if (error.name === 'WalletDisconnectedError') {
+      console.log('Wallet disconnected - this is expected behavior');
+      return;
+    }
+    
     // Handle specific error types
     if (error.message?.includes('User rejected') || error.message?.includes('rejected the request')) {
       console.log('User cancelled wallet connection');
       // Don't show error toast for user cancellation
+      return;
+    }
+    
+    // Handle empty error messages
+    if (!error.message || error.message.trim() === '') {
+      console.warn('Wallet error with empty message:', error.name || 'Unknown error');
       return;
     }
     
