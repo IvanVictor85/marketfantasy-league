@@ -7,7 +7,10 @@ import {
   LAMPORTS_PER_SOL
 } from '@solana/web3.js';
 import { WalletContextState } from '@solana/wallet-adapter-react';
-import { connection, PROGRAM_ID, solToLamports } from './connection';
+import { getConnectionSync, getConnection, PROGRAM_ID, solToLamports } from './connection';
+
+// Use synchronous connection for backward compatibility
+const connection = getConnectionSync();
 
 // League account structure
 export interface League {
@@ -153,12 +156,69 @@ const cleanTransactionCache = () => {
   }
 };
 
+// Helper function to check network connectivity
+const checkNetworkConnectivity = async (): Promise<boolean> => {
+  try {
+    const conn = await getConnection();
+    const response = await conn.getSlot();
+    return typeof response === 'number';
+  } catch (error) {
+    console.warn('Network connectivity check failed:', error);
+    return false;
+  }
+};
+
+// Helper function to retry with exponential backoff
+const retryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Don't retry for certain types of errors
+      if (
+        error.message?.includes('insufficient funds') ||
+        error.message?.includes('already been processed') ||
+        error.message?.includes('User rejected') ||
+        error.message?.includes('Transaction cancelled')
+      ) {
+        throw error;
+      }
+      
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        break;
+      }
+      
+      // Calculate delay with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+};
+
 export const sendAndConfirmTransaction = async (
   wallet: WalletContextState,
   transaction: Transaction
 ): Promise<string> => {
   if (!wallet.publicKey || !wallet.signTransaction) {
     throw new Error('Wallet not connected');
+  }
+
+  // Check network connectivity first
+  const isConnected = await checkNetworkConnectivity();
+  if (!isConnected) {
+    throw new Error('Erro de conectividade. Verifique sua conexão com a internet e tente novamente.');
   }
 
   // Clean old transactions from cache
@@ -181,93 +241,119 @@ export const sendAndConfirmTransaction = async (
     return cachedTransaction.signature;
   }
 
-  // Get a fresh blockhash, ensuring it's different from the last one
-  let blockhash: string;
-  let attempts = 0;
-  const maxAttempts = 5;
+  // Get a fresh blockhash with retry logic
+  const getBlockhash = async (): Promise<string> => {
+    let blockhash: string;
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    do {
+      const conn = await getConnection();
+      const blockHashInfo = await conn.getLatestBlockhash('finalized');
+      blockhash = blockHashInfo.blockhash;
+      
+      // If this is a different blockhash or enough time has passed, use it
+      if (blockhash !== lastBlockhash || Date.now() - lastBlockhashTime > 1000) {
+        break;
+      }
+      
+      // Wait a bit before trying again
+      await new Promise(resolve => setTimeout(resolve, 200));
+      attempts++;
+    } while (attempts < maxAttempts);
+
+    // Update cache
+    lastBlockhash = blockhash;
+    lastBlockhashTime = Date.now();
+    
+    return blockhash;
+  };
+
+  const blockhash = await retryWithBackoff(getBlockhash);
   
-  do {
-    const blockHashInfo = await connection.getLatestBlockhash('finalized');
-    blockhash = blockHashInfo.blockhash;
-    
-    // If this is a different blockhash or enough time has passed, use it
-    if (blockhash !== lastBlockhash || Date.now() - lastBlockhashTime > 1000) {
-      break;
-    }
-    
-    // Wait a bit before trying again
-    await new Promise(resolve => setTimeout(resolve, 200));
-    attempts++;
-  } while (attempts < maxAttempts);
-
-  // Update cache
-  lastBlockhash = blockhash;
-  lastBlockhashTime = Date.now();
-
   transaction.recentBlockhash = blockhash;
   transaction.feePayer = wallet.publicKey;
 
   // Sign transaction
   const signedTransaction = await wallet.signTransaction(transaction);
 
-  // Send transaction with error handling for duplicates
-  try {
-    const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
-      skipPreflight: false,
-      preflightCommitment: 'processed'
-    });
+  // Send transaction with retry logic and improved error handling
+  return await retryWithBackoff(async () => {
+    try {
+      const conn = await getConnection();
+      const signature = await conn.sendRawTransaction(signedTransaction.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: 'processed',
+        maxRetries: 3
+      });
 
-    // Cache this transaction
-    recentTransactions.set(transactionKey, {
-      signature,
-      timestamp: Date.now()
-    });
+      // Cache this transaction
+      recentTransactions.set(transactionKey, {
+        signature,
+        timestamp: Date.now()
+      });
 
-    // Confirm transaction
-    await connection.confirmTransaction(signature, 'confirmed');
+      // Confirm transaction with timeout
+      await Promise.race([
+        conn.confirmTransaction(signature, 'confirmed'),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Transaction confirmation timeout')), 30000)
+        )
+      ]);
 
-    return signature;
-  } catch (error: any) {
-    // If it's a duplicate transaction error, check if we can find the signature
-    if (error.message?.includes('already been processed') || error.message?.includes('This transaction has already been processed')) {
-      console.warn('Transaction already processed, checking for existing signature...');
-      
-      // Try to get recent signatures for this wallet
-      try {
-        const signatures = await connection.getSignaturesForAddress(wallet.publicKey, { limit: 10 });
-        const recentSignature = signatures.find(sig => 
-          Math.abs(Date.now() / 1000 - (sig.blockTime || 0)) < 60 // Within last minute
-        );
+      return signature;
+    } catch (error: any) {
+      // If it's a duplicate transaction error, check if we can find the signature
+      if (error.message?.includes('already been processed') || error.message?.includes('This transaction has already been processed')) {
+        console.warn('Transaction already processed, checking for existing signature...');
         
-        if (recentSignature) {
-          console.log('Found recent signature:', recentSignature.signature);
-          // Cache this transaction for future reference
-          recentTransactions.set(transactionKey, {
-            signature: recentSignature.signature,
-            timestamp: Date.now()
-          });
-          return recentSignature.signature;
+        // Try to get recent signatures for this wallet
+        try {
+          const conn = await getConnection();
+          const signatures = await conn.getSignaturesForAddress(wallet.publicKey!, { limit: 10 });
+          const recentSignature = signatures.find(sig => 
+            Math.abs(Date.now() / 1000 - (sig.blockTime || 0)) < 60 // Within last minute
+          );
+          
+          if (recentSignature) {
+            console.log('Found recent signature:', recentSignature.signature);
+            // Cache this transaction for future reference
+            recentTransactions.set(transactionKey, {
+              signature: recentSignature.signature,
+              timestamp: Date.now()
+            });
+            return recentSignature.signature;
+          }
+        } catch (searchError) {
+          console.warn('Could not search for existing signature:', searchError);
         }
-      } catch (searchError) {
-        console.warn('Could not search for existing signature:', searchError);
+        
+        // If we can't find the signature, throw a user-friendly error
+        throw new Error('Esta transação já foi processada. Verifique seu saldo e tente novamente se necessário.');
       }
       
-      // If we can't find the signature, throw a user-friendly error
-      throw new Error('Esta transação já foi processada. Verifique seu saldo e tente novamente se necessário.');
+      // Handle network-related errors
+      if (
+        error.message?.includes('Blockhash not found') ||
+        error.message?.includes('fetch') ||
+        error.message?.includes('network') ||
+        error.message?.includes('timeout') ||
+        error.message?.includes('ENOTFOUND') ||
+        error.message?.includes('ECONNREFUSED') ||
+        error.message?.includes('Transaction confirmation timeout')
+      ) {
+        throw new Error('Erro de rede. Tente novamente em alguns segundos.');
+      }
+      
+      if (error.message?.includes('insufficient funds')) {
+        throw new Error('Saldo insuficiente para completar a transação.');
+      }
+      
+      // For other errors, provide more context
+      console.error('Transaction error:', error);
+      throw new Error(`Erro na transação: ${error.message || 'Erro desconhecido'}`);
     }
-    
-    // Handle other common errors
-    if (error.message?.includes('Blockhash not found')) {
-      throw new Error('Erro de rede. Tente novamente em alguns segundos.');
-    }
-    
-    if (error.message?.includes('insufficient funds')) {
-      throw new Error('Saldo insuficiente para completar a transação.');
-    }
-    
-    // For other errors, throw the original error
-    throw error;
-  }
+  });
 };
 
 // Fetch league account data

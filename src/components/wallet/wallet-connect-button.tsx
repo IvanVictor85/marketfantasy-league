@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Wallet, LogOut, Copy, ExternalLink, Zap } from 'lucide-react';
 import { formatSolAmount } from '@/lib/solana/connection';
 import { useEffect, useState } from 'react';
-import { connection } from '@/lib/solana/connection';
+import { getConnectionSync } from '@/lib/solana/connection';
+
+const connection = getConnectionSync();
 
 export function WalletConnectButton() {
   const { publicKey, disconnect, connected, wallet } = useWallet();

@@ -38,7 +38,9 @@ import {
 } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { connection, formatSolAmount, solToLamports } from '@/lib/solana/connection';
+import { getConnectionSync, formatSolAmount, solToLamports } from '@/lib/solana/connection';
+
+const connection = getConnectionSync();
 import { depositSol, withdrawSol, getUserDepositedBalance, hasDepositedBalance } from '@/lib/solana/program';
 import { toast } from 'sonner';
 
