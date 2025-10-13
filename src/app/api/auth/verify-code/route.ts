@@ -132,7 +132,7 @@ export async function OPTIONS() {
 }
 
 // Função para validar token de sessão (para uso em outras APIs)
-export function validateAuthToken(token: string): AuthToken | null {
+function validateAuthToken(token: string): AuthToken | null {
   const authToken = authTokens.get(token);
   
   if (!authToken) {
@@ -148,7 +148,7 @@ export function validateAuthToken(token: string): AuthToken | null {
 }
 
 // Função para obter usuário pelo token
-export function getUserByToken(token: string) {
+function getUserByToken(token: string) {
   const authToken = validateAuthToken(token);
   if (!authToken) {
     return null;
@@ -157,5 +157,4 @@ export function getUserByToken(token: string) {
   return users.get(authToken.userId);
 }
 
-// Exportar para uso em outras APIs
-export { authTokens, users };
+// Variáveis para uso interno da API

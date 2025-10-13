@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,22 +48,6 @@ export function MainLeagueCard() {
   const [transactionLoading, setTransactionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch league data
-  useEffect(() => {
-    fetchLeagueData();
-  }, []);
-
-  // Check entry status when wallet connects (with debounce)
-  useEffect(() => {
-    if (connected && publicKey && leagueData) {
-      const timeoutId = setTimeout(() => {
-        checkEntryStatus();
-      }, 500); // 500ms debounce
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [connected, publicKey, leagueData]);
-
   const fetchLeagueData = async () => {
     try {
       const response = await fetch('/api/league/main');
@@ -79,7 +63,7 @@ export function MainLeagueCard() {
     }
   };
 
-  const checkEntryStatus = async () => {
+  const checkEntryStatus = useCallback(async () => {
     if (!publicKey || !leagueData) return;
 
     console.log('🔍 MainLeagueCard: Verificando status de entrada para:', publicKey.toString());
@@ -111,7 +95,23 @@ export function MainLeagueCard() {
     } catch (err) {
       console.error('❌ MainLeagueCard: Erro ao verificar status de entrada:', err);
     }
-  };
+  }, [publicKey, leagueData, setEntryStatus, setLeagueData]);
+
+  // Fetch league data
+  useEffect(() => {
+    fetchLeagueData();
+  }, []);
+
+  // Check entry status when wallet connects (with debounce)
+  useEffect(() => {
+    if (connected && publicKey && leagueData) {
+      const timeoutId = setTimeout(() => {
+        checkEntryStatus();
+      }, 500); // 500ms debounce
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [connected, publicKey, leagueData, checkEntryStatus]);
 
   const handleConnectWallet = () => {
     setVisible(true);

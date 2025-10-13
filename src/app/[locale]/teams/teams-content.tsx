@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAuth } from '@/contexts/auth-context';
@@ -80,7 +80,7 @@ export function TeamsContent() {
   const teamName = user?.name || 'Meu Time';
 
   // Função para verificar status de pagamento e carregar time existente
-  const checkPaymentAndLoadTeam = async () => {
+  const checkPaymentAndLoadTeam = useCallback(async () => {
     console.log('DEBUG checkPaymentAndLoadTeam: Iniciando verificação', {
       connected,
       publicKey: publicKey?.toString(),
@@ -181,7 +181,7 @@ export function TeamsContent() {
       console.log('DEBUG checkPaymentAndLoadTeam: Finalizando verificação');
       setIsLoadingTeam(false);
     }
-  };
+  }, [connected, publicKey, selectedLeagueId, setHasValidEntry, setIsLoadingTeam, setPaymentError, setPlayers, setExistingTeam]);
 
   // Capturar parâmetros da URL de forma segura
   useEffect(() => {
@@ -199,7 +199,7 @@ export function TeamsContent() {
     if (connected && publicKey) {
       checkPaymentAndLoadTeam();
     }
-  }, [connected, publicKey, selectedLeagueId]);
+  }, [connected, publicKey, selectedLeagueId, checkPaymentAndLoadTeam]);
 
   // Função para obter filtro fixo baseado no tipo de liga
   const getFixedFilter = (leagueType: string) => {

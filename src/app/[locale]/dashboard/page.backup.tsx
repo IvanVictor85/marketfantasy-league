@@ -409,7 +409,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
     } finally {
       setIsDepositingReal(false);
     }
-  }, [publicKey, balance, lastDepositTime]);
+  }, [publicKey, balance, lastDepositTime, wallet, setTransactionActive, setBalance, setDepositedBalance, setTreasuryBalance, setIsDepositingReal, setLastDepositTime]);
 
   // Handle modal deposit
   const handleModalDeposit = useCallback(async () => {
@@ -487,7 +487,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
     } finally {
       setIsFundingTreasury(false);
     }
-  }, [publicKey, fundTreasuryAmount, balance, wallet]);
+  }, [publicKey, fundTreasuryAmount, balance, wallet, connected, setTransactionActive, setBalance, setTreasuryBalance, setFundTreasuryAmount, setIsFundTreasuryModalOpen, setIsFundingTreasury]);
 
   // Handle withdrawal
   const handleWithdraw = useCallback(async () => {
@@ -554,7 +554,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
     } finally {
       setIsWithdrawing(false);
     }
-  }, [publicKey, withdrawAmount, depositedBalance, wallet]);
+  }, [publicKey, withdrawAmount, depositedBalance, wallet, connected, setTransactionActive, setBalance, setDepositedBalance, setTreasuryBalance, setWithdrawAmount, setIsWithdrawModalOpen, setIsWithdrawing]);
 
   return (
     <div className="flex flex-col gap-4 w-full lg:w-64">

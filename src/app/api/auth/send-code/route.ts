@@ -157,7 +157,7 @@ export async function OPTIONS() {
 }
 
 // Função para limpar códigos expirados (executar periodicamente)
-export function cleanupExpiredCodes() {
+function cleanupExpiredCodes() {
   const now = new Date();
   for (const [email, codeData] of verificationCodes.entries()) {
     if (codeData.expiresAt < now) {
@@ -165,5 +165,3 @@ export function cleanupExpiredCodes() {
     }
   }
 }
-
-// Exportar para uso em outras APIs
