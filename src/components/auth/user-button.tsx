@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import { LocalizedLink } from '@/components/ui/localized-link';
 import { useAuth } from '@/contexts/auth-context';
-import { LoginModal } from './login-modal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,14 +21,23 @@ import {
   Wallet, 
   Mail,
   ChevronDown,
-  Loader2
+  Loader2,
+  BarChart3
 } from 'lucide-react';
 
-export function UserButton() {
-  const { user, isAuthenticated, logout, isLoading } = useAuth();
-  const [showLoginModal, setShowLoginModal] = useState(false);
+interface UserButtonProps {
+  className?: string;
+}
 
-  if (isLoading) {
+export function UserButton({ className }: UserButtonProps) {
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || isLoading) {
     return (
       <Button variant="ghost" size="sm" className="text-white" disabled>
         <Loader2 className="w-4 h-4 animate-spin" />
@@ -39,22 +47,16 @@ export function UserButton() {
 
   if (!isAuthenticated || !user) {
     return (
-      <>
+      <LocalizedLink href="/login">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="text-white hover:bg-orange-600"
-          onClick={() => setShowLoginModal(true)}
+          className={`text-white border-white hover:bg-white hover:text-primary bg-orange-600 ${className || ''}`}
         >
           <User className="w-4 h-4 mr-2" />
           Entrar
         </Button>
-        
-        <LoginModal 
-          isOpen={showLoginModal} 
-          onClose={() => setShowLoginModal(false)} 
-        />
-      </>
+      </LocalizedLink>
     );
   }
 
@@ -88,7 +90,7 @@ export function UserButton() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="flex items-center gap-2 text-white hover:bg-orange-600 h-auto py-2 px-3"
+          className={`flex items-center gap-2 text-white hover:bg-orange-600 h-auto py-2 px-3 ${className || ''}`}
         >
           <Avatar className="w-6 h-6">
             <AvatarImage src={user.avatar} alt={getDisplayName()} />
@@ -133,10 +135,17 @@ export function UserButton() {
         <DropdownMenuSeparator />
         
         <DropdownMenuItem asChild>
-          <Link href="/perfil" className="flex items-center">
+          <LocalizedLink href="/dashboard" className="flex items-center">
+            <BarChart3 className="mr-2 h-4 w-4" />
+            <span>Dashboard</span>
+          </LocalizedLink>
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem asChild>
+          <LocalizedLink href="/perfil" className="flex items-center">
             <User className="mr-2 h-4 w-4" />
             <span>Perfil</span>
-          </Link>
+          </LocalizedLink>
         </DropdownMenuItem>
         
         <DropdownMenuItem>

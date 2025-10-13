@@ -72,7 +72,7 @@ export async function fetchTokenPricesBatch(mints: string[]): Promise<TokenPrice
           const response = await fetch(url, {
             headers: {
               'Accept': 'application/json',
-              'User-Agent': 'CryptoFantasy-League/1.0',
+              'User-Agent': 'Market-Fantasy-League/1.0',
             },
           });
 
@@ -147,7 +147,7 @@ export async function fetchTokenDetailsFallback(mint: string): Promise<TokenPric
         const response = await fetch(url, {
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'CryptoFantasy-League/1.0',
+            'User-Agent': 'Market-Fantasy-League/1.0',
           },
         });
 

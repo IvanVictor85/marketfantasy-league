@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { signIn, getSession } from 'next-auth/react';
 
 interface User {
   id: string;
@@ -27,9 +28,24 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<void>;
   // Novo método para atualizar o perfil do usuário
   updateUserProfile: (updates: Partial<User>) => void;
+  // Métodos para verificação de código
+  sendVerificationCode: (email: string) => Promise<{ message: string }>;
+  verifyCodeAndLogin: (email: string, code: string, name?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Função para gerar ID determinístico baseado no email
+function generateUserIdFromEmail(email: string): string {
+  // Cria um hash simples do email para gerar um ID consistente
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    const char = email.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return `email_${Math.abs(hash)}`;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -41,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check for existing session on mount
     const checkExistingSession = () => {
-      const savedUser = localStorage.getItem('cryptofantasy_user');
+      const savedUser = localStorage.getItem('mfl_user');
       
       if (savedUser) {
         try {
@@ -49,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userData);
         } catch (error) {
           console.error('Error parsing saved user data:', error);
-          localStorage.removeItem('cryptofantasy_user');
+          localStorage.removeItem('mfl_user');
         }
       }
       setIsLoading(false);
@@ -60,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem('cryptofantasy_user');
+    localStorage.removeItem('mfl_user');
     
     // If user was logged in with wallet, disconnect it
     if (user?.loginMethod === 'wallet' && connected) {
@@ -78,6 +94,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [connected, publicKey, user?.loginMethod, logout]);
 
+  const sendVerificationCode = async (email: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/auth/send-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao enviar código');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Send verification code error:', error);
+      // Preservar a mensagem de erro original se for um Error
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Falha ao enviar código de verificação.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyCodeAndLogin = async (email: string, code: string, name?: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, code }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Código inválido');
+      }
+
+      const userData: User = {
+        id: generateUserIdFromEmail(email),
+        email,
+        name: name || email.split('@')[0],
+        loginMethod: 'email',
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
+      };
+
+      setUser(userData);
+      localStorage.setItem('mfl_user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Verify code error:', error);
+      throw new Error('Código inválido ou expirado.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const loginWithEmail = async (email: string, password: string) => {
     setIsLoading(true);
     try {
@@ -86,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const userData: User = {
-        id: `email_${Date.now()}`,
+        id: generateUserIdFromEmail(email),
         email,
         name: email.split('@')[0],
         loginMethod: 'email',
@@ -94,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       setUser(userData);
-      localStorage.setItem('cryptofantasy_user', JSON.stringify(userData));
+      localStorage.setItem('mfl_user', JSON.stringify(userData));
     } catch (error) {
       console.error('Email login error:', error);
       throw new Error('Falha no login. Verifique suas credenciais.');
@@ -120,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       setUser(userData);
-      localStorage.setItem('cryptofantasy_user', JSON.stringify(userData));
+      localStorage.setItem('mfl_user', JSON.stringify(userData));
     } catch (error) {
       console.error('Wallet login error:', error);
       throw new Error('Falha no login com carteira');
@@ -132,57 +213,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      // Configuração do Google OAuth
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'demo-client-id';
-      const redirectUri = `${window.location.origin}/auth/google/callback`;
-      const scope = 'openid email profile';
-      
-      // URL de autorização do Google
-      const authUrl = `https://accounts.google.com/oauth/authorize?` +
-        `client_id=${clientId}&` +
-        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-        `scope=${encodeURIComponent(scope)}&` +
-        `response_type=code&` +
-        `access_type=offline`;
-      
-      // Abrir popup para autenticação
-      const popup = window.open(
-        authUrl,
-        'google-auth',
-        'width=500,height=600,scrollbars=yes,resizable=yes'
-      );
-      
-      // Aguardar resposta do popup
-      const result = await new Promise<any>((resolve, reject) => {
-        const checkClosed = setInterval(() => {
-          if (popup?.closed) {
-            clearInterval(checkClosed);
-            reject(new Error('Autenticação cancelada'));
-          }
-        }, 1000);
-        
-        // Simular resposta bem-sucedida para demonstração
-        setTimeout(() => {
-          popup?.close();
-          clearInterval(checkClosed);
-          resolve({
-            email: 'usuario@gmail.com',
-            name: 'Usuário Google',
-            picture: 'https://via.placeholder.com/40'
-          });
-        }, 2000);
+      // Usar NextAuth para login com Google
+      const result = await signIn('google', { 
+        redirect: false,
+        callbackUrl: '/dashboard'
       });
       
-      const userData: User = {
-        id: `google_${Date.now()}`,
-        email: result.email,
-        name: result.name,
-        avatar: result.picture,
-        loginMethod: 'email'
-      };
+      if (result?.error) {
+        throw new Error(result.error);
+      }
       
-      setUser(userData);
-      localStorage.setItem('cryptofantasy_user', JSON.stringify(userData));
+      // Se o login foi bem-sucedido, obter a sessão
+      const session = await getSession();
+      
+      if (session?.user) {
+        const userData: User = {
+          id: `google_${session.user.email}`,
+          email: session.user.email || '',
+          name: session.user.name || '',
+          avatar: session.user.image || '',
+          loginMethod: 'email'
+        };
+        
+        setUser(userData);
+        localStorage.setItem('mfl_user', JSON.stringify(userData));
+      }
     } catch (error) {
       console.error('Google login error:', error);
       throw new Error('Falha na autenticação com Google');
@@ -198,7 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const userData: User = {
-        id: `email_${Date.now()}`,
+        id: generateUserIdFromEmail(email),
         email,
         name,
         loginMethod: 'email',
@@ -206,7 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       setUser(userData);
-      localStorage.setItem('cryptofantasy_user', JSON.stringify(userData));
+      localStorage.setItem('mfl_user', JSON.stringify(userData));
     } catch (error) {
       console.error('Registration error:', error);
       throw new Error('Falha no cadastro. Tente novamente.');
@@ -215,15 +270,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Atualiza perfil do usuário e persiste no localStorage
+  // Atualiza perfil do usuário localmente
   const updateUserProfile = (updates: Partial<User>) => {
-    setUser(prev => {
-      if (!prev) return prev;
-      const updated = { ...prev, ...updates };
-      localStorage.setItem('cryptofantasy_user', JSON.stringify(updated));
-      return updated;
-    });
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
   };
+
+
+
+
 
   const value: AuthContextType = {
     user,
@@ -234,7 +294,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithGoogle,
     logout,
     register,
-    updateUserProfile
+    updateUserProfile,
+    sendVerificationCode,
+    verifyCodeAndLogin
   };
 
   return (

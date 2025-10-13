@@ -13,21 +13,48 @@ datasource db {
 model League {
   id             String   @id @default(cuid())
   name           String
+  leagueType     String   @default("MAIN") // "MAIN" for Liga Principal, "COMMUNITY" for future leagues
   entryFee       Float    // Entry fee in SOL
-  maxPlayers     Int      @default(100)
-  startTime      DateTime
-  endTime        DateTime
+  maxPlayers     Int?     // NULL for unlimited (Liga Principal)
+  startDate      DateTime
+  endDate        DateTime
   isActive       Boolean  @default(true)
   treasuryPda    String   // Solana PDA address
+  programId      String?  // Solana Program ID for this league
   adminWallet    String   // Admin wallet address
   protocolWallet String   // Protocol treasury wallet
   emblemUrl      String?  // URL of the selected emblem image
+  description    String?  // League description
+  status         String   @default("ACTIVE") // League status
+  badgeUrl       String?  // Badge URL
+  bannerUrl      String?  // Banner URL
+  prizeDistribution String  @default("{\"first\": 50, \"second\": 30, \"third\": 20}") // Prize distribution percentages
+  totalPrizePool Float   @default(0) // Current total prize pool in SOL
+  participantCount Int   @default(0) // Current number of participants
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   
   teams          Team[]
+  leagueEntries  LeagueEntry[]
   
   @@map("leagues")
+}
+
+model LeagueEntry {
+  id               String   @id @default(cuid())
+  leagueId         String
+  userWallet       String   // User's Solana wallet address
+  transactionHash  String   @unique // Solana transaction signature
+  amountPaid       Float    // Amount paid in SOL
+  status           String   @default("CONFIRMED") // "PENDING", "CONFIRMED", "FAILED"
+  blockHeight      Int?     // Block height of the transaction
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  league           League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  
+  @@unique([leagueId, userWallet])
+  @@map("league_entries")
 }
 
 model Team {
@@ -35,10 +62,11 @@ model Team {
   leagueId         String
   userWallet       String   // User's Solana wallet address
   teamName         String
-  tokens           Json     // Array of selected token symbols and positions
+  tokens           String   // Array of selected token symbols and positions (JSON string)
   totalScore       Float?   // Calculated performance score
   rank             Int?     // Final ranking in the league
   selectedMascotUrl String? // URL of the selected mascot image
+  hasValidEntry    Boolean  @default(false) // Whether user has paid entry fee
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
@@ -67,7 +95,7 @@ model Competition {
   startTime   DateTime
   endTime     DateTime
   status      String   // "pending", "active", "completed"
-  winners     Json?    // Array of winner wallet addresses
+  winners     String?  // Array of winner wallet addresses (JSON string)
   prizePool   Float    // Total prize pool in SOL
   distributed Boolean  @default(false)
   createdAt   DateTime @default(now())

@@ -18,6 +18,9 @@ type CacheEntry<T> = {
  */
 class MemoryCache {
   private cache = new Map<string, CacheEntry<any>>();
+  private hits = 0;
+  private misses = 0;
+  private lastCleanup = Date.now();
 
   /**
    * Armazena um valor no cache
@@ -47,6 +50,7 @@ class MemoryCache {
     const entry = this.cache.get(key);
     
     if (!entry) {
+      this.misses++;
       console.log(`Cache MISS: ${key} (não encontrado)`);
       return null;
     }
@@ -56,10 +60,12 @@ class MemoryCache {
 
     if (isExpired) {
       this.cache.delete(key);
+      this.misses++;
       console.log(`Cache MISS: ${key} (expirado)`);
       return null;
     }
 
+    this.hits++;
     console.log(`Cache HIT: ${key}`);
     return entry.data as T;
   }
@@ -100,6 +106,8 @@ class MemoryCache {
       }
     }
 
+    this.lastCleanup = now;
+
     if (removedCount > 0) {
       console.log(`Cache CLEANUP: ${removedCount} entradas expiradas removidas`);
     }
@@ -110,6 +118,10 @@ class MemoryCache {
    */
   getStats(): {
     size: number;
+    totalEntries: number;
+    hits: number;
+    misses: number;
+    lastCleanup: number;
     entries: Array<{
       key: string;
       timestamp: number;
@@ -129,6 +141,10 @@ class MemoryCache {
 
     return {
       size: this.cache.size,
+      totalEntries: this.cache.size,
+      hits: this.hits,
+      misses: this.misses,
+      lastCleanup: this.lastCleanup,
       entries,
     };
   }
@@ -156,18 +172,143 @@ class MemoryCache {
 // Instância global do cache
 const globalCache = new MemoryCache();
 
-// Configurações de cache para xStocks
-export const XSTOCKS_CACHE_CONFIG = {
-  // TTL padrão: 15 minutos
-  DEFAULT_TTL_MS: parseInt(process.env.XSTOCKS_CACHE_TTL_MS || '900000'), // 15 * 60 * 1000
+// Configurações de cache para diferentes tipos de dados
+export const CACHE_CONFIG = {
+  // TTL para diferentes tipos de dados (em milissegundos)
+  TTL: {
+    // Preços de tokens - cache mais curto para dados em tempo real
+    TOKEN_PRICES: parseInt(process.env.TOKEN_PRICES_CACHE_TTL_MS || '60000'), // 1 minuto
+    // Dados de mercado - cache médio
+    MARKET_DATA: parseInt(process.env.MARKET_DATA_CACHE_TTL_MS || '300000'), // 5 minutos
+    // Lista de tokens - cache mais longo
+    TOKEN_LIST: parseInt(process.env.TOKEN_LIST_CACHE_TTL_MS || '900000'), // 15 minutos
+    // xStocks data - cache longo
+    XSTOCKS_DATA: parseInt(process.env.XSTOCKS_CACHE_TTL_MS || '900000'), // 15 minutos
+    // Dados estáticos - cache muito longo
+    STATIC_DATA: parseInt(process.env.STATIC_DATA_CACHE_TTL_MS || '3600000'), // 1 hora
+  },
   
-  // Chaves de cache
+  // Chaves de cache organizadas por categoria
   KEYS: {
-    ALLOWLIST: 'xstocks:allowlist',
-    PRICES: 'xstocks:prices',
-    FULL_DATA: 'xstocks:full_data',
+    // Preços de tokens
+    COINGECKO_PRICES: 'prices:coingecko:markets',
+    HELIUS_PRICES: 'prices:helius:batch',
+    TOKEN_PRICE_INDIVIDUAL: (tokenId: string) => `prices:token:${tokenId}`,
+    
+    // xStocks
+    XSTOCKS_ALLOWLIST: 'xstocks:allowlist',
+    XSTOCKS_PRICES: 'xstocks:prices',
+    XSTOCKS_FULL_DATA: 'xstocks:full_data',
+    
+    // Dados de mercado
+    MARKET_OVERVIEW: 'market:overview',
+    TOP_TOKENS: 'market:top_tokens',
+    
+    // Cache de API responses
+    API_RESPONSE: (endpoint: string, params: string) => `api:${endpoint}:${params}`,
+  },
+  
+  // Configurações de rate limiting
+  RATE_LIMIT: {
+    COINGECKO_REQUESTS_PER_MINUTE: 30,
+    HELIUS_REQUESTS_PER_MINUTE: 100,
   },
 } as const;
+
+// ============================================================================
+// PRICE CACHING FUNCTIONS
+// ============================================================================
+
+/**
+ * Armazena preços do CoinGecko no cache
+ * @param prices Dados de preços do CoinGecko
+ */
+export function cacheCoinGeckoPrices(prices: any[]): void {
+  globalCache.set(
+    CACHE_CONFIG.KEYS.COINGECKO_PRICES,
+    prices,
+    CACHE_CONFIG.TTL.TOKEN_PRICES
+  );
+}
+
+/**
+ * Recupera preços do CoinGecko do cache
+ * @returns Dados de preços ou null se não encontrados/expirados
+ */
+export function getCachedCoinGeckoPrices<T>(): T[] | null {
+  return globalCache.get<T[]>(CACHE_CONFIG.KEYS.COINGECKO_PRICES);
+}
+
+/**
+ * Armazena preços do Helius no cache
+ * @param prices Dados de preços do Helius
+ */
+export function cacheHeliusPrices(prices: any[]): void {
+  globalCache.set(
+    CACHE_CONFIG.KEYS.HELIUS_PRICES,
+    prices,
+    CACHE_CONFIG.TTL.TOKEN_PRICES
+  );
+}
+
+/**
+ * Recupera preços do Helius do cache
+ * @returns Dados de preços ou null se não encontrados/expirados
+ */
+export function getCachedHeliusPrices<T>(): T[] | null {
+  return globalCache.get<T[]>(CACHE_CONFIG.KEYS.HELIUS_PRICES);
+}
+
+/**
+ * Armazena preço individual de um token
+ * @param tokenId ID do token
+ * @param priceData Dados de preço do token
+ */
+export function cacheTokenPrice(tokenId: string, priceData: any): void {
+  globalCache.set(
+    CACHE_CONFIG.KEYS.TOKEN_PRICE_INDIVIDUAL(tokenId),
+    priceData,
+    CACHE_CONFIG.TTL.TOKEN_PRICES
+  );
+}
+
+/**
+ * Recupera preço individual de um token
+ * @param tokenId ID do token
+ * @returns Dados de preço ou null se não encontrados/expirados
+ */
+export function getCachedTokenPrice<T>(tokenId: string): T | null {
+  return globalCache.get<T>(CACHE_CONFIG.KEYS.TOKEN_PRICE_INDIVIDUAL(tokenId));
+}
+
+/**
+ * Cache genérico para respostas de API com parâmetros
+ * @param endpoint Nome do endpoint
+ * @param params Parâmetros da requisição (serializado)
+ * @param data Dados da resposta
+ * @param ttl TTL customizado (opcional)
+ */
+export function cacheApiResponse(endpoint: string, params: string, data: any, ttl?: number): void {
+  const cacheKey = CACHE_CONFIG.KEYS.API_RESPONSE(endpoint, params);
+  const cacheTtl = ttl || CACHE_CONFIG.TTL.MARKET_DATA;
+  
+  globalCache.set(cacheKey, data, cacheTtl);
+}
+
+/**
+ * Recupera resposta de API do cache
+ * @param endpoint Nome do endpoint
+ * @param params Parâmetros da requisição (serializado)
+ * @returns Dados da resposta ou null se não encontrados/expirados
+ */
+export function getCachedApiResponse<T>(endpoint: string, params: string): T | null {
+  const cacheKey = CACHE_CONFIG.KEYS.API_RESPONSE(endpoint, params);
+  return globalCache.get<T>(cacheKey);
+}
+
+// ============================================================================
+// XSTOCKS CACHING FUNCTIONS (mantidas para compatibilidade)
+// ============================================================================
 
 /**
  * Armazena a allowlist de tokens xStocks no cache
@@ -175,9 +316,9 @@ export const XSTOCKS_CACHE_CONFIG = {
  */
 export function cacheAllowlist(allowlist: any[]): void {
   globalCache.set(
-    XSTOCKS_CACHE_CONFIG.KEYS.ALLOWLIST,
+    CACHE_CONFIG.KEYS.XSTOCKS_ALLOWLIST,
     allowlist,
-    XSTOCKS_CACHE_CONFIG.DEFAULT_TTL_MS
+    CACHE_CONFIG.TTL.XSTOCKS_DATA
   );
 }
 
@@ -186,57 +327,94 @@ export function cacheAllowlist(allowlist: any[]): void {
  * @returns Lista de tokens ou null se não encontrada/expirada
  */
 export function getCachedAllowlist<T>(): T[] | null {
-  return globalCache.get<T[]>(XSTOCKS_CACHE_CONFIG.KEYS.ALLOWLIST);
+  return globalCache.get<T[]>(CACHE_CONFIG.KEYS.XSTOCKS_ALLOWLIST);
 }
 
 /**
- * Armazena dados de preços no cache
+ * Armazena dados de preços xStocks no cache
  * @param prices Dados de preços
  */
 export function cachePrices(prices: any[]): void {
   globalCache.set(
-    XSTOCKS_CACHE_CONFIG.KEYS.PRICES,
+    CACHE_CONFIG.KEYS.XSTOCKS_PRICES,
     prices,
-    XSTOCKS_CACHE_CONFIG.DEFAULT_TTL_MS
+    CACHE_CONFIG.TTL.XSTOCKS_DATA
   );
 }
 
 /**
- * Recupera dados de preços do cache
+ * Recupera dados de preços xStocks do cache
  * @returns Dados de preços ou null se não encontrados/expirados
  */
 export function getCachedPrices<T>(): T[] | null {
-  return globalCache.get<T[]>(XSTOCKS_CACHE_CONFIG.KEYS.PRICES);
+  return globalCache.get<T[]>(CACHE_CONFIG.KEYS.XSTOCKS_PRICES);
 }
 
 /**
- * Armazena dados completos da API no cache
+ * Armazena dados completos da API xStocks no cache
  * @param data Dados completos da API
  */
 export function cacheFullData(data: any): void {
   globalCache.set(
-    XSTOCKS_CACHE_CONFIG.KEYS.FULL_DATA,
+    CACHE_CONFIG.KEYS.XSTOCKS_FULL_DATA,
     data,
-    XSTOCKS_CACHE_CONFIG.DEFAULT_TTL_MS
+    CACHE_CONFIG.TTL.XSTOCKS_DATA
   );
 }
 
 /**
- * Recupera dados completos da API do cache
+ * Recupera dados completos da API xStocks do cache
  * @returns Dados completos ou null se não encontrados/expirados
  */
 export function getCachedFullData<T>(): T | null {
-  return globalCache.get<T>(XSTOCKS_CACHE_CONFIG.KEYS.FULL_DATA);
+  return globalCache.get<T>(CACHE_CONFIG.KEYS.XSTOCKS_FULL_DATA);
 }
+
+// ============================================================================
+// CACHE INVALIDATION FUNCTIONS
+// ============================================================================
 
 /**
  * Invalida todo o cache relacionado ao xStocks
  */
 export function invalidateXStocksCache(): void {
-  globalCache.delete(XSTOCKS_CACHE_CONFIG.KEYS.ALLOWLIST);
-  globalCache.delete(XSTOCKS_CACHE_CONFIG.KEYS.PRICES);
-  globalCache.delete(XSTOCKS_CACHE_CONFIG.KEYS.FULL_DATA);
+  globalCache.delete(CACHE_CONFIG.KEYS.XSTOCKS_ALLOWLIST);
+  globalCache.delete(CACHE_CONFIG.KEYS.XSTOCKS_PRICES);
+  globalCache.delete(CACHE_CONFIG.KEYS.XSTOCKS_FULL_DATA);
   console.log('Cache xStocks invalidado');
+}
+
+/**
+ * Invalida todo o cache de preços
+ */
+export function invalidatePriceCache(): void {
+  globalCache.delete(CACHE_CONFIG.KEYS.COINGECKO_PRICES);
+  globalCache.delete(CACHE_CONFIG.KEYS.HELIUS_PRICES);
+  
+  // Invalida preços individuais de tokens
+  const stats = globalCache.getStats();
+  stats.entries.forEach(entry => {
+    if (entry.key.startsWith('prices:token:')) {
+      globalCache.delete(entry.key);
+    }
+  });
+  
+  console.log('Cache de preços invalidado');
+}
+
+/**
+ * Invalida cache de um endpoint específico
+ * @param endpoint Nome do endpoint
+ */
+export function invalidateEndpointCache(endpoint: string): void {
+  const stats = globalCache.getStats();
+  stats.entries.forEach(entry => {
+    if (entry.key.startsWith(`api:${endpoint}:`)) {
+      globalCache.delete(entry.key);
+    }
+  });
+  
+  console.log(`Cache do endpoint ${endpoint} invalidado`);
 }
 
 /**

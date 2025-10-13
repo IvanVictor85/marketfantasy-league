@@ -1,0 +1,39 @@
+// Lista de tokens válidos conhecidos (baseada nos dados do sistema)
+export const VALID_TOKEN_SYMBOLS = [
+  // Top cryptocurrencies
+  'BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'LINK', 'UNI', 'AVAX', 'MATIC', 'LTC',
+  'XRP', 'DOGE', 'SHIB', 'APE', 'SAND', 'MANA', 'AXS', 'THETA', 'XTZ', 'ALGO',
+  'FLOW', 'ICP', 'ETC', 'XLM', 'FIL', 'ATOM', 'XMR', 'HBAR', 'CRO', 'NEAR',
+  'VET', 'GMT', 'STEPN', 'ILV', 'ATLAS', 'SRM', 'FIDA', 'AUDIO', 'MAPS', 'OXY', 'PORT',
+  // Stablecoins
+  'USDT', 'USDC', 'BUSD', 'DAI', 'FRAX', 'TUSD', 'USDP', 'GUSD', 'LUSD', 'SUSD',
+  // DeFi tokens
+  'AAVE', 'COMP', 'MKR', 'SNX', 'CRV', 'SUSHI', 'YFI', '1INCH', 'BAL', 'REN',
+  // Additional DeFi and Layer 2 tokens
+  'RNDR', 'IMX', 'GRT', 'MINA', 'LDO', 'RPL', 'ARB', 'OP', 'INJ', 'SEI', 'TIA', 'STRK',
+  'PENDLE', 'MNT', 'BLUR', 'JUP', 'PYTH', 'JTO', 'RAY', 'ORCA', 'MNDE', 'DRIFT',
+  'KMNO', 'TNSR', 'PRCL', 'HONEY', 'MOBILE', 'IOT', 'GRASS', 'NOS', 'SLND', 'MNGO', 'STEP', 'HYPE',
+  // Additional tokens
+  'BNB', 'TRX', 'EGLD', 'FTM', 'KLAY', 'HNT', 'ZEC', 'DASH', 'BAT', 'QNT',
+  // xStocks tokens
+  'TSLAX', 'SPYX', 'MSTRX', 'NVDAX', 'CRCLX', 'GOOGLX', 'AAPLX', 'QQQX', 'COINX', 'METAX',
+  'XTSLA', 'XAAPL', 'XGOOGL', 'XMSFT', 'XAMZN', 'TSLA', 'AAPL', 'GOOGL', 'MSFT', 'AMZN', 'NVDA', 'META', 'COIN',
+  // Gaming tokens
+  'GALA', 'ENJ', 'CHZ', 'MBOX', 'TLM', 'SLP', 'ALICE', 'SKILL', 'GHST', 'REVV',
+  // Meme tokens
+  'PEPE', 'FLOKI', 'BONK', 'WIF', 'POPCAT', 'WOJAK', 'LADYS', 'TURBO', 'MONG', 'PEPE2', 'BRETT'
+];
+
+// Função para validar se um token é válido
+export function isValidToken(symbol: string): boolean {
+  return VALID_TOKEN_SYMBOLS.includes(symbol.toUpperCase());
+}
+
+// Função para validar uma lista de tokens
+export function validateTokens(tokens: string[]): { valid: boolean; invalidTokens: string[] } {
+  const invalidTokens = tokens.filter(token => !isValidToken(token));
+  return {
+    valid: invalidTokens.length === 0,
+    invalidTokens
+  };
+}

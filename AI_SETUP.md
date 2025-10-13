@@ -1,4 +1,31 @@
-# Configuração de IA para Geração de Mascotes
+# Configuração de APIs Externas
+
+Este projeto integra múltiplas APIs externas para funcionalidades avançadas.
+
+## Helius API (Solana Blockchain)
+
+A Helius API é usada para:
+- Transações aprimoradas na blockchain Solana
+- Webhooks para monitoramento em tempo real
+- Estimativas de taxa de prioridade
+- Histórico detalhado de transações
+
+### Configuração da Helius API
+
+1. Obtenha uma chave de API em: https://www.helius.dev/
+2. Configure no arquivo `.env.local`:
+   ```
+   HELIUS_API_KEY=sua_chave_helius_aqui
+   NEXT_PUBLIC_HELIUS_API_KEY=sua_chave_helius_aqui
+   ```
+
+**Funcionalidades disponíveis:**
+- Enhanced Transactions API para análise detalhada de transações
+- Webhooks para notificações em tempo real
+- Priority Fee API para otimização de custos
+- Suporte completo a devnet, testnet e mainnet
+
+## Configuração de IA para Geração de Mascotes
 
 Este projeto suporta múltiplos provedores de IA para geração de imagens de mascotes esportivos.
 

@@ -82,9 +82,10 @@ interface TokenMarketProps {
     type: 'xstocks' | 'defi' | 'meme' | 'gaming';
     label: string;
   };
+  onAutoPosition?: (token: Token) => void;
 }
 
-export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, onTokenSelect, usedTokens = [], fixedFilter }: TokenMarketProps) {
+export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, onTokenSelect, usedTokens = [], fixedFilter, onAutoPosition }: TokenMarketProps) {
   // Use different hooks based on filter type
   const isXStocks = fixedFilter?.type === 'xstocks';
   
@@ -160,6 +161,8 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       
       if (sortBy === 'rank') {
         comparison = a.rank - b.rank;
+      } else if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name);
       } else if (sortBy === 'price') {
         comparison = a.price - b.price;
       } else if (sortBy === 'market_cap') {
@@ -404,10 +407,50 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       <CardContent className="p-0 flex-grow overflow-auto pb-0 mb-0">
         {/* Desktop Table Header */}
         <div className="hidden md:grid sticky top-0 grid-cols-12 gap-3 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
-          <div className="col-span-1 text-center">#</div>
-          <div className="col-span-3">TOKEN</div>
-          <div className="col-span-2 text-right">PREÇO</div>
-          <div className="col-span-2 text-right">7d %</div>
+          <div 
+            className="col-span-1 text-center cursor-pointer hover:text-primary transition-colors flex items-center justify-center gap-1"
+            onClick={() => handleSort('rank')}
+          >
+            #
+            {sortBy === 'rank' && (
+              <span className="text-xs">
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </span>
+            )}
+          </div>
+          <div 
+            className="col-span-3 cursor-pointer hover:text-primary transition-colors flex items-center gap-1"
+            onClick={() => handleSort('name')}
+          >
+            TOKEN
+            {sortBy === 'name' && (
+              <span className="text-xs">
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </span>
+            )}
+          </div>
+          <div 
+            className="col-span-2 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1"
+            onClick={() => handleSort('price')}
+          >
+            PREÇO
+            {sortBy === 'price' && (
+              <span className="text-xs">
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </span>
+            )}
+          </div>
+          <div 
+            className="col-span-2 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1"
+            onClick={() => handleSort('change_7d')}
+          >
+            7d %
+            {sortBy === 'change_7d' && (
+              <span className="text-xs">
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </span>
+            )}
+          </div>
           <div className="col-span-2 text-right">
             <select 
               className="text-sm font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
@@ -424,27 +467,53 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
               ))}
             </select>
           </div>
-          <div className="col-span-2 text-right">MCAP</div>
+          <div 
+            className="col-span-2 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1"
+            onClick={() => handleSort('market_cap')}
+          >
+            MCAP
+            {sortBy === 'market_cap' && (
+              <span className="text-xs">
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Mobile Table Header */}
         <div className="md:hidden sticky top-0 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-2">
             <span>TOKENS</span>
-            <select 
-              className="text-sm font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
-              value={selectedPeriod}
-              onChange={(e) => {
-                setSelectedPeriod(e.target.value);
-                setSortBy(e.target.value);
-              }}
-            >
-              {timePeriods.map((period) => (
-                <option key={period.value} value={period.value}>
-                  {period.label} %
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <select 
+                className="text-xs font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
+                value={sortBy}
+                onChange={(e) => {
+                  const newSortBy = e.target.value;
+                  if (newSortBy.startsWith('change_')) {
+                    setSelectedPeriod(newSortBy);
+                  }
+                  setSortBy(newSortBy);
+                }}
+              >
+                <option value="rank">Rank</option>
+                <option value="name">Nome</option>
+                <option value="price">Preço</option>
+                <option value="change_7d">7d %</option>
+                <option value="market_cap">MCAP</option>
+                {timePeriods.map((period) => (
+                  <option key={period.value} value={period.value}>
+                    {period.label} %
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="text-xs font-semibold cursor-pointer hover:text-primary transition-colors"
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
           </div>
         </div>
         
@@ -452,7 +521,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
         <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
           {filteredTokens.map((token, index) => {
             const isSelected = selectedToken?.id === token.id;
-            const isUsed = usedTokens.includes(token.id);
+            const isUsed = usedTokens.includes(token.symbol);
             
             return (
               <div key={token.id}>
@@ -466,6 +535,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                         : 'hover:bg-gray-50 cursor-pointer'
                   }`}
                   onClick={() => !isUsed && handleTokenClick(token)}
+                  onDoubleClick={() => !isUsed && onAutoPosition?.(token)}
                   draggable={!isUsed}
                   onDragStart={(e) => !isUsed && handleDragStart(e, token)}
                 >
@@ -570,6 +640,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                         : 'hover:bg-gray-50 cursor-pointer'
                   }`}
                   onClick={() => !isUsed && handleTokenClick(token)}
+                  onDoubleClick={() => !isUsed && onAutoPosition?.(token)}
                   draggable={!isUsed}
                   onDragStart={(e) => !isUsed && handleDragStart(e, token)}
                 >

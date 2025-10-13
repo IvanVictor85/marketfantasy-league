@@ -1,31 +1,35 @@
-﻿'use client';
+'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { LocalizedLink } from '@/components/ui/localized-link';
 import { Menu, Trophy, Target, HelpCircle, Gift } from 'lucide-react';
 import { useState } from 'react';
 import { WalletConnectButton } from '@/components/layout/WalletConnectButton';
-
-const navigation = [
-  { name: 'Ligas', href: '/ligas', icon: Trophy },
-  { name: 'Meu Time', href: '/teams', icon: HelpCircle },
-  { name: 'Dashboard', href: '/dashboard', icon: Target },
-  { name: 'Recompensas', href: '/rewards', icon: Gift },
-];
+import { UserButton } from '@/components/auth/user-button';
+import { LanguageSelector } from '@/components/ui/language-selector';
+import { useNavigationTranslations } from '@/hooks/useTranslations';
 
 export function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const tNav = useNavigationTranslations();
+
+  const navigation = [
+    { name: tNav('leagues'), href: '/ligas', icon: Trophy },
+    { name: tNav('myTeam'), href: '/teams', icon: HelpCircle },
+    { name: tNav('dashboard'), href: '/dashboard', icon: Target },
+    // { name: tNav('rewards'), href: '/rewards', icon: Gift }, // Temporariamente desabilitado
+  ];
 
   return (
     <nav className="bg-primary sticky top-0 z-50 shadow-md">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" prefetch={false} className="flex items-center">
+          <LocalizedLink href="/" prefetch={false} className="flex items-center">
             <Image 
               src="/icons/cfl-minimal-logo.png" 
               alt="CFL Logo" 
@@ -34,10 +38,10 @@ export function Navbar() {
               className="mr-3"
             />
             <span className="text-lg md:text-xl font-bold text-primary-foreground truncate">
-              <span className="hidden sm:inline">CryptoFantasy League</span>
-              <span className="sm:hidden">CFL</span>
+              <span className="hidden sm:inline">Market Fantasy League</span>
+              <span className="sm:hidden">MFL</span>
             </span>
-          </Link>
+          </LocalizedLink>
 
           {/* Desktop Navigation - Center */}
           <div className="hidden md:flex md:items-center md:justify-center md:space-x-8">
@@ -45,7 +49,7 @@ export function Navbar() {
               const isActive = pathname === item.href;
               
               return (
-                <Link
+                <LocalizedLink
                   key={item.name}
                   href={item.href}
                   prefetch={false}
@@ -56,14 +60,16 @@ export function Navbar() {
                   }`}
                 >
                   {item.name}
-                </Link>
+                </LocalizedLink>
               );
             })}
           </div>
 
-          {/* Wallet Connection */}
-          <div className="hidden md:flex md:items-center">
+          {/* User Authentication */}
+          <div className="hidden md:flex md:items-center md:space-x-3">
+            <LanguageSelector />
             <WalletConnectButton />
+            <UserButton />
           </div>
 
           {/* Mobile Menu */}
@@ -76,9 +82,11 @@ export function Navbar() {
               </SheetTrigger>
               <SheetContent side="right" className="w-80 bg-white">
                 <div className="flex flex-col space-y-4 mt-8">
-                  {/* Mobile Wallet Connection */}
+                  {/* Mobile User Authentication */}
                   <div className="pb-4 border-b space-y-3">
-                    <WalletConnectButton className="w-full" />
+                    <LanguageSelector />
+                    <WalletConnectButton />
+                    <UserButton className="w-full" />
                   </div>
 
                   {/* Mobile Navigation */}
@@ -87,7 +95,7 @@ export function Navbar() {
                     const isActive = pathname === item.href;
                     
                     return (
-                      <Link
+                      <LocalizedLink
                         key={item.name}
                         href={item.href}
                         prefetch={false}
@@ -100,7 +108,7 @@ export function Navbar() {
                       >
                         <Icon className="h-5 w-5" />
                         <span>{item.name}</span>
-                      </Link>
+                      </LocalizedLink>
                     );
                   })}
                 </div>

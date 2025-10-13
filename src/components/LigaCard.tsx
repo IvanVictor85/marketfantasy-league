@@ -36,8 +36,8 @@ export function LigaCard({
 }: LigaCardProps) {
   const isPrincipal = type === 'principal';
 
-  // Define o logo padrão para a liga principal com cache-busting
-  const defaultLogoUrl = isPrincipal ? `/league-logos/main-league-trophy.png?v=${Date.now()}` : '';
+  // Define o logo padrão para a liga principal
+  const defaultLogoUrl = isPrincipal ? `/league-logos/main-league-trophy.png` : '';
   const finalLogoUrl = logoUrl || defaultLogoUrl;
 
   return (

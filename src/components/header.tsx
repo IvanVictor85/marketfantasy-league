@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UserButton } from '@/components/auth/user-button';
-import Link from 'next/link';
+import { LocalizedLink } from '@/components/ui/localized-link';
 import { useState } from 'react';
 
 export function Header() {
@@ -17,40 +17,40 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-4">
-            <Link href="/" className="flex items-center space-x-2">
+            <LocalizedLink href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <span className="text-primary font-bold text-sm">CF</span>
+                <span className="text-primary font-bold text-sm">MFL</span>
               </div>
-              <span className="font-bold text-lg hidden sm:block">CryptoFantasy</span>
-            </Link>
+              <span className="font-bold text-lg hidden sm:block">Market Fantasy League</span>
+            </LocalizedLink>
           </div>
 
           {/* Navigation Links - Desktop */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link 
+            <LocalizedLink 
               href="/dashboard" 
               className="text-white hover:text-orange-100 transition-colors font-medium"
             >
               Dashboard
-            </Link>
-            <Link 
+            </LocalizedLink>
+            <LocalizedLink 
                 href="/ligas" 
                 className="text-white hover:text-orange-100 transition-colors font-medium"
               >
                 Ligas
-              </Link>
-            <Link 
+              </LocalizedLink>
+            <LocalizedLink 
               href="/teams" 
               className="text-white hover:text-orange-100 transition-colors font-medium"
             >
               Escalação
-            </Link>
-            <Link 
+            </LocalizedLink>
+            <LocalizedLink 
               href="/market" 
               className="text-white hover:text-orange-100 transition-colors font-medium"
             >
               Mercado
-            </Link>
+            </LocalizedLink>
           </nav>
 
           {/* Search Bar */}
@@ -107,34 +107,34 @@ export function Header() {
         {isMenuOpen && (
           <div className="md:hidden border-t border-orange-600 py-4">
             <nav className="flex flex-col space-y-3">
-              <Link 
+              <LocalizedLink 
                 href="/dashboard" 
                 className="text-white hover:text-orange-100 transition-colors font-medium py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Dashboard
-              </Link>
-              <Link 
+              </LocalizedLink>
+              <LocalizedLink 
                 href="/leagues" 
                 className="text-white hover:text-orange-100 transition-colors font-medium py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Ligas
-              </Link>
-              <Link 
+              </LocalizedLink>
+              <LocalizedLink 
                 href="/teams" 
                 className="text-white hover:text-orange-100 transition-colors font-medium py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Escalação
-              </Link>
-              <Link 
+              </LocalizedLink>
+              <LocalizedLink 
                 href="/market" 
                 className="text-white hover:text-orange-100 transition-colors font-medium py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Mercado
-              </Link>
+              </LocalizedLink>
               {/* Mobile Search */}
               <div className="pt-3">
                 <div className="relative">

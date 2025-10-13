@@ -12,12 +12,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CryptoFantasy League",
+  title: "Market Fantasy League (MFL)",
   description: "Fantasy sports meets cryptocurrency trading - Build your dream crypto portfolio and compete with friends!",
   keywords: ["crypto", "fantasy", "blockchain", "solana", "trading", "game"],
-  authors: [{ name: "CryptoFantasy Team" }],
+  authors: [{ name: "Market Fantasy League Team" }],
   openGraph: {
-    title: "CryptoFantasy League",
+    title: "Market Fantasy League (MFL)",
     description: "Fantasy sports meets cryptocurrency trading",
     type: "website",
   },

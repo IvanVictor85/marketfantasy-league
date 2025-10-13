@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,22 @@ function shorten(address: string) {
 export function WalletConnectButton({ className }: { className?: string }) {
   const { publicKey, disconnect, connecting } = useWallet();
   const { setVisible } = useWalletModal();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Button
+        className={`bg-[#F7931A] text-white rounded-xl shadow-md ${className ?? ''}`}
+        disabled
+      >
+        Conectar Carteira
+      </Button>
+    );
+  }
 
   if (publicKey) {
     return (

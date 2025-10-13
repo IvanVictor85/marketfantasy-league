@@ -18,12 +18,12 @@ interface MascotSelectorProps {
 // Lista dos mascotes disponíveis
 const AVAILABLE_MASCOTS = [
   {
-    url: '/mascots/Gemini_Generated_Image_c6qn3c6qn3c6qn3c.png',
+    url: '/mascots/Gemini_Generated_Image_frnm54frnm54frnm.png',
     name: 'Bitcoin Viking',
     description: 'Guerreiro das criptomoedas'
   },
   {
-    url: '/mascots/Gemini_Generated_Image_9vccj59vccj59vcc.png',
+    url: '/mascots/Gemini_Generated_Image_liy5euliy5euliy5.png',
     name: 'Ethereum Crystal Dog',
     description: 'Guardião dos contratos inteligentes'
   },
@@ -63,7 +63,7 @@ const AVAILABLE_MASCOTS = [
     description: 'Informações em tempo real'
   },
   {
-    url: '/mascots/Gemini_Generated_Image_xqhm8nxqhm8nxqhm.png',
+    url: '/mascots/Gemini_Generated_Image_wggkpcwggkpcwggk.png',
     name: 'Crypto Guardian',
     description: 'Protetor das criptomoedas'
   }
