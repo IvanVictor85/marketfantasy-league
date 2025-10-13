@@ -24,7 +24,7 @@ async function checkTeamData() {
       return;
     }
     
-    teams.forEach((team, index) => {
+    teams.forEach((team: any, index: number) => {
       console.log(`\n📋 Time ${index + 1}:`);
       console.log(`  ID: ${team.id}`);
       console.log(`  Liga: ${team.league.name}`);

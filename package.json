@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:safe": "node build-script.js",
+    "build:check": "npx tsc --noEmit",
     "start": "next start",
     "lint": "next lint",
     "update-tokens": "tsx scripts/update-valid-tokens.ts"
@@ -61,6 +63,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^2.1.4",
     "@types/node": "^20.14.10",
+    "@types/node-fetch": "^2.6.13",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "critters": "^0.0.25",

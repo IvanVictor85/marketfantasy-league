@@ -22,7 +22,7 @@ async function checkTokensTable() {
       });
       
       console.log('📋 Primeiros 10 tokens:');
-      sampleTokens.forEach((token, index) => {
+      sampleTokens.forEach((token: any, index: number) => {
         console.log(`  ${index + 1}. ${token.symbol} - ${token.name}`);
       });
       

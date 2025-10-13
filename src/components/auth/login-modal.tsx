@@ -480,7 +480,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <Alert className="border-blue-200 bg-blue-50 text-blue-800">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Conexão da carteira cancelada. Clique no botão "Connect Wallet" acima para tentar novamente.
+                Conexão da carteira cancelada. Clique no botão &quot;Connect Wallet&quot; acima para tentar novamente.
               </AlertDescription>
             </Alert>
           )}

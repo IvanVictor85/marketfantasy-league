@@ -34,7 +34,7 @@ async function checkMainLeagueEntry() {
 
     console.log(`📊 Total de entradas: ${entries.length}`)
     
-    entries.forEach((entry, index) => {
+    entries.forEach((entry: any, index: number) => {
       console.log(`${index + 1}. Wallet: ${entry.userWallet}, Status: ${entry.status}, Criado em: ${entry.createdAt}`)
     })
 
@@ -47,7 +47,7 @@ async function checkMainLeagueEntry() {
 
     console.log(`🏆 Total de times: ${teams.length}`)
     
-    teams.forEach((team, index) => {
+    teams.forEach((team: any, index: number) => {
       console.log(`${index + 1}. Wallet: ${team.userWallet}, Nome: ${team.teamName}, Entrada válida: ${team.hasValidEntry}`)
     })
 

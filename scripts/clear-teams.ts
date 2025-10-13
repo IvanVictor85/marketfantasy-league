@@ -21,7 +21,7 @@ async function clearAllTeams() {
     console.log(`📊 Times encontrados: ${existingTeams.length}`)
     
     if (existingTeams.length > 0) {
-      existingTeams.forEach((team, index) => {
+      existingTeams.forEach((team: any, index: number) => {
         console.log(`${index + 1}. ${team.teamName} - Liga: ${team.league.name} (${team.league.leagueType}) - Wallet: ${team.userWallet}`)
       })
 

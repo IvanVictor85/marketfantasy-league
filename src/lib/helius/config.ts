@@ -3,15 +3,15 @@ export const HELIUS_CONFIG = {
   // Base URLs for different environments
   baseUrl: {
     devnet: 'https://api.helius.xyz',
-    mainnet: 'https://api.helius.xyz',
-    testnet: 'https://api.helius.xyz'
+  mainnet: 'https://api.helius.xyz',
+  testnet: 'https://api.helius.xyz'
   },
   
   // RPC URLs
   rpcUrl: {
     devnet: 'https://devnet.helius-rpc.com',
-    mainnet: 'https://mainnet.helius-rpc.com',
-    testnet: 'https://testnet.helius-rpc.com'
+  mainnet: 'https://mainnet.helius-rpc.com',
+  testnet: 'https://testnet.helius-rpc.com'
   },
   
   // API endpoints
