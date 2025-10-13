@@ -4,13 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "build:safe": "node build-script.js",
     "build:check": "npx tsc --noEmit",
     "start": "next start",
     "lint": "next lint",
     "update-tokens": "tsx scripts/update-valid-tokens.ts"
-  },
+},
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.0",
     "@google/generative-ai": "^0.24.1",
