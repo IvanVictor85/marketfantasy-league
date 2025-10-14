@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "update-tokens": "tsx scripts/update-valid-tokens.ts"
-  },
+},
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.0",
     "@google/generative-ai": "^0.24.1",
