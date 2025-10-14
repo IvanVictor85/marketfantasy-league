@@ -21,7 +21,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
   if (!mounted) {
     return (
       <Button
-        className={`bg-[#F7931A] text-white rounded-xl shadow-md ${className ?? ''}`}
+        className={`bg-primary text-primary-foreground rounded-xl shadow-md ${className ?? ''}`}
         disabled
       >
         Conectar Carteira
@@ -32,7 +32,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
   if (publicKey) {
     return (
       <Button
-        className={`bg-[#F7931A] hover:bg-[#d87e12] text-white rounded-xl shadow-md ${className ?? ''}`}
+        className={`bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md ${className ?? ''}`}
         onClick={() => disconnect()}
       >
         {shorten(publicKey.toBase58())}
@@ -43,7 +43,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
   if (connecting) {
     return (
       <Button
-        className={`bg-[#F7931A] text-white rounded-xl shadow-md ${className ?? ''}`}
+        className={`bg-primary text-primary-foreground rounded-xl shadow-md ${className ?? ''}`}
         disabled
       >
         Conectando...
@@ -53,7 +53,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
 
   return (
     <Button
-      className={`bg-[#F7931A] hover:bg-[#d87e12] text-white rounded-xl shadow-md ${className ?? ''}`}
+      className={`bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md ${className ?? ''}`}
       onClick={() => setVisible(true)}
     >
       Conectar Carteira

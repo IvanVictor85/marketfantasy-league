@@ -18,7 +18,7 @@ export function Header() {
           {/* Logo and Brand */}
           <div className="flex items-center space-x-4">
             <LocalizedLink href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary-foreground rounded-full flex items-center justify-center">
                 <span className="text-primary font-bold text-sm">MFL</span>
               </div>
               <span className="font-bold text-lg hidden sm:block">Market Fantasy League</span>
@@ -60,7 +60,7 @@ export function Header() {
               <Input
                 type="text"
                 placeholder="Buscar..."
-                className="pl-10 bg-white border-0 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-orange-300"
+                className="pl-10 bg-background border-0 text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-accent"
               />
             </div>
           </div>
@@ -142,7 +142,7 @@ export function Header() {
                   <Input
                     type="text"
                     placeholder="Buscar..."
-                    className="pl-10 bg-white border-0 text-gray-900 placeholder-gray-500"
+                    className="pl-10 bg-background border-0 text-foreground placeholder-muted-foreground"
                   />
                 </div>
               </div>

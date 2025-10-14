@@ -280,8 +280,8 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       case 'legendary': return 'bg-purple-100 text-purple-800';
       case 'epic': return 'bg-orange-100 text-orange-800';
       case 'rare': return 'bg-blue-100 text-blue-800';
-      case 'common': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'common': return 'bg-muted text-muted-foreground';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -406,7 +406,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       
       <CardContent className="p-0 flex-grow overflow-auto pb-0 mb-0">
         {/* Desktop Table Header */}
-        <div className="hidden md:grid sticky top-0 grid-cols-12 gap-3 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
+        <div className="hidden md:grid sticky top-0 grid-cols-12 gap-3 px-4 py-3 bg-muted border-b border-border text-sm font-semibold text-muted-foreground">
           <div 
             className="col-span-1 text-center cursor-pointer hover:text-primary transition-colors flex items-center justify-center gap-1"
             onClick={() => handleSort('rank')}
@@ -481,7 +481,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
         </div>
 
         {/* Mobile Table Header */}
-        <div className="md:hidden sticky top-0 px-4 py-3 bg-gray-100 border-b border-gray-200 text-sm font-semibold text-gray-700">
+        <div className="md:hidden sticky top-0 px-4 py-3 bg-muted border-b border-border text-sm font-semibold text-muted-foreground">
           <div className="flex justify-between items-center gap-2">
             <span>TOKENS</span>
             <div className="flex gap-2">
@@ -532,7 +532,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                       ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' 
                       : isSelected 
                         ? 'bg-primary/10 border-primary/30 cursor-pointer' 
-                        : 'hover:bg-gray-50 cursor-pointer'
+                        : 'hover:bg-muted/50 cursor-pointer'
                   }`}
                   onClick={() => !isUsed && handleTokenClick(token)}
                   onDoubleClick={() => !isUsed && onAutoPosition?.(token)}
@@ -637,7 +637,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                       ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' 
                       : isSelected 
                         ? 'bg-primary/10 border-primary/30 cursor-pointer' 
-                        : 'hover:bg-gray-50 cursor-pointer'
+                        : 'hover:bg-muted/50 cursor-pointer'
                   }`}
                   onClick={() => !isUsed && handleTokenClick(token)}
                   onDoubleClick={() => !isUsed && onAutoPosition?.(token)}

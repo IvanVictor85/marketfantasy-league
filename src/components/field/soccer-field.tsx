@@ -102,8 +102,8 @@ export function SoccerField({
       case 'legendary': return 'border-purple-500 bg-purple-100';
       case 'epic': return 'border-orange-500 bg-orange-100';
       case 'rare': return 'border-blue-500 bg-blue-100';
-      case 'common': return 'border-gray-500 bg-gray-100';
-      default: return 'border-gray-300 bg-white';
+      case 'common': return 'border-muted-foreground bg-muted';
+      default: return 'border-border bg-card';
     }
   };
 
@@ -239,7 +239,7 @@ export function SoccerField({
                       <div className="flex flex-col items-center">
                         {/* Círculo do jogador */}
                         <div 
-                          className={`w-16 h-16 rounded-full border-4 ${getRarityColor(player.rarity)} flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg bg-white relative overflow-hidden`}
+                          className={`w-16 h-16 rounded-full border-4 ${getRarityColor(player.rarity)} flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg bg-card relative overflow-hidden`}
                           onClick={() => onRemovePlayer(positionNum)}
                         >
                           {player.image ? (
@@ -258,7 +258,7 @@ export function SoccerField({
                           ) : (
                             <>
                               <div className="text-sm font-bold text-gray-800">{positionNum}</div>
-                              <div className="text-xs font-semibold text-gray-800 bg-white/80 px-1 rounded">{player.token}</div>
+                              <div className="text-xs font-semibold text-card-foreground bg-card/80 px-1 rounded">{player.token}</div>
                             </>
                           )}
                         </div>
@@ -267,7 +267,7 @@ export function SoccerField({
                       {/* Player info tooltip - movido para fora do círculo */}
                       <div className={`absolute ${getTooltipPosition(positionNum, coords)} 
                                     opacity-0 group-hover:opacity-100 transition-opacity duration-200
-                                    bg-white rounded-lg shadow-lg p-3 z-50 border border-gray-200 max-w-xs pointer-events-none group-hover:pointer-events-auto`}>
+                                    bg-card rounded-lg shadow-lg p-3 z-50 border border-border max-w-xs pointer-events-none group-hover:pointer-events-auto`}>
                         <div className="font-semibold text-sm leading-tight max-h-10 overflow-hidden" 
                              style={{
                                display: '-webkit-box',
@@ -344,7 +344,7 @@ export function SoccerField({
 
             {/* Formation indicator */}
             <div className="absolute top-4 left-4">
-              <Badge variant="secondary" className="bg-white/90 text-gray-800">
+              <Badge variant="secondary" className="bg-card/90 text-card-foreground">
                 Formação {formation.split('').join('-')}
               </Badge>
             </div>

@@ -96,7 +96,7 @@ export function MascotCustomizer({ mascot, onMascotChange }: MascotCustomizerPro
                     className="w-full h-full rounded border-2"
                     style={{ 
                       backgroundColor: color.hex,
-                      borderColor: currentMascot.colors.primary === color.hex ? '#000' : 'transparent'
+                      borderColor: currentMascot.colors.primary === color.hex ? 'hsl(var(--foreground))' : 'transparent'
                     }}
                   />
                 </Button>
@@ -119,7 +119,7 @@ export function MascotCustomizer({ mascot, onMascotChange }: MascotCustomizerPro
                     className="w-full h-full rounded border-2"
                     style={{ 
                       backgroundColor: color.hex,
-                      borderColor: currentMascot.colors.secondary === color.hex ? '#000' : 'transparent'
+                      borderColor: currentMascot.colors.secondary === color.hex ? 'hsl(var(--foreground))' : 'transparent'
                     }}
                   />
                 </Button>
@@ -142,7 +142,7 @@ export function MascotCustomizer({ mascot, onMascotChange }: MascotCustomizerPro
                     className="w-full h-full rounded border-2"
                     style={{ 
                       backgroundColor: color.hex,
-                      borderColor: currentMascot.colors.accent === color.hex ? '#000' : 'transparent'
+                      borderColor: currentMascot.colors.accent === color.hex ? 'hsl(var(--foreground))' : 'transparent'
                     }}
                   />
                 </Button>

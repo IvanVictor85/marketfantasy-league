@@ -7,7 +7,7 @@
 
 :root {
   --radius: 0.75rem;
-  /* Cartola FC Color Scheme - HSL format for Tailwind */
+  /* Light Mode - Cartola FC Color Scheme */
   --background: 220 14% 96%; /* #f3f4f6 - Light gray background like Cartola */
   --foreground: 220 39% 11%; /* #1f2937 - Dark gray text */
   --card: 0 0% 100%; /* #ffffff - White cards */
@@ -36,6 +36,42 @@
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
 }
+
+.dark {
+    --background: 0 0% 3%;
+    --foreground: 0 0% 75%;
+    --card: 0 0% 11%;
+    --card-foreground: 0 0% 70%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 70%;
+    --primary: 171 50% 6%;
+    --primary-foreground: 171 60% 65%;
+    --secondary: 0 0% 11%;
+    --secondary-foreground: 0 0% 65%;
+    --muted: 0 0% 11%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 171 60% 65%;
+    --accent-foreground: 171 50% 6%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 15%;
+    --input: 0 0% 11%;
+    --ring: 171 60% 65%;
+    --radius: 0.5rem;
+    --chart-1: 180 100% 40%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --sidebar-background: 0 0% 4%;
+    --sidebar-foreground: 0 0% 70%;
+    --sidebar-primary: 171 50% 6%;
+    --sidebar-primary-foreground: 171 60% 65%;
+    --sidebar-accent: 171 60% 65%;
+    --sidebar-accent-foreground: 171 50% 6%;
+    --sidebar-border: 0 0% 8%;
+    --sidebar-ring: 171 60% 65%;
+  }
 
 * {
   @apply border-border;

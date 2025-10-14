@@ -69,6 +69,51 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // If no entry found in specific league and it's not the Main League, 
+    // check if user has paid for Main League (which gives access to all leagues)
+    if (leagueId && league.leagueType !== 'MAIN') {
+      console.log('🔍 API check-entry: Verificando entrada na Liga Principal como fallback...');
+      
+      const mainLeague = await prisma.league.findFirst({
+        where: { 
+          leagueType: 'MAIN',
+          isActive: true 
+        }
+      })
+
+      if (mainLeague) {
+        const mainLeagueEntry = await prisma.leagueEntry.findUnique({
+          where: {
+            leagueId_userWallet: {
+              leagueId: mainLeague.id,
+              userWallet: userWallet
+            }
+          }
+        })
+
+        if (mainLeagueEntry && mainLeagueEntry.status === 'CONFIRMED') {
+          const dbTime = Date.now() - startTime;
+          console.log('✅ API check-entry: Entrada na Liga Principal encontrada (acesso liberado) em', dbTime, 'ms');
+          return NextResponse.json({
+            hasPaid: true,
+            entry: {
+              transactionHash: mainLeagueEntry.transactionHash,
+              amountPaid: mainLeagueEntry.amountPaid,
+              createdAt: mainLeagueEntry.createdAt
+            },
+            league: {
+              id: league.id,
+              name: league.name,
+              entryFee: league.entryFee,
+              totalPrizePool: league.totalPrizePool,
+              participantCount: league.participantCount
+            },
+            accessViaMainLeague: true
+          })
+        }
+      }
+    }
+
     // Skip on-chain verification for performance
     // On-chain verification should only be done during payment confirmation
     console.log('⚡ API check-entry: Entrada não encontrada no DB, retornando false (sem verificação on-chain)');

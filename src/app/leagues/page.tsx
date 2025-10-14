@@ -115,10 +115,10 @@ export default function LeaguesPage() {
 
   const getStatusColor = (status: League['status']) => {
     switch (status) {
-      case 'upcoming': return 'bg-blue-100 text-blue-800';
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'upcoming': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+      case 'completed': return 'bg-muted text-muted-foreground';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -214,7 +214,7 @@ export default function LeaguesPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Leader */}
-            <CartolaCard className="text-center p-6 border-2 border-yellow-400 bg-gradient-to-b from-yellow-50 to-white">
+            <CartolaCard className="text-center p-6 border-2 border-accent bg-card">
               <div className="flex justify-center mb-4">
                 <div className="relative">
                   <Avatar className="w-16 h-16">
@@ -235,7 +235,7 @@ export default function LeaguesPage() {
             </CartolaCard>
 
             {/* Vice Leader */}
-            <CartolaCard className="text-center p-6 border-2 border-gray-300 bg-gradient-to-b from-gray-50 to-white">
+            <CartolaCard className="text-center p-6 border-2 border-border bg-card">
               <div className="flex justify-center mb-4">
                 <Avatar className="w-16 h-16">
                   <AvatarImage src={mockHighlights.viceLeader.avatar} />
@@ -251,7 +251,7 @@ export default function LeaguesPage() {
             </CartolaCard>
 
             {/* Lanterna */}
-            <CartolaCard className="text-center p-6 border-2 border-red-300 bg-gradient-to-b from-red-50 to-white">
+            <CartolaCard className="text-center p-6 border-2 border-destructive bg-card">
               <div className="flex justify-center mb-4">
                 <div className="relative">
                   <Avatar className="w-16 h-16">

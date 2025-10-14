@@ -4,6 +4,7 @@ import Script from 'next/script';
 import '../globals.css';
 import { WalletContextProvider } from '@/components/providers/wallet-provider';
 import { AuthProvider } from '@/contexts/auth-context';
+import { ThemeProvider } from '@/contexts/theme-context';
 import { Navbar } from '@/components/layout/navbar';
 import ToasterClient from '@/components/ui/toaster-client';
 import { SessionProviderWrapper } from '@/components/providers/session-provider';
@@ -42,30 +43,30 @@ export default async function LocaleLayout({
   const messages = await getMessages();
   
   return (
-    <html lang={locale}>
-      <head>
-        {isProd && (
-          <Script
-            src="/suppress-metamask.js"
-            id="suppress-metamask"
-            strategy="lazyOnload"
-            data-nscript="lazyOnload"
-          />
-        )}
-      </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <>
+      <Script
+        src="/suppress-metamask.js"
+        id="suppress-metamask"
+        strategy="beforeInteractive"
+        data-nscript="beforeInteractive"
+      />
+      <ThemeProvider>
         <NextIntlClientProvider messages={messages}>
           <SessionProviderWrapper>
             <WalletContextProvider>
               <AuthProvider>
-                <Navbar />
-                <ToasterClient />
-                {children}
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="flex-1">
+                    {children}
+                  </main>
+                  <ToasterClient />
+                </div>
               </AuthProvider>
             </WalletContextProvider>
           </SessionProviderWrapper>
         </NextIntlClientProvider>
-      </body>
-    </html>
+      </ThemeProvider>
+    </>
   );
 }

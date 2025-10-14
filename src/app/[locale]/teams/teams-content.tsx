@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,15 +34,16 @@ import {
 // Mock data para ligas
 const mockLeagues = [
   { id: 'main', name: 'Time Principal', type: 'main' },
-  { id: 'liga-1', name: 'Liga Principal', type: 'league' },
-  { id: 'liga-2', name: 'Liga de Ações Tokenizadas', type: 'xstocks' },
-  { id: 'liga-3', name: 'Liga DeFi', type: 'defi' },
-  { id: 'liga-4', name: 'Liga Meme', type: 'meme' },
-  { id: 'liga-5', name: 'Liga Gaming', type: 'gaming' }
+  { id: '1', name: 'Liga Principal', type: 'league' },
+  { id: '2', name: 'Liga de Ações Tokenizadas', type: 'xstocks' },
+  { id: '3', name: 'Liga DeFi', type: 'defi' },
+  { id: '4', name: 'Liga Meme', type: 'meme' },
+  { id: '5', name: 'Liga Gaming', type: 'gaming' }
 ];
 
 export function TeamsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { publicKey, connected } = useWallet();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -60,13 +61,24 @@ export function TeamsContent() {
     mounted
   });
   
+  // Inicializar selectedLeagueId com o valor da URL ou 'main' como fallback
+  const getInitialLeagueId = () => {
+    if (searchParams) {
+      const urlLeagueId = searchParams.get('league');
+      if (urlLeagueId && mockLeagues.find(league => league.id === urlLeagueId)) {
+        return urlLeagueId;
+      }
+    }
+    return 'main';
+  };
+  
   // Estados principais
   const [formation, setFormation] = useState<'433' | '442' | '352'>('433');
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
   const [selectedToken, setSelectedToken] = useState<TokenMarketData | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedLeagueId, setSelectedLeagueId] = useState<string>('main');
-  const [isEditingMainTeam, setIsEditingMainTeam] = useState(true);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string>(getInitialLeagueId());
+  const [isEditingMainTeam, setIsEditingMainTeam] = useState(getInitialLeagueId() === 'main');
   
   // Estados para verificação de pagamento e carregamento
   const [hasValidEntry, setHasValidEntry] = useState<boolean | null>(null);
@@ -183,16 +195,19 @@ export function TeamsContent() {
     }
   }, [connected, publicKey, selectedLeagueId, setHasValidEntry, setIsLoadingTeam, setPaymentError, setPlayers, setExistingTeam]);
 
-  // Capturar parâmetros da URL de forma segura
+  // Atualizar liga quando parâmetros da URL mudarem
   useEffect(() => {
     if (searchParams) {
       const urlLeagueId = searchParams.get('league');
       if (urlLeagueId && mockLeagues.find(league => league.id === urlLeagueId)) {
-        setSelectedLeagueId(urlLeagueId);
-        setIsEditingMainTeam(urlLeagueId === 'main');
+        // Só atualizar se for diferente do estado atual
+        if (urlLeagueId !== selectedLeagueId) {
+          setSelectedLeagueId(urlLeagueId);
+          setIsEditingMainTeam(urlLeagueId === 'main');
+        }
       }
     }
-  }, [searchParams]);
+  }, [searchParams, selectedLeagueId]);
 
   // Verificar pagamento quando conectar carteira ou mudar liga
   useEffect(() => {
@@ -220,6 +235,26 @@ export function TeamsContent() {
   // Obter liga atual e filtro
   const currentLeague = mockLeagues.find(league => league.id === selectedLeagueId);
   const fixedFilter = currentLeague ? getFixedFilter(currentLeague.type) : undefined;
+
+  // Função para lidar com mudança de liga
+  const handleLeagueChange = (newLeagueId: string) => {
+    console.log('DEBUG handleLeagueChange: Mudando liga para:', newLeagueId);
+    
+    // Atualizar estado local
+    setSelectedLeagueId(newLeagueId);
+    setIsEditingMainTeam(newLeagueId === 'main');
+    
+    // Limpar jogadores quando mudar de liga
+    setPlayers([]);
+    setExistingTeam(null);
+    setHasValidEntry(null);
+    setPaymentError(null);
+    setSuccessMessage(null);
+    
+    // Atualizar URL
+    const newUrl = newLeagueId === 'main' ? '/teams' : `/teams?league=${newLeagueId}`;
+    router.push(newUrl);
+  };
 
   // Função para adicionar jogador
   const handleAddPlayer = (position: number) => {
@@ -459,7 +494,7 @@ export function TeamsContent() {
           
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Seletor de Liga */}
-            <Select value={selectedLeagueId} onValueChange={setSelectedLeagueId}>
+            <Select value={selectedLeagueId} onValueChange={handleLeagueChange}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Selecionar Liga" />
               </SelectTrigger>
@@ -556,13 +591,13 @@ export function TeamsContent() {
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Nome do Time
                   </label>
-                  <div className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                  <div className="w-full px-3 py-2 border border-border rounded-md bg-muted text-muted-foreground">
                     {teamName}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     O nome do time é baseado no seu nome de usuário. Você pode alterá-lo na página de perfil.
                   </p>
                 </div>
@@ -603,10 +638,18 @@ export function TeamsContent() {
                   <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Pagamento Necessário</h3>
                   <p className="text-gray-600 mb-4">
-                    Você precisa pagar a taxa de entrada da Liga Principal para criar seu time.
+                    {currentLeague?.type === 'main' 
+                      ? 'Você precisa pagar a taxa de entrada da Liga Principal para criar seu time.'
+                      : `Você precisa pagar a taxa de entrada da ${currentLeague?.name} para criar seu time.`
+                    }
                   </p>
                   <Button asChild>
-                    <LocalizedLink href="/ligas">Ir para Liga Principal</LocalizedLink>
+                    <LocalizedLink href={currentLeague?.type === 'main' ? "/ligas" : `/ligas?highlight=${selectedLeagueId}`}>
+                      {currentLeague?.type === 'main' 
+                        ? 'Ir para Liga Principal'
+                        : `Pagar ${currentLeague?.name}`
+                      }
+                    </LocalizedLink>
                   </Button>
                 </CardContent>
               </Card>

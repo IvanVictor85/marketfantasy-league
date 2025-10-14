@@ -95,7 +95,7 @@ export const WebhookManager: React.FC<WebhookManagerProps> = ({
 
       {/* Analytics Dashboard */}
       {events.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Analytics</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">

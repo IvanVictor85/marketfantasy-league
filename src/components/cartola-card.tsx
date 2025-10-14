@@ -137,7 +137,7 @@ const LeagueCard = React.forwardRef<HTMLDivElement, LeagueCardProps>(
         case "closed":
           return <Badge className="bg-orange-500 text-white">Em Andamento</Badge>;
         case "finished":
-          return <Badge className="bg-gray-500 text-white">Finalizada</Badge>;
+          return <Badge className="bg-muted text-muted-foreground">Finalizada</Badge>;
       }
     };
 

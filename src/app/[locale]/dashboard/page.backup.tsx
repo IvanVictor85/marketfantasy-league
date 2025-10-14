@@ -46,6 +46,7 @@ const connection = getConnectionSync();
 import { depositSol, withdrawSol, getUserDepositedBalance, hasDepositedBalance, getPlatformTreasuryBalance, getPlatformTreasuryAddress, addSolToTreasury } from '@/lib/solana/program';
 import { useTransactionState } from '@/components/providers/wallet-provider';
 import { toast } from 'sonner';
+import { useTeamData } from '@/hooks/useTeamData';
 
 // Importando os novos tipos
 import { 
@@ -111,8 +112,8 @@ const mockUserData: UserData = {
   },
   leagueTeams: [
     {
-      id: "team-liga-1",
-      leagueId: "liga-1",
+      id: "team-1",
+      leagueId: "1",
       userId: "user-1",
       formation: "433",
       isMainTeam: false,
@@ -132,8 +133,8 @@ const mockUserData: UserData = {
       ]
     },
     {
-      id: "team-liga-2",
-      leagueId: "liga-2",
+      id: "team-2",
+      leagueId: "2",
       userId: "user-1",
       formation: "442",
       isMainTeam: false,
@@ -155,7 +156,7 @@ const mockUserData: UserData = {
   ],
   leagues: [
     {
-      id: "liga-1",
+      id: "1",
       leagueName: "Liga Principal",
       rank: 128,
       totalParticipants: 1500,
@@ -164,7 +165,7 @@ const mockUserData: UserData = {
       status: "active"
     },
     {
-      id: "liga-2",
+      id: "2",
       leagueName: "Liga dos Amigos",
       rank: 3,
       totalParticipants: 12,
@@ -1072,22 +1073,53 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string>("main");
   const [savedMascot, setSavedMascot] = useState<SavedMascot | null>(null);
+  
+  // Buscar dados reais da liga principal
+  const { teamData: mainTeamData, loading: mainTeamLoading, error: mainTeamError } = useTeamData();
 
-  // Criar dados do usuário baseados no contexto de autenticação
+  // Criar dados do usuário baseados no contexto de autenticação e dados reais
   const userData: UserData = useMemo(() => {
     if (user) {
+      // Converter dados reais para o formato esperado
+      const mainTeam: MainTeam | undefined = mainTeamData?.hasTeam ? {
+        id: mainTeamData.id,
+        userId: user.id,
+        formation: "433", // Formação padrão por enquanto
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        players: mainTeamData.players.map((player, index) => ({
+          id: player.token.toLowerCase(),
+          position: index + 1,
+          name: player.name,
+          token: player.token,
+          image: player.image || "",
+          price: player.price,
+          points: player.points || 0,
+          rarity: player.rarity || "common",
+          change_24h: player.change_24h || 0
+        }))
+      } : undefined;
+
       return {
         id: user.id,
-        teamName: user.name || "Meu Time",
+        teamName: mainTeamData?.teamName || user.name || "Meu Time",
         userName: user.name || "Usuário",
         mascot: mockUserData.mascot, // Manter mascote mock por enquanto
-        mainTeam: mockUserData.mainTeam, // Manter time mock por enquanto
-        leagueTeams: mockUserData.leagueTeams, // Manter times de liga mock por enquanto
-        leagues: mockUserData.leagues // Manter ligas mock por enquanto
+        mainTeam: mainTeam,
+        leagueTeams: [], // Por enquanto vazio, pode ser expandido depois
+        leagues: mainTeamData?.league ? [{
+          id: mainTeamData.league.id,
+          leagueName: mainTeamData.league.name,
+          rank: 0, // Será implementado depois
+          totalParticipants: 0, // Será implementado depois
+          partialScore: 0, // Será implementado depois
+          lastRoundScore: 0, // Será implementado depois
+          status: "active"
+        }] : []
       };
     }
     return mockUserData; // Fallback para dados mock se não houver usuário
-  }, [user]);
+  }, [user, mainTeamData]);
 
   // Carregar mascote salvo do localStorage
   useEffect(() => {
@@ -1158,6 +1190,36 @@ export default function Dashboard() {
       isMainTeam: false
     };
   }, [selectedTeamId, userData]);
+
+  // Mostrar carregamento se estiver buscando dados da liga principal
+  if (mainTeamLoading) {
+    return (
+      <main className="container mx-auto py-6 px-4">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando dados do dashboard...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Mostrar erro se houver problema ao carregar dados
+  if (mainTeamError) {
+    return (
+      <main className="container mx-auto py-6 px-4">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Erro ao carregar dados: {mainTeamError}</p>
+            <Button onClick={() => window.location.reload()}>
+              Tentar Novamente
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container mx-auto py-6 px-4">

@@ -32,15 +32,13 @@ export default function LoginPage() {
     setError('');
     setSuccess('');
     
-    if (!email.trim()) {
-      setError(tValidation('required'));
+    if (!email) {
+      setError(tValidation('emailRequired'));
       return;
     }
 
-    // Validação básica de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError(tValidation('invalidEmail'));
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError(tValidation('emailInvalid'));
       return;
     }
 
@@ -50,15 +48,12 @@ export default function LoginPage() {
       const result = await sendVerificationCode(email);
       setSuccess(result.message);
       
-      // Redirecionar para página de verificação após 2 segundos
-      setTimeout(() => {
-        const verifyUrl = `/verify-code?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`;
-        router.push(verifyUrl);
-      }, 2000);
+      // Redirecionar imediatamente para página de verificação
+      const verifyUrl = `/verify-code?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`;
+      router.push(verifyUrl);
     } catch (error: any) {
       console.error('Erro ao enviar código:', error);
       setError(error.message || 'Erro ao enviar código de verificação');
-    } finally {
       setIsLoading(false);
     }
   };

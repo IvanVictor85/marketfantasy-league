@@ -39,7 +39,7 @@ export function UserButton({ className }: UserButtonProps) {
 
   if (!mounted || isLoading) {
     return (
-      <Button variant="ghost" size="sm" className="text-white" disabled>
+      <Button variant="ghost" size="sm" className="text-primary-foreground" disabled>
         <Loader2 className="w-4 h-4 animate-spin" />
       </Button>
     );
@@ -51,7 +51,7 @@ export function UserButton({ className }: UserButtonProps) {
         <Button
           variant="outline"
           size="sm"
-          className={`text-white border-white hover:bg-white hover:text-primary bg-orange-600 ${className || ''}`}
+          className={`text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary ${className || ''}`}
         >
           <User className="w-4 h-4 mr-2" />
           Entrar
@@ -90,11 +90,11 @@ export function UserButton({ className }: UserButtonProps) {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className={`flex items-center gap-2 text-white hover:bg-orange-600 h-auto py-2 px-3 ${className || ''}`}
+          className={`flex items-center gap-2 text-primary-foreground hover:bg-primary/80 h-auto py-2 px-3 ${className || ''}`}
         >
           <Avatar className="w-6 h-6">
             <AvatarImage src={user.avatar} alt={getDisplayName()} />
-            <AvatarFallback className="text-xs bg-orange-500 text-white">
+            <AvatarFallback className="text-xs bg-primary text-primary-foreground">
               {getUserInitials()}
             </AvatarFallback>
           </Avatar>

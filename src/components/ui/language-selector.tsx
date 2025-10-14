@@ -34,8 +34,13 @@ export function LanguageSelector() {
     // Cria o novo pathname com o novo locale
     const newPathname = `/${newLocale}${pathnameWithoutLocale}`;
     
-    // Navega para a nova URL
-    router.push(newPathname);
+    // Usa window.location para garantir que a navegação funcione
+    if (typeof window !== 'undefined') {
+      window.location.href = newPathname;
+    } else {
+      // Fallback para router.push em caso de SSR
+      router.push(newPathname);
+    }
   };
 
   const currentLanguage = languages.find(lang => lang.code === locale);

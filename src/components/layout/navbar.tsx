@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { WalletConnectButton } from '@/components/layout/WalletConnectButton';
 import { UserButton } from '@/components/auth/user-button';
 import { LanguageSelector } from '@/components/ui/language-selector';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useNavigationTranslations } from '@/hooks/useTranslations';
 
 export function Navbar() {
@@ -68,6 +69,7 @@ export function Navbar() {
           {/* User Authentication */}
           <div className="hidden md:flex md:items-center md:space-x-3">
             <LanguageSelector />
+            <ThemeToggle className="text-primary-foreground hover:text-accent-foreground" />
             <WalletConnectButton />
             <UserButton />
           </div>
@@ -76,15 +78,19 @@ export function Navbar() {
           <div className="md:hidden">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-white">
+                <Button variant="ghost" size="sm" className="text-primary-foreground">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80 bg-white">
+              <SheetContent side="right" className="w-80 bg-card">
                 <div className="flex flex-col space-y-4 mt-8">
                   {/* Mobile User Authentication */}
                   <div className="pb-4 border-b space-y-3">
                     <LanguageSelector />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Tema</span>
+                      <ThemeToggle />
+                    </div>
                     <WalletConnectButton />
                     <UserButton className="w-full" />
                   </div>

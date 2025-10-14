@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from 'react';
 import { useConnection } from '@solana/wallet-adapter-react';
@@ -87,7 +87,7 @@ export function WalletCard() {
           onChange={(e) => setAmount(e.target.value)}
         />
         <Button
-          className="bg-[#F7931A] hover:bg-[#d87e12] text-white"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
           onClick={handleDeposit}
         >
           Depositar SOL

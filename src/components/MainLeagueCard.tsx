@@ -11,6 +11,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { LocalizedLink } from '@/components/ui/localized-link';
+import { useLocaleNavigation } from '@/hooks/useLocaleNavigation';
 
 interface MainLeagueData {
   id: string;
@@ -41,6 +42,7 @@ interface EntryStatus {
 export function MainLeagueCard() {
   const { publicKey, connected, sendTransaction } = useWallet();
   const { setVisible } = useWalletModal();
+  const { push } = useLocaleNavigation();
   
   const [leagueData, setLeagueData] = useState<MainLeagueData | null>(null);
   const [entryStatus, setEntryStatus] = useState<EntryStatus | null>(null);
@@ -48,16 +50,77 @@ export function MainLeagueCard() {
   const [transactionLoading, setTransactionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLeagueData = async () => {
+  const fetchLeagueData = async (retryCount = 0) => {
+    const maxRetries = 3;
+    
     try {
-      const response = await fetch('/api/league/main');
-      if (!response.ok) throw new Error('Failed to fetch league data');
+      console.log(`🚀 MainLeagueCard: Tentativa ${retryCount + 1}/${maxRetries + 1} - Iniciando busca de dados da liga...`);
+      
+      // Estratégia 1: Fetch normal
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+      
+      const response = await fetch('/api/league/main', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log('📡 MainLeagueCard: Response status:', response.status);
+      console.log('📡 MainLeagueCard: Response ok:', response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ MainLeagueCard: Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       
       const data = await response.json();
+      console.log('✅ MainLeagueCard: Dados da liga recebidos:', data);
       setLeagueData(data);
+      setError(null);
+      
     } catch (err) {
-      console.error('Error fetching league data:', err);
-      setError('Erro ao carregar dados da liga');
+      console.error(`❌ MainLeagueCard: Erro na tentativa ${retryCount + 1}:`, err);
+      
+      // Se não é a última tentativa, tenta novamente
+      if (retryCount < maxRetries) {
+        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+        console.log(`⏳ MainLeagueCard: Tentando novamente em ${delay}ms...`);
+        setTimeout(() => fetchLeagueData(retryCount + 1), delay);
+        return;
+      }
+      
+      // Estratégia 2: Fallback com dados mock se todas as tentativas falharam
+      console.log('🔄 MainLeagueCard: Todas as tentativas falharam, usando dados de fallback...');
+      
+      const fallbackData = {
+        id: 'main-league-fallback',
+        name: 'Liga Principal',
+        description: 'Liga Principal do CryptoFantasy - Competição mensal de tokens',
+        entryFee: 0.005,
+        totalPrizePool: 0.01,
+        participantCount: 0,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        isActive: true,
+        round: {
+          current: 1,
+          timeRemaining: 7 * 24 * 60 * 60 * 1000, // 7 dias
+          isActive: true
+        }
+      };
+      
+      setLeagueData(fallbackData);
+      setError('Usando dados offline. Alguns recursos podem estar limitados.');
+      
     } finally {
       setLoading(false);
     }
@@ -254,7 +317,7 @@ export function MainLeagueCard() {
 
       // Redirect to team creation
       console.log('🚀 MainLeagueCard: Redirecionando para criação de time...');
-      window.location.href = '/teams?league=main&new=true';
+      push('/teams?league=main&new=true');
 
     } catch (err) {
       console.error('Error entering league:', err);
@@ -300,7 +363,7 @@ export function MainLeagueCard() {
     return (
       <Card className="border-[#F4A261] border-2">
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-[#2A9D8F]" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
@@ -322,7 +385,7 @@ export function MainLeagueCard() {
   }
 
   return (
-    <Card className="border-[#F4A261] border-2 bg-gradient-to-br from-white to-orange-50">
+    <Card className="border-accent border-2 bg-card">
       <CardHeader className="pb-2 pt-3 px-4">
         <div className="flex items-center justify-between">
           <div className="relative w-16 h-16 bg-transparent flex items-center justify-center">
@@ -334,7 +397,7 @@ export function MainLeagueCard() {
               className="object-contain"
             />
           </div>
-          <Badge className="bg-[#E9C46A] text-white font-bold">
+          <Badge className="bg-secondary text-secondary-foreground font-bold">
             Oficial
           </Badge>
         </div>
@@ -342,41 +405,41 @@ export function MainLeagueCard() {
       
       <CardContent className="pb-4">
         <div className="mb-4">
-          <h3 className="text-2xl font-bold text-slate-800 mb-2">{leagueData.name}</h3>
-          <p className="text-sm text-slate-600">{leagueData.description}</p>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{leagueData.name}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{leagueData.description}</p>
         </div>
 
         {/* League Stats */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="flex items-center space-x-2">
-            <Coins className="h-4 w-4 text-[#2A9D8F]" />
-            <span className="text-sm text-slate-600">Entrada:</span>
+            <Coins className="h-4 w-4 text-primary" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">Entrada:</span>
           </div>
-          <div className="text-sm font-bold text-slate-800">
+          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
             {leagueData.entryFee} SOL
           </div>
           
           <div className="flex items-center space-x-2">
-            <Trophy className="h-4 w-4 text-[#2A9D8F]" />
-            <span className="text-sm text-slate-600">Prêmio Total:</span>
+            <Trophy className="h-4 w-4 text-primary" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">Prêmio Total:</span>
           </div>
-          <div className="text-sm font-bold text-green-600">
-            {leagueData.totalPrizePool.toFixed(3)} SOL
+          <div className="text-sm font-bold text-primary">
+            {leagueData.totalPrizePool} SOL
           </div>
           
           <div className="flex items-center space-x-2">
-            <Users className="h-4 w-4 text-[#2A9D8F]" />
-            <span className="text-sm text-slate-600">Participantes:</span>
+            <Users className="h-4 w-4 text-primary" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">Participantes:</span>
           </div>
-          <div className="text-sm font-bold text-slate-800">
+          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
             {leagueData.participantCount}
           </div>
-
+          
           <div className="flex items-center space-x-2">
-            <Clock className="h-4 w-4 text-[#2A9D8F]" />
-            <span className="text-sm text-slate-600">Tempo Restante:</span>
+            <Clock className="h-4 w-4 text-primary" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">Tempo Restante:</span>
           </div>
-          <div className="text-sm font-bold text-slate-800">
+          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
             {leagueData.round.isActive ? formatTimeRemaining(leagueData.round.timeRemaining) : 'Finalizada'}
           </div>
         </div>
@@ -396,10 +459,24 @@ export function MainLeagueCard() {
 
         {/* Error Display */}
         {error && (
-          <Alert className="mb-4 border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              {error}
+          <Alert className="mb-4 border-yellow-200 bg-yellow-50">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800 flex items-center justify-between">
+              <span>{error}</span>
+              {error.includes('offline') && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    setLoading(true);
+                    setError(null);
+                    fetchLeagueData(0);
+                  }}
+                  className="ml-2 h-6 text-xs"
+                >
+                  Tentar Novamente
+                </Button>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -409,7 +486,7 @@ export function MainLeagueCard() {
         {!connected ? (
           <Button 
             onClick={handleConnectWallet}
-            className="w-full bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Conectar Carteira
           </Button>
@@ -426,7 +503,7 @@ export function MainLeagueCard() {
           <Button 
             onClick={handleEnterLeague}
             disabled={transactionLoading || !leagueData.round.isActive}
-            className="w-full bg-[#F4A261] hover:bg-[#F4A261]/90 text-white disabled:opacity-50"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
           >
             {transactionLoading ? (
               <>
