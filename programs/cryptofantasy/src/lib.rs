@@ -29,6 +29,7 @@ pub mod cryptofantasy {
         league.is_distributed = false;
         league.created_at = clock.unix_timestamp;
         league.bump = ctx.bumps.league;
+        league.treasury_bump = ctx.bumps.treasury_pda;
         league.league_type = LeagueType::Main;
 
         msg!("Main League initialized with entry fee: {} lamports", entry_fee);
@@ -42,6 +43,8 @@ pub mod cryptofantasy {
 
         // Validate league is active
         require!(league.is_active, ErrorCode::LeagueNotActive);
+        // Ensure league has started
+        require!(clock.unix_timestamp >= league.start_time, ErrorCode::LeagueNotStarted);
         require!(clock.unix_timestamp < league.end_time, ErrorCode::LeagueEnded);
 
         // For Main League, no player limit
@@ -60,8 +63,14 @@ pub mod cryptofantasy {
         system_program::transfer(transfer_ctx, league.entry_fee)?;
 
         // Update league state
-        league.current_players += 1;
-        league.total_pool += league.entry_fee;
+        league.current_players = league
+            .current_players
+            .checked_add(1)
+            .ok_or(ErrorCode::MathOverflow)?;
+        league.total_pool = league
+            .total_pool
+            .checked_add(league.entry_fee)
+            .ok_or(ErrorCode::MathOverflow)?;
 
         msg!("User {} entered league. Total players: {}, Total pool: {} lamports", 
              ctx.accounts.user.key(), 
@@ -85,6 +94,9 @@ pub mod cryptofantasy {
         require!(!league.is_distributed, ErrorCode::AlreadyDistributed);
         require!(clock.unix_timestamp > league.end_time, ErrorCode::LeagueNotEnded);
 
+        // Ensure distinct winners
+        require!(winner1 != winner2 && winner1 != winner3 && winner2 != winner3, ErrorCode::DuplicateWinners);
+
         let total_pool = league.total_pool;
         
         // Calculate prize distribution (50%, 30%, 20%)
@@ -92,31 +104,59 @@ pub mod cryptofantasy {
         let second_prize = total_pool * 30 / 100;  // 30%
         let third_prize = total_pool * 20 / 100;   // 20%
 
-        // Create seeds for PDA signing
+        // Ensure treasury has sufficient funds
+        let required_total = first_prize
+            .checked_add(second_prize)
+            .and_then(|v| v.checked_add(third_prize))
+            .ok_or(ErrorCode::MathOverflow)?;
+        require!(ctx.accounts.treasury_pda.to_account_info().lamports() >= required_total, ErrorCode::InsufficientTreasuryFunds);
+
+        // Create seeds for PDA signing (treasury PDA)
         let league_key = league.key();
         let seeds = &[
-            b"treasury",
+            b"treasury".as_ref(),
             league_key.as_ref(),
-            &[league.bump],
+            &[league.treasury_bump],
         ];
         let signer = &[&seeds[..]];
 
         // Transfer first prize
         if first_prize > 0 {
-            **ctx.accounts.treasury_pda.to_account_info().try_borrow_mut_lamports()? -= first_prize;
-            **ctx.accounts.winner1.to_account_info().try_borrow_mut_lamports()? += first_prize;
+            let transfer_ctx = CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.treasury_pda.to_account_info(),
+                    to: ctx.accounts.winner1.to_account_info(),
+                },
+                signer,
+            );
+            system_program::transfer(transfer_ctx, first_prize)?;
         }
 
         // Transfer second prize
         if second_prize > 0 {
-            **ctx.accounts.treasury_pda.to_account_info().try_borrow_mut_lamports()? -= second_prize;
-            **ctx.accounts.winner2.to_account_info().try_borrow_mut_lamports()? += second_prize;
+            let transfer_ctx = CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.treasury_pda.to_account_info(),
+                    to: ctx.accounts.winner2.to_account_info(),
+                },
+                signer,
+            );
+            system_program::transfer(transfer_ctx, second_prize)?;
         }
 
         // Transfer third prize
         if third_prize > 0 {
-            **ctx.accounts.treasury_pda.to_account_info().try_borrow_mut_lamports()? -= third_prize;
-            **ctx.accounts.winner3.to_account_info().try_borrow_mut_lamports()? += third_prize;
+            let transfer_ctx = CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.treasury_pda.to_account_info(),
+                    to: ctx.accounts.winner3.to_account_info(),
+                },
+                signer,
+            );
+            system_program::transfer(transfer_ctx, third_prize)?;
         }
 
         league.is_distributed = true;
@@ -138,6 +178,16 @@ pub struct InitializeLeague<'info> {
     )]
     pub league: Account<'info, League>,
 
+    #[account(
+        init,
+        payer = admin,
+        seeds = [b"treasury", league.key().as_ref()],
+        bump,
+        space = 0
+    )]
+    /// Treasury PDA for holding entry fees
+    pub treasury_pda: SystemAccount<'info>,
+
     #[account(mut)]
     pub admin: Signer<'info>,
 
@@ -158,10 +208,10 @@ pub struct EnterLeague<'info> {
     #[account(
         mut,
         seeds = [b"treasury", league.key().as_ref()],
-        bump = league.bump
+        bump = league.treasury_bump
     )]
-    /// CHECK: Treasury PDA for holding entry fees
-    pub treasury_pda: AccountInfo<'info>,
+    /// Treasury PDA for holding entry fees
+    pub treasury_pda: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -177,22 +227,22 @@ pub struct DistributePrizes<'info> {
     #[account(
         mut,
         seeds = [b"treasury", league.key().as_ref()],
-        bump = league.bump
+        bump = league.treasury_bump
     )]
-    /// CHECK: Treasury PDA for holding entry fees
-    pub treasury_pda: AccountInfo<'info>,
+    /// Treasury PDA for holding entry fees
+    pub treasury_pda: SystemAccount<'info>,
 
     #[account(mut)]
-    /// CHECK: First place winner wallet
-    pub winner1: AccountInfo<'info>,
+    /// First place winner wallet
+    pub winner1: SystemAccount<'info>,
 
     #[account(mut)]
-    /// CHECK: Second place winner wallet
-    pub winner2: AccountInfo<'info>,
+    /// Second place winner wallet
+    pub winner2: SystemAccount<'info>,
 
     #[account(mut)]
-    /// CHECK: Third place winner wallet
-    pub winner3: AccountInfo<'info>,
+    /// Third place winner wallet
+    pub winner3: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -211,11 +261,12 @@ pub struct League {
     pub is_distributed: bool,       // 1
     pub created_at: i64,            // 8
     pub bump: u8,                   // 1
+    pub treasury_bump: u8,          // 1
     pub league_type: LeagueType,    // 1
 }
 
 impl League {
-    pub const LEN: usize = 8 + 32 + 32 + 8 + 3 + 2 + 8 + 8 + 1 + 8 + 1 + 8 + 1 + 1; // 121 bytes
+    pub const LEN: usize = 8 + 32 + 32 + 8 + 3 + 2 + 8 + 8 + 1 + 8 + 1 + 8 + 1 + 1 + 1; // 122 bytes
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
@@ -232,10 +283,18 @@ pub enum ErrorCode {
     LeagueFull,
     #[msg("League has ended")]
     LeagueEnded,
+    #[msg("League has not started yet")]
+    LeagueNotStarted,
     #[msg("Unauthorized access")]
     Unauthorized,
     #[msg("Prizes already distributed")]
     AlreadyDistributed,
     #[msg("League has not ended yet")]
     LeagueNotEnded,
+    #[msg("Duplicate winners are not allowed")]
+    DuplicateWinners,
+    #[msg("Math overflow occurred")]
+    MathOverflow,
+    #[msg("Insufficient treasury funds to distribute prizes")]
+    InsufficientTreasuryFunds,
 }

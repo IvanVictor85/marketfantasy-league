@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { XStocksMarket } from '@/components/market/xstocks-market';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { type TokenMarketData } from '@/data/expanded-tokens';
 import type { XStockApiItem } from '@/app/api/xstocks/route';
+import { getMarketAnalysisData, type MarketAnalysisData, type MarketToken } from '@/lib/market-analysis';
 import { 
   TrendingUp, 
   BarChart3, 
@@ -18,7 +19,9 @@ import {
   Filter,
   Download,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  TrendingDown,
+  Loader2
 } from 'lucide-react';
 import { useMarketTranslations, useCommonTranslations } from '@/hooks/useTranslations';
 
@@ -27,17 +30,47 @@ export default function MarketPage() {
   const [selectedXStockToken, setSelectedXStockToken] = useState<XStockApiItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('xstocks');
+  
+  // Estados para análise de mercado
+  const [marketData, setMarketData] = useState<MarketAnalysisData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Traduções
   const tMarket = useMarketTranslations();
   const tCommon = useCommonTranslations();
 
+  // Função para carregar dados de análise de mercado (com AbortSignal opcional)
+  const loadMarketData = async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getMarketAnalysisData(signal);
+      setMarketData(data);
+    } catch (err) {
+      // Ignorar abortos provocados por HMR ou navegação
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
+      setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar dados na inicialização
+  useEffect(() => {
+    const controller = new AbortController();
+    loadMarketData(controller.signal);
+    return () => controller.abort();
+  }, []);
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simular refresh
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const controller = new AbortController();
+    await loadMarketData(controller.signal);
     setRefreshing(false);
-  };
+  }; 
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -128,19 +161,31 @@ export default function MarketPage() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">SOL</div>
-            <p className="text-xs text-green-600">
-              +15.7% {tCommon('today')}
-            </p>
+            {marketData?.topGainers && marketData.topGainers.length > 0 ? (
+              <>
+                <div className="text-2xl font-bold">{marketData.topGainers[0].symbol}</div>
+                <p className="text-xs text-green-600">
+                  +{marketData.topGainers[0].priceChange24h.toFixed(2)}% {tCommon('today')}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">SOL</div>
+                <p className="text-xs text-green-600">
+                  +15.7% {tCommon('today')}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Market Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="xstocks">XStocks Market</TabsTrigger>
           <TabsTrigger value="tokens">Token Market</TabsTrigger>
+          <TabsTrigger value="analysis">Análise de Mercado</TabsTrigger>
         </TabsList>
         
         <TabsContent value="xstocks" className="space-y-4">
@@ -179,6 +224,97 @@ export default function MarketPage() {
                 selectedToken={selectedToken}
                 onTokenSelect={setSelectedToken}
               />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="analysis" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Análise de Mercado - TOP 100 Tokens
+              </CardTitle>
+              <CardDescription>
+                Análise em tempo real dos maiores ganhadores e perdedores do mercado
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  <span className="ml-2">Carregando dados...</span>
+                </div>
+              )}
+              
+              {error && (
+                <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <span className="text-red-800">Erro: {error}</span>
+                </div>
+              )}
+              
+              {marketData && !loading && !error && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Ganhadores */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-green-600">
+                      <TrendingUp className="h-5 w-5" />
+                      Maiores Ganhadores ({marketData.topGainers.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {marketData.topGainers.slice(0, 10).map((token: MarketToken) => (
+                        <div key={token.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            {token.logoUrl && (
+                              <img src={token.logoUrl} alt={token.name} className="w-8 h-8 rounded-full" />
+                            )}
+                            <div>
+                              <div className="font-medium">{token.name}</div>
+                              <div className="text-sm text-gray-600">{token.symbol}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">${token.currentPrice.toFixed(4)}</div>
+                            <div className="text-sm text-green-600 font-medium">
+                              +{token.priceChange24h.toFixed(2)}%
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Perdedores */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-red-600">
+                      <TrendingDown className="h-5 w-5" />
+                      Maiores Perdedores ({marketData.topLosers.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {marketData.topLosers.slice(0, 10).map((token: MarketToken) => (
+                        <div key={token.id} className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            {token.logoUrl && (
+                              <img src={token.logoUrl} alt={token.name} className="w-8 h-8 rounded-full" />
+                            )}
+                            <div>
+                              <div className="font-medium">{token.name}</div>
+                              <div className="text-sm text-gray-600">{token.symbol}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">${token.currentPrice.toFixed(4)}</div>
+                            <div className="text-sm text-red-600 font-medium">
+                              {token.priceChange24h.toFixed(2)}%
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

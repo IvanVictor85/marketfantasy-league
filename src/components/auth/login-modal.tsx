@@ -28,7 +28,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
-  const { loginWithEmail, loginWithWallet, loginWithGoogle, register, isLoading, sendVerificationCode } = useAuth();
+  const { loginWithEmail, loginWithWallet, loginWithGoogle, register, isLoading: authLoading, sendVerificationCode } = useAuth();
   const { connected, publicKey } = useWallet();
   
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
@@ -38,6 +38,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [walletConnectionCancelled, setWalletConnectionCancelled] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   // Form states
   const [email, setEmail] = useState('');
@@ -75,20 +76,39 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setError('');
     setSuccess('');
     
-    if (!email || !password) {
-      setError('Por favor, preencha todos os campos');
+    // Validação mais detalhada
+    if (!email) {
+      setError('Por favor, insira seu email');
+      return;
+    }
+    
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('Por favor, insira um email válido');
+      return;
+    }
+    
+    if (!password) {
+      setError('Por favor, insira sua senha');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
     try {
+      setIsLoading(true);
       await loginWithEmail(email, password);
-      setSuccess('Login realizado com sucesso!');
+      setSuccess('Login realizado com sucesso! Redirecionando...');
       setTimeout(() => {
         onClose();
         resetForm();
       }, 1500);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erro no login');
+      setError(error instanceof Error ? error.message : 'Erro no login. Verifique suas credenciais.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -101,24 +121,65 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setError('Por favor, digite seu email');
       return;
     }
+    
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('Por favor, insira um email válido');
+      return;
+    }
 
     try {
+      setIsLoading(true);
       await sendVerificationCode(email);
       setVerificationEmail(email);
       setShowVerifyModal(true);
+      setSuccess('Código enviado para seu email!');
       toast.success('Código enviado para seu email!');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erro ao enviar código');
+      setError(error instanceof Error ? error.message : 'Erro ao enviar código. Tente novamente.');
       toast.error('Erro ao enviar código de verificação');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     
-    if (!email || !password || !name || !confirmPassword) {
-      setError('Por favor, preencha todos os campos');
+    // Validação mais detalhada
+    if (!name) {
+      setError('Por favor, insira seu nome');
+      return;
+    }
+    
+    if (name.length < 2) {
+      setError('O nome deve ter pelo menos 2 caracteres');
+      return;
+    }
+    
+    if (!email) {
+      setError('Por favor, insira seu email');
+      return;
+    }
+    
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('Por favor, insira um email válido');
+      return;
+    }
+    
+    if (!password) {
+      setError('Por favor, insira uma senha');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    
+    if (!confirmPassword) {
+      setError('Por favor, confirme sua senha');
       return;
     }
 
@@ -127,19 +188,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       return;
     }
 
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-
     try {
+      setIsLoading(true);
       await register(email, password, name);
-      setSuccess('Cadastro realizado com sucesso!');
+      setSuccess('Cadastro realizado com sucesso! Redirecionando...');
       setTimeout(() => {
         handleClose();
-      }, 1000);
+      }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro no cadastro');
+      setError(err instanceof Error ? err.message : 'Erro no cadastro. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -148,14 +207,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setSuccess('');
     
     try {
+      setIsLoading(true);
       await loginWithGoogle();
-      setSuccess('Login com Google realizado com sucesso!');
+      setSuccess('Login com Google realizado com sucesso! Redirecionando...');
       setTimeout(() => {
         onClose();
         resetForm();
       }, 1500);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erro no login com Google');
+      setError(error instanceof Error ? error.message : 'Erro no login com Google. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -220,7 +282,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <Button
                     onClick={handleWalletLogin}
                     disabled={isLoading}
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] border-0"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -235,7 +297,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   onClick={handleGoogleLogin}
                   disabled={isLoading}
                   variant="outline"
-                  className="w-full border-red-200 hover:bg-red-50 hover:border-red-300"
+                  className="w-full border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02]"
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -313,6 +375,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 </div>
 
                 <div className="space-y-2">
+                  {/* Botão de login com design melhorado */}
                   <Button
                     type="submit"
                     className="w-full"
@@ -329,7 +392,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="w-full border-2 border-[#2A9D8F] text-[#2A9D8F] hover:bg-[#2A9D8F] hover:text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02]"
                     disabled={isLoading}
                     onClick={handleSendVerificationCode}
                   >
@@ -355,7 +418,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="w-full border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02]"
                     disabled={isLoading}
                     onClick={handleGoogleLogin}
                   >

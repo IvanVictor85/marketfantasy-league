@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { LocalizedLink } from '@/components/ui/localized-link';
-import { Menu, Trophy, Target, HelpCircle, Gift } from 'lucide-react';
+import { Menu, Trophy, Target, HelpCircle, Gift, Brain } from 'lucide-react';
 import { useState } from 'react';
 import { WalletConnectButton } from '@/components/layout/WalletConnectButton';
 import { UserButton } from '@/components/auth/user-button';
@@ -22,6 +22,7 @@ export function Navbar() {
     { name: tNav('leagues'), href: '/ligas', icon: Trophy },
     { name: tNav('myTeam'), href: '/teams', icon: HelpCircle },
     { name: tNav('dashboard'), href: '/dashboard', icon: Target },
+    { name: 'Análise IA', href: '/analise', icon: Brain },
     // { name: tNav('rewards'), href: '/rewards', icon: Gift }, // Temporariamente desabilitado
   ];
 

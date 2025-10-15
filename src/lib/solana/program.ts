@@ -11,8 +11,9 @@ import {
   ComputeBudgetProgram
 } from '@solana/web3.js';
 import { WalletContextState } from '@solana/wallet-adapter-react';
-import { getConnectionSync, getConnection, PROGRAM_ID, solToLamports } from './connection';
+import { getConnectionSync, getConnection, PROGRAM_ID, solToLamports, SOLANA_NETWORK, RPC_URL } from './connection';
 import { heliusPriorityFeeService } from '../helius/priority-fee';
+import { SendTransactionError } from '@solana/web3.js';
 
 // Use synchronous connection for backward compatibility
 const connection = getConnectionSync();
@@ -765,39 +766,104 @@ export const withdrawSolReal = async (
     });
     transaction.add(transferInstruction);
 
-    // Get recent blockhash
-    const { blockhash } = await connection.getLatestBlockhash();
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = wallet.publicKey; // User pays the transaction fee
+    // Robust send with fresh blockhash and retries
+    const conn = await getConnection();
+    const maxRetries = 5;
+    let lastError: any;
+    let finalSignature: string | null = null;
+    let lastBlockhashInfo: { blockhash: string; lastValidBlockHeight: number } | null = null;
 
-    // Sign the transaction with both treasury keypair and user wallet
-    transaction.partialSign(treasuryKeypair);
-    
-    // User must also sign the transaction since they're paying the fee
-    const signedTransaction = await wallet.signTransaction!(transaction);
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Get latest blockhash (finalized to reduce failure rate)
+        const blockhashInfo = await conn.getLatestBlockhash('finalized');
+        lastBlockhashInfo = { blockhash: blockhashInfo.blockhash, lastValidBlockHeight: blockhashInfo.lastValidBlockHeight };
+        transaction.recentBlockhash = blockhashInfo.blockhash;
+        transaction.feePayer = wallet.publicKey!; // User pays the transaction fee
 
-    // Send the transaction
-    console.log('📤 Sending withdrawal transaction...');
-    const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
-      skipPreflight: false,
-      preflightCommitment: 'confirmed',
-    });
+        // Sign with treasury, then wallet
+        transaction.partialSign(treasuryKeypair);
+        const signedTransaction = await wallet.signTransaction!(transaction);
 
-    // Wait for confirmation
-    console.log('⏳ Waiting for transaction confirmation...');
-    await connection.confirmTransaction(signature, 'confirmed');
+        // Send
+        console.log(`📤 Enviando saque (tentativa ${attempt + 1}/${maxRetries})...`);
+        const signature = await conn.sendRawTransaction(signedTransaction.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: 'processed',
+          maxRetries: 3,
+        });
+
+        console.log('⏳ Aguardando confirmação...');
+        await conn.confirmTransaction({
+          signature,
+          blockhash: blockhashInfo.blockhash,
+          lastValidBlockHeight: blockhashInfo.lastValidBlockHeight,
+        }, 'confirmed');
+
+        finalSignature = signature;
+        break;
+      } catch (error: any) {
+        lastError = error;
+
+        // Collect RPC logs when available
+        let rpcLogs: string[] | undefined;
+        try {
+          if (error instanceof SendTransactionError) {
+            rpcLogs = await error.getLogs(conn);
+          }
+        } catch (_) {}
+
+        const msg = String(error?.message || '');
+        if (msg.includes('Blockhash not found')) {
+          console.warn('⚠️ Blockhash expirado ou não encontrado. Reobtendo e tentando novamente...');
+          // Loop continua, obtendo novo blockhash na próxima iteração
+          continue;
+        }
+        if (msg.includes('User rejected') || msg.includes('rejected')) {
+          throw new Error('Transação cancelada pelo usuário');
+        }
+        if (msg.includes('already been processed')) {
+          // Devolver erro amigável
+          throw new Error('Esta transação já foi processada. Verifique seu saldo e tente novamente se necessário.');
+        }
+        if (
+          msg.includes('insufficient funds') ||
+          msg.includes('Invalid account') ||
+          msg.includes('Account not found')
+        ) {
+          throw error;
+        }
+
+        // 4 logs de diagnóstico para facilitar depuração
+        console.error(`[LOG1] Rede: network=${SOLANA_NETWORK} rpc=${RPC_URL} programId=${PROGRAM_ID.toString()}`);
+        console.error(`[LOG2] Transação: amountSol=${amountSol} lamports=${amountLamports} feePayer=${wallet.publicKey!.toString()} treasury=${treasuryAddress.toString()} instructions=${transaction.instructions.length}`);
+        console.error(`[LOG3] Blockhash: ${lastBlockhashInfo?.blockhash ?? 'unknown'} lastValidBlockHeight=${lastBlockhashInfo?.lastValidBlockHeight ?? 'unknown'}`);
+        console.error(`[LOG4] RPC logs: ${rpcLogs && rpcLogs.length ? rpcLogs.join(' | ') : 'none'} error='${msg}'`);
+
+        // Pequeno backoff antes do retry
+        const delayMs = 500 * Math.pow(2, attempt);
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+
+    if (!finalSignature) {
+      if (String(lastError?.message || '').includes('Blockhash not found')) {
+        throw new Error('Blockhash expirado após várias tentativas. Tente novamente em alguns segundos.');
+      }
+      throw lastError || new Error('Falha desconhecida ao enviar transação de saque.');
+    }
 
     // Update user's deposited balance (subtract withdrawn amount)
     updateUserDepositedBalance(wallet.publicKey, -amountLamports);
 
     console.log(`✅ REAL SOL withdrawal completed successfully!`);
-    console.log(`📝 Transaction signature: ${signature}`);
+    console.log(`📝 Transaction signature: ${finalSignature}`);
     console.log(`💰 Amount transferred: ${amountSol} SOL`);
     console.log(`🎯 From treasury: ${treasuryAddress.toString()}`);
     console.log(`🎯 To user: ${wallet.publicKey.toString()}`);
     console.log(`🏦 Updated user's deposited balance`);
     
-    return signature;
+    return finalSignature;
   } catch (error) {
     console.error('❌ Real withdrawal failed:', error);
     

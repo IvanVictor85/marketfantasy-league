@@ -49,9 +49,7 @@ export function UserButton({ className }: UserButtonProps) {
     return (
       <LocalizedLink href="/login">
         <Button
-          variant="outline"
-          size="sm"
-          className={`text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary ${className || ''}`}
+          className={`bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md ${className || ''}`}
         >
           <User className="w-4 h-4 mr-2" />
           Entrar
