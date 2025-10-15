@@ -41,7 +41,7 @@ export default function DebugTest() {
       
       <div className="bg-gray-100 p-4 rounded">
         <h3 className="font-bold mb-2">Status:</h3>
-        <p>Se você vê "✅ SIM" acima, o useEffect está funcionando!</p>
+        <p>Se voce ve SIM acima, o useEffect esta funcionando!</p>
         <p>Verifique o console do navegador para ver os logs.</p>
       </div>
     </div>
