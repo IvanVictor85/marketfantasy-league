@@ -49,13 +49,18 @@ export interface CompetitionStatusData {
 
 interface UseCompetitionStatusOptions {
   competitionId: string;
-  refreshInterval?: number; // in milliseconds, default 30000 (30s)
+  refreshInterval?: number; // in milliseconds, default based on competition status
   enabled?: boolean; // whether to auto-refresh, default true
 }
 
+// Polling intervals optimized for CoinGecko rate limits
+const POLL_INTERVAL_ACTIVE = 5 * 60 * 1000; // 5 minutos durante competição ativa
+const POLL_INTERVAL_INACTIVE = 15 * 60 * 1000; // 15 minutos fora de competição
+const POLL_INTERVAL_COMPLETED = 60 * 60 * 1000; // 60 minutos para competições finalizadas
+
 export function useCompetitionStatus({
   competitionId,
-  refreshInterval = 30000,
+  refreshInterval,
   enabled = true,
 }: UseCompetitionStatusOptions): CompetitionStatusData {
   const [data, setData] = useState<CompetitionStatusData>({
@@ -66,6 +71,23 @@ export function useCompetitionStatus({
     loading: true,
     error: null,
   });
+
+  // Calcular intervalo inteligente baseado no status da competição
+  const getSmartInterval = (): number => {
+    if (refreshInterval) return refreshInterval; // Use custom interval if provided
+
+    if (!data.competition) return POLL_INTERVAL_INACTIVE;
+
+    switch (data.competition.status) {
+      case 'active':
+        return POLL_INTERVAL_ACTIVE; // 5 min durante competição
+      case 'completed':
+        return POLL_INTERVAL_COMPLETED; // 60 min após finalizar
+      case 'pending':
+      default:
+        return POLL_INTERVAL_INACTIVE; // 15 min antes de começar
+    }
+  };
 
   const fetchCompetitionStatus = async () => {
     try {
@@ -115,16 +137,24 @@ export function useCompetitionStatus({
     fetchCompetitionStatus();
   }, [competitionId]);
 
-  // Auto-refresh with interval
+  // Auto-refresh with smart interval
   useEffect(() => {
     if (!enabled || !competitionId) return;
 
+    const smartInterval = getSmartInterval();
+
+    console.log(`🔄 Polling competição ${competitionId}:`, {
+      status: data.competition?.status || 'unknown',
+      interval: `${smartInterval / 1000 / 60} minutos`,
+      nextUpdate: new Date(Date.now() + smartInterval).toLocaleTimeString()
+    });
+
     const interval = setInterval(() => {
       fetchCompetitionStatus();
-    }, refreshInterval);
+    }, smartInterval);
 
     return () => clearInterval(interval);
-  }, [competitionId, refreshInterval, enabled]);
+  }, [competitionId, data.competition?.status, enabled]);
 
   return data;
 }
