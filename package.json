@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "build:safe": "node build-script.js",
     "build:check": "npx tsc --noEmit",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "update-tokens": "tsx scripts/update-valid-tokens.ts",
     "normalize-tokens": "tsx scripts/normalize-team-tokens.ts",
     "validate-tokens": "tsx scripts/validate-all-teams.ts",
@@ -16,7 +17,7 @@
     "demo:seed": "tsx scripts/seed-demo-data.ts",
     "demo:simulate": "tsx scripts/simulate-live-updates.ts",
     "demo:full": "npm run demo:seed && npm run demo:simulate"
-},
+  },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.0",
     "@google/generative-ai": "^0.24.1",
