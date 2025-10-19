@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { signIn, getSession } from 'next-auth/react';
+// import { signIn, getSession } from 'next-auth/react'; // Temporariamente desabilitado
 import { SendCodeResponse, User, AuthContextType } from '@/types/auth';
 
 
@@ -196,31 +196,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      // Usar NextAuth para login com Google
-      const result = await signIn('google', { 
-        redirect: false,
-        callbackUrl: '/dashboard'
-      });
+      // NextAuth temporariamente desabilitado
+      throw new Error('Login com Google temporariamente desabilitado');
       
-      if (result?.error) {
-        throw new Error(result.error);
-      }
+      // Usar NextAuth para login com Google
+      // const result = await signIn('google', { 
+      //   redirect: false,
+      //   callbackUrl: '/dashboard'
+      // });
+      
+      // if (result?.error) {
+      //   throw new Error(result.error);
+      // }
       
       // Se o login foi bem-sucedido, obter a sessão
-      const session = await getSession();
+      // const session = await getSession();
       
-      if (session?.user) {
-        const userData: User = {
-          id: `google_${session.user.email}`,
-          email: session.user.email || '',
-          name: session.user.name || '',
-          avatar: session.user.image || '',
-          loginMethod: 'email'
-        };
-        
-        setUser(userData);
-        localStorage.setItem('mfl_user', JSON.stringify(userData));
-      }
+      // if (session?.user) {
+      //   const userData: User = {
+      //     id: `google_${session.user.email}`,
+      //     email: session.user.email || '',
+      //     name: session.user.name || '',
+      //     avatar: session.user.image || '',
+      //     loginMethod: 'email'
+      //   };
+      //   
+      //   setUser(userData);
+      //   localStorage.setItem('mfl_user', JSON.stringify(userData));
+      // }
     } catch (error) {
       console.error('Google login error:', error);
       throw new Error('Falha na autenticação com Google');
