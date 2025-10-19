@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email }),
       });
 
-      const result: SendCodeResponse = await response.json();
+      const result = await response.json() as SendCodeResponse;
 
       if (!response.ok) {
         throw new Error(result.message || 'Erro ao enviar código');
