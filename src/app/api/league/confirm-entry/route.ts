@@ -12,7 +12,10 @@ const confirmEntrySchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('🔍 [CONFIRM-ENTRY] Request body:', body)
+    
     const { userWallet, transactionHash, leagueId } = confirmEntrySchema.parse(body)
+    console.log('🔍 [CONFIRM-ENTRY] Parsed data:', { userWallet, transactionHash, leagueId })
 
     // Get Main League if no specific league ID provided
     let league
@@ -104,14 +107,29 @@ export async function POST(request: NextRequest) {
     const postBalance = transaction.meta.postBalances[userAccountIndex]
     const amountTransferred = preBalance - postBalance
 
+    console.log('🔍 [CONFIRM-ENTRY] Debug valores:')
+    console.log('   Entry Fee (SOL):', league.entryFee)
+    console.log('   Entry Fee (lamports):', entryFeeInLamports)
+    console.log('   Pre Balance:', preBalance)
+    console.log('   Post Balance:', postBalance)
+    console.log('   Amount Transferred (lamports):', amountTransferred)
+    console.log('   Amount Transferred (SOL):', amountTransferred / 1_000_000_000)
+
     // Allow for small transaction fee differences
     const tolerance = 0.001 * 1_000_000_000 // 0.001 SOL tolerance for fees
-    if (Math.abs(amountTransferred - entryFeeInLamports) > tolerance) {
+    const difference = Math.abs(amountTransferred - entryFeeInLamports)
+    console.log('   Difference (lamports):', difference)
+    console.log('   Tolerance (lamports):', tolerance)
+    console.log('   Within tolerance:', difference <= tolerance)
+
+    if (difference > tolerance) {
       return NextResponse.json(
         { 
           error: 'Valor da transação não corresponde à taxa de entrada',
           expected: league.entryFee,
-          actual: amountTransferred / 1_000_000_000
+          actual: amountTransferred / 1_000_000_000,
+          difference: difference / 1_000_000_000,
+          tolerance: tolerance / 1_000_000_000
         },
         { status: 400 }
       )
@@ -182,15 +200,17 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error confirming league entry:', error)
+    console.error('❌ [CONFIRM-ENTRY] Error confirming league entry:', error)
     
     if (error instanceof z.ZodError) {
+      console.error('❌ [CONFIRM-ENTRY] Validation error:', error.errors)
       return NextResponse.json(
         { error: 'Dados inválidos', details: error.errors },
         { status: 400 }
       )
     }
 
+    console.error('❌ [CONFIRM-ENTRY] Unexpected error:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

@@ -94,6 +94,12 @@ export function TeamsContent() {
   
   // Obter o nome do time a partir do nome do usuário
   const teamName = user?.name || 'Meu Time';
+  
+  console.log('DEBUG teamName:', { 
+    userName: user?.name, 
+    teamName, 
+    userExists: !!user 
+  });
 
   // Função para verificar status de pagamento e carregar time existente
   const checkPaymentAndLoadTeam = useCallback(async () => {

@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
 
     // Calculate current round dates
     const now = new Date()
-    const isActive = now >= league.startDate && now <= league.endDate
+    const isWithinPeriod = now >= league.startDate && now <= league.endDate
+    const isActive = league.isActive && isWithinPeriod
 
     return NextResponse.json({
       id: league.id,

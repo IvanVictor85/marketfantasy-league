@@ -125,6 +125,11 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`💾 [SEND-CODE] Código armazenado com sucesso`);
+    console.log(`💾 [SEND-CODE] Verificação imediata:`, verificationCodes.get(email));
+    console.log(`💾 [SEND-CODE] Total de códigos armazenados:`, verificationCodes.size);
+
+    // Pequeno delay para garantir que o código foi processado
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Enviar email
     const emailSent = await sendEmail(email, code);

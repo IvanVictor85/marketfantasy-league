@@ -23,14 +23,29 @@ export interface User {
   createdAt: Date;
 }
 
+// Armazenamento global para evitar perda de dados entre requisições
+declare global {
+  var __verificationCodes: Map<string, VerificationCode> | undefined;
+  var __authTokens: Map<string, AuthToken> | undefined;
+  var __users: Map<string, User> | undefined;
+}
+
 // Simulação de armazenamento em memória (em produção, usar Redis ou banco de dados)
-export const verificationCodes = new Map<string, VerificationCode>();
+export const verificationCodes = globalThis.__verificationCodes ?? (globalThis.__verificationCodes = new Map<string, VerificationCode>());
 
 // Simulação de armazenamento de tokens (em produção, usar JWT ou sessões)
-export const authTokens = new Map<string, AuthToken>();
+export const authTokens = globalThis.__authTokens ?? (globalThis.__authTokens = new Map<string, AuthToken>());
 
 // Simulação de banco de usuários (em produção, usar banco de dados)
-export const users = new Map<string, User>();
+export const users = globalThis.__users ?? (globalThis.__users = new Map<string, User>());
+
+// Log para debug
+console.log('🔧 [STORAGE] Inicializando armazenamento global:', {
+  verificationCodesSize: verificationCodes.size,
+  authTokensSize: authTokens.size,
+  usersSize: users.size,
+  isGlobal: !!globalThis.__verificationCodes
+});
 
 // Função para gerar código de 6 dígitos
 export function generateVerificationCode(): string {

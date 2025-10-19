@@ -14,6 +14,7 @@ import { useAuthTranslations, useCommonTranslations, useValidationTranslations }
 
 export default function VerifyCodePage() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState('');
@@ -118,7 +119,7 @@ export default function VerifyCodePage() {
     setIsLoading(true);
     
     try {
-      await verifyCodeAndLogin(email, fullCode);
+      await verifyCodeAndLogin(email, fullCode, name || undefined);
       setSuccess('Login realizado com sucesso!');
       
       // Redirecionar após sucesso
@@ -177,6 +178,23 @@ export default function VerifyCodePage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
+                Nome (opcional)
+              </Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Seu nome para o time"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="text-center"
+              />
+              <p className="text-xs text-gray-500 text-center">
+                Este será o nome do seu time. Se deixar vazio, usaremos seu email.
+              </p>
+            </div>
+            
             <div className="space-y-2">
               <Label className="text-center block text-gray-700 dark:text-gray-300">Código de Verificação</Label>
               <div className="flex justify-center gap-2">

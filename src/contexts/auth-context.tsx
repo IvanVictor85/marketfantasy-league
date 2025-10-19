@@ -58,15 +58,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for existing session on mount
     const checkExistingSession = () => {
       const savedUser = localStorage.getItem('mfl_user');
+      console.log('DEBUG AuthProvider: Checking saved user:', savedUser);
       
       if (savedUser) {
         try {
           const userData = JSON.parse(savedUser);
+          console.log('DEBUG AuthProvider: Parsed user data:', userData);
           setUser(userData);
         } catch (error) {
           console.error('Error parsing saved user data:', error);
           localStorage.removeItem('mfl_user');
         }
+      } else {
+        console.log('DEBUG AuthProvider: No saved user found');
       }
       setIsLoading(false);
     };

@@ -33,10 +33,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Delay maior para evitar race condition (código sendo criado/verificado simultaneamente)
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Verificar se existe código para este email
-    const storedCode = verificationCodes.get(email);
+    // Tentar múltiplas vezes para encontrar o código (evitar race condition)
+    let storedCode = verificationCodes.get(email);
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (!storedCode && attempts < maxAttempts) {
+      console.log(`🔄 [VERIFY] Tentativa ${attempts + 1}/${maxAttempts} - Código não encontrado, aguardando...`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      storedCode = verificationCodes.get(email);
+      attempts++;
+    }
 
     console.log(`🔍 [VERIFY] Código armazenado encontrado: ${!!storedCode}`);
     if (storedCode) {
