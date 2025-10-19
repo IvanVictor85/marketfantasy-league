@@ -163,7 +163,8 @@ export function TeamsContent() {
                 price: tokenDetail?.currentPrice || 0,
                 points: 0,
                 rarity: 'common' as const,
-                change_24h: tokenDetail?.priceChange24h || 0
+                change_24h: tokenDetail?.priceChange24h || 0,
+                change_7d: tokenDetail?.priceChange7d || 0
               };
             });
             console.log('DEBUG checkPaymentAndLoadTeam: Players carregados:', loadedPlayers);
@@ -193,7 +194,7 @@ export function TeamsContent() {
       console.log('DEBUG checkPaymentAndLoadTeam: Finalizando verificação');
       setIsLoadingTeam(false);
     }
-  }, [connected, publicKey, selectedLeagueId, setHasValidEntry, setIsLoadingTeam, setPaymentError, setPlayers, setExistingTeam]);
+  }, [connected, publicKey, selectedLeagueId]);
 
   // Atualizar liga quando parâmetros da URL mudarem
   useEffect(() => {
@@ -414,7 +415,7 @@ export function TeamsContent() {
               image: existingPlayer?.image || tokenDetail?.logoUrl || '', // Preservar imagem existente
               price: existingPlayer?.price || 0,
               points: existingPlayer?.points || 0,
-              rarity: existingPlayer?.rarity || ('common' as const),
+              rarity: (existingPlayer?.rarity as 'common' | 'rare' | 'epic' | 'legendary') || 'common',
               change_24h: existingPlayer?.change_24h || 0
             };
           });
@@ -723,25 +724,52 @@ export function TeamsContent() {
                     <div className="text-sm text-gray-600">Jogadores</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      ${players.reduce((sum, p) => sum + p.price, 0).toFixed(2)}
-                    </div>
-                    <div className="text-sm text-gray-600">Valor Total</div>
+                    {(() => {
+                      const performance7d = players.length > 0
+                        ? (players.reduce((sum, p) => sum + (p.change_7d || 0), 0) / players.length)
+                        : 0;
+                      const getPerformanceColor = (value: number) => {
+                        if (value > 5) return 'text-green-600';
+                        if (value > 0) return 'text-green-500';
+                        if (value < -5) return 'text-red-600';
+                        return 'text-red-500';
+                      };
+                      return (
+                        <>
+                          <div className={`text-2xl font-bold ${getPerformanceColor(performance7d)}`}>
+                            {performance7d > 0 ? '+' : ''}{performance7d.toFixed(1)}%
+                          </div>
+                          <div className="text-sm text-gray-600">Performance 7d</div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  <div className="text-center">
+                    {(() => {
+                      const performance24h = players.length > 0
+                        ? (players.reduce((sum, p) => sum + (p.change_24h || 0), 0) / players.length)
+                        : 0;
+                      const getPerformanceColor = (value: number) => {
+                        if (value > 5) return 'text-green-600';
+                        if (value > 0) return 'text-green-500';
+                        if (value < -5) return 'text-red-600';
+                        return 'text-red-500';
+                      };
+                      return (
+                        <>
+                          <div className={`text-2xl font-bold ${getPerformanceColor(performance24h)}`}>
+                            {performance24h > 0 ? '+' : ''}{performance24h.toFixed(1)}%
+                          </div>
+                          <div className="text-sm text-gray-600">Performance 24h</div>
+                        </>
+                      );
+                    })()}
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-600">
                       {players.reduce((sum, p) => sum + p.points, 0)}
                     </div>
-                    <div className="text-sm text-gray-600">Pontos Médios</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
-                      {players.length > 0 
-                        ? ((players.reduce((sum, p) => sum + (p.change_24h || 0), 0) / players.length)).toFixed(1)
-                        : '0.0'
-                      }%
-                    </div>
-                    <div className="text-sm text-gray-600">Performance 24h</div>
+                    <div className="text-sm text-gray-600">Pontos Totais</div>
                   </div>
                 </div>
               </CardContent>

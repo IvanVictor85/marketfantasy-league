@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { formatTokenPrice } from '@/lib/utils';
 import { 
   Search, 
   ExternalLink, 
@@ -51,20 +52,7 @@ function formatCurrency(value: number | null): string {
   }
 }
 
-/**
- * Formata preços com precisão adequada
- */
-function formatPrice(price: number | null): string {
-  if (price === null) return 'N/A';
-  
-  if (price >= 1) {
-    return `$${price.toFixed(2)}`;
-  } else if (price >= 0.01) {
-    return `$${price.toFixed(4)}`;
-  } else {
-    return `$${price.toFixed(6)}`;
-  }
-}
+// Usando formatTokenPrice do utils para formatação consistente
 
 /**
  * Componente de loading para a tabela
@@ -295,7 +283,7 @@ export function XstocksTable({
                     <div className="flex items-center gap-1">
                       <DollarSign className="w-3 h-3 text-muted-foreground" />
                       <span className="font-mono">
-                        {formatPrice(token.priceUsd)}
+                        {formatTokenPrice(token.priceUsd)}
                       </span>
                     </div>
                   </div>

@@ -9,7 +9,13 @@
     "build:check": "npx tsc --noEmit",
     "start": "next start",
     "lint": "next lint",
-    "update-tokens": "tsx scripts/update-valid-tokens.ts"
+    "update-tokens": "tsx scripts/update-valid-tokens.ts",
+    "normalize-tokens": "tsx scripts/normalize-team-tokens.ts",
+    "validate-tokens": "tsx scripts/validate-all-teams.ts",
+    "fix-incomplete-teams": "tsx scripts/fix-incomplete-teams.ts",
+    "demo:seed": "tsx scripts/seed-demo-data.ts",
+    "demo:simulate": "tsx scripts/simulate-live-updates.ts",
+    "demo:full": "npm run demo:seed && npm run demo:simulate"
 },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.0",

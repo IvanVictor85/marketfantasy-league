@@ -36,7 +36,8 @@ model League {
   
   teams          Team[]
   leagueEntries  LeagueEntry[]
-  
+  competitions   Competition[]
+
   @@map("leagues")
 }
 
@@ -62,7 +63,7 @@ model Team {
   leagueId         String
   userWallet       String   // User's Solana wallet address
   teamName         String
-  tokens           String   // Array of selected token symbols and positions (JSON string)
+  tokens           String   // JSON array of token symbols only: ["BTC", "ETH", "SOL", ...]. Details fetched from CoinGecko.
   totalScore       Float?   // Calculated performance score
   rank             Int?     // Final ranking in the league
   selectedMascotUrl String? // URL of the selected mascot image
@@ -100,7 +101,9 @@ model Competition {
   distributed Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
+  league      League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
   @@map("competitions")
 }
 

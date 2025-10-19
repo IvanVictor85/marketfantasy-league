@@ -5,7 +5,7 @@ import {
   ConnectionProvider,
   WalletProvider,
 } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork, WalletError } from '@solana/wallet-adapter-base';
+import { WalletAdapterNetwork, WalletError, Adapter } from '@solana/wallet-adapter-base';
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
@@ -16,6 +16,9 @@ import {
   WalletModalProvider,
 } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
+
+// Import wallet adapter styles
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 interface WalletContextProviderProps {
   children: ReactNode;
@@ -45,13 +48,20 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
   // You can also provide a custom RPC endpoint.
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new TorusWalletAdapter(),
-    ],
-    []
+  const wallets = useMemo<Adapter[]>(
+    () => {
+      // Create wallet adapters explicitly - only Solana wallets
+      const adapters: Adapter[] = [
+        new PhantomWalletAdapter(),
+        new SolflareWalletAdapter(),
+        new TorusWalletAdapter(),
+        new LedgerWalletAdapter(),
+      ];
+
+      console.log('✅ Registered Solana wallets:', adapters.map(w => w.name));
+      return adapters;
+    },
+    [] // Empty array - only create once
   );
 
   const onError = useCallback((error: WalletError) => {

@@ -1,58 +1,54 @@
 import { NextResponse } from 'next/server';
-import type { MarketToken } from '@/lib/market-analysis';
+import { getCachedMarketTokens, getCacheStats } from '@/lib/cache/coingecko-cache';
 
-export async function GET() {
+/**
+ * GET /api/market
+ *
+ * Retorna dados dos TOP 100 tokens com sistema de cache inteligente:
+ * - Cache em memória (5 min)
+ * - Cache em banco de dados (15 min)
+ * - API CoinGecko (fallback)
+ */
+export async function GET(request: Request) {
   try {
-    console.log('🔍 API Route: Buscando dados dos TOP 100 tokens da CoinGecko...');
-    
-    const response = await fetch(
-      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h,7d',
-      {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Market-Fantasy-League/1.0',
-        },
-        // Cache por 5 minutos
-        next: { revalidate: 300 }
-      }
-    );
+    const { searchParams } = new URL(request.url);
+    const statsOnly = searchParams.get('stats') === 'true';
 
-    console.log('📡 API Route: Resposta da API CoinGecko:', response.status, response.statusText);
-
-    if (!response.ok) {
-      throw new Error(`Erro na API CoinGecko: ${response.status} - ${response.statusText}`);
+    // Se requisitar apenas estatísticas
+    if (statsOnly) {
+      const stats = await getCacheStats();
+      return NextResponse.json({
+        stats,
+        timestamp: new Date().toISOString()
+      });
     }
 
-    const data = await response.json();
-    console.log('📊 API Route: Dados recebidos:', data.length, 'tokens');
+    console.log('🔍 API /api/market: Buscando tokens com cache...');
 
-    // Mapear os dados para o formato esperado com tipos explícitos
-    const tokens: MarketToken[] = data.map((token: any): MarketToken => ({
-      id: token.id,
-      symbol: token.symbol.toUpperCase(),
-      name: token.name,
-      logoUrl: token.image,
-      currentPrice: token.current_price,
-      priceChange24h: token.price_change_percentage_24h || 0,
-      priceChange7d: token.price_change_percentage_7d_in_currency || 0,
-      marketCap: token.market_cap,
-      volume24h: token.total_volume,
-      rank: token.market_cap_rank ?? 0,
-    }));
+    // Buscar tokens usando sistema de cache
+    const result = await getCachedMarketTokens();
 
-    console.log('🔍 API Route: Primeiro token mapeado:', tokens[0]);
-    console.log('🔍 API Route: Tokens com ganho:', tokens.filter((t: MarketToken) => t.priceChange24h > 0).length);
-    console.log('🔍 API Route: Tokens com queda:', tokens.filter((t: MarketToken) => t.priceChange24h < 0).length);
+    console.log(`✅ API /api/market: ${result.tokens.length} tokens retornados (fonte: ${result.source})`);
 
     return NextResponse.json({
-      tokens,
+      tokens: result.tokens,
       lastUpdated: new Date().toISOString(),
+      cacheSource: result.source,
+      count: result.tokens.length
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+      }
     });
 
   } catch (error) {
-    console.error('❌ API Route: Erro ao obter dados de análise de mercado:', error);
+    console.error('❌ API /api/market: Erro:', error);
+
     return NextResponse.json(
-      { error: 'Erro ao buscar dados do mercado' },
+      {
+        error: 'Erro ao buscar dados do mercado',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      },
       { status: 500 }
     );
   }

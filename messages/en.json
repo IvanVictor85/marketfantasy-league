@@ -1,6 +1,7 @@
 {
   "common": {
     "loading": "Loading...",
+    "verifying": "Verifying...",
     "error": "Error",
     "success": "Success",
     "cancel": "Cancel",
@@ -23,12 +24,19 @@
     "continue": "Continue",
     "finish": "Finish",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "refresh": "Refresh",
+    "export": "Export",
+    "from": "from",
+    "yesterday": "yesterday",
+    "new": "new",
+    "today": "today"
   },
   "navigation": {
     "home": "Home",
     "dashboard": "Dashboard",
     "teams": "Teams",
+    "myTeam": "My Team",
     "leagues": "Leagues",
     "market": "Market",
     "rewards": "Rewards",
@@ -43,6 +51,8 @@
     "forgotPassword": "Forgot Password",
     "resetPassword": "Reset Password",
     "verifyCode": "Verify Code",
+    "verify": "Verify",
+    "verifying": "Verifying...",
     "connectWallet": "Connect Wallet",
     "disconnectWallet": "Disconnect Wallet",
     "walletConnected": "Wallet Connected",
@@ -77,20 +87,29 @@
   },
   "market": {
     "title": "Token Market",
+    "subtitle": "Explore and trade real-time tokens",
     "buyToken": "Buy Token",
     "sellToken": "Sell Token",
     "price": "Price",
     "change24h": "24h Change",
     "volume": "Volume",
     "marketCap": "Market Cap",
-    "rank": "Rank",
+    "rank": "Ranking",
     "symbol": "Symbol",
     "name": "Name",
     "search": "Search tokens...",
     "noTokens": "No tokens found",
     "tokenDetails": "Token Details",
     "priceHistory": "Price History",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "totalMarketCap": "Total Market Cap",
+    "volume24h": "24h Volume",
+    "activeTokens": "Active Tokens",
+    "topGainer": "Top Gainer",
+    "xstocksDescription": "Available tokens on xStocks platform",
+    "cryptoMarket": "Crypto Market",
+    "cryptoDescription": "Top cryptocurrencies in the market",
+    "demoNotice": "This is a demo version. Data may not reflect real market values."
   },
   "leagues": {
     "title": "Leagues",
@@ -159,13 +178,18 @@
   },
   "validation": {
     "required": "This field is required",
+    "emailRequired": "Email is required",
     "invalidEmail": "Invalid email",
+    "emailInvalid": "Invalid email",
     "invalidPassword": "Invalid password",
     "passwordMismatch": "Passwords do not match",
     "minLength": "Minimum {min} characters",
     "maxLength": "Maximum {max} characters",
     "invalidFormat": "Invalid format",
     "invalidNumber": "Invalid number",
-    "invalidDate": "Invalid date"
+    "invalidDate": "Invalid date",
+    "codeRequired": "Enter the 6-digit code",
+    "invalidCode": "Invalid code",
+    "codeExpired": "Expired code"
   }
 }

@@ -80,3 +80,17 @@
 body {
   @apply bg-background text-foreground;
 }
+
+/* Hide MetaMask from Solana Wallet Adapter Modal */
+.wallet-adapter-modal-list li[data-wallet="metamask"],
+.wallet-adapter-modal-list li button[data-wallet="metamask"],
+.wallet-adapter-modal-wrapper li:has([alt*="MetaMask"]),
+.wallet-adapter-modal-wrapper li:has([aria-label*="MetaMask"]),
+.wallet-adapter-modal-list li:has(img[alt*="MetaMask"]) {
+  display: none !important;
+}
+
+/* Alternative: Hide any wallet button that contains "MetaMask" text */
+.wallet-adapter-button:has(*:contains("MetaMask")) {
+  display: none !important;
+}

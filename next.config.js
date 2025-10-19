@@ -37,7 +37,16 @@ const nextConfig = {
   output: 'standalone',
   
   // Mantém a configuração padrão do webpack sem desabilitar HMR
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
+    // Suprimir warnings específicos do React sobre keys duplicadas (MetaMask)
+    if (!isServer) {
+      config.ignoreWarnings = [
+        {
+          module: /node_modules\/@solana\/wallet-adapter-react-ui/,
+          message: /Encountered two children with the same key/,
+        },
+      ];
+    }
     return config;
   },
   
@@ -65,6 +74,11 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cryptologos.cc',
+        pathname: '/logos/**',
       },
       {
         protocol: 'http',

@@ -3,6 +3,16 @@
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
   "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/refresh-market",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/check-competitions",
+      "schedule": "* * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

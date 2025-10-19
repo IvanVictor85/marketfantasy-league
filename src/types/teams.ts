@@ -22,6 +22,7 @@ export interface Player {
   points: number;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   change_24h?: number;
+  change_7d?: number;
 }
 
 // Time específico para uma liga

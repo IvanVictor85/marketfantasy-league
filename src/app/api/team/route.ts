@@ -18,6 +18,33 @@ export async function POST(request: NextRequest) {
     const { userWallet, leagueId, teamName, tokens } = teamSchema.parse(body)
     console.log('✅ API team POST: Dados validados:', { userWallet, leagueId, teamName, tokensLength: tokens.length });
 
+    // Validar exatamente 10 tokens
+    if (tokens.length !== 10) {
+      console.log('❌ API team POST: Quantidade inválida de tokens:', tokens.length);
+      return NextResponse.json(
+        {
+          error: `Time deve ter exatamente 10 tokens. Você forneceu ${tokens.length}.`,
+          requiresPayment: false
+        },
+        { status: 400 }
+      )
+    }
+
+    // Validar que não há duplicatas
+    const uniqueTokens = new Set(tokens);
+    if (uniqueTokens.size !== 10) {
+      console.log('❌ API team POST: Tokens duplicados detectados');
+      const duplicates = tokens.filter((token, index) => tokens.indexOf(token) !== index);
+      return NextResponse.json(
+        {
+          error: 'Não pode haver tokens duplicados no time',
+          duplicates: [...new Set(duplicates)],
+          requiresPayment: false
+        },
+        { status: 400 }
+      )
+    }
+
     // Get Main League if no specific league ID provided
     console.log('🔍 API team POST: Buscando liga...', leagueId ? `ID: ${leagueId}` : 'Liga principal');
     let league
@@ -285,17 +312,19 @@ export async function GET(request: NextRequest) {
               name: tokenData.name,
               logoUrl: tokenData.image,
               currentPrice: tokenData.current_price,
-              priceChange24h: tokenData.price_change_percentage_24h
+              priceChange24h: tokenData.price_change_percentage_24h,
+              priceChange7d: tokenData.price_change_percentage_7d_in_currency
             };
           }
-          
+
           // Fallback se não encontrar na API
           return {
             symbol: symbol,
             name: symbol,
             logoUrl: '',
             currentPrice: 0,
-            priceChange24h: 0
+            priceChange24h: 0,
+            priceChange7d: 0
           };
         });
       } else {
@@ -306,7 +335,8 @@ export async function GET(request: NextRequest) {
           name: symbol,
           logoUrl: '',
           currentPrice: 0,
-          priceChange24h: 0
+          priceChange24h: 0,
+          priceChange7d: 0
         }));
       }
     } catch (error) {
@@ -317,7 +347,8 @@ export async function GET(request: NextRequest) {
         name: symbol,
         logoUrl: '',
         currentPrice: 0,
-        priceChange24h: 0
+        priceChange24h: 0,
+        priceChange7d: 0
       }));
     }
 

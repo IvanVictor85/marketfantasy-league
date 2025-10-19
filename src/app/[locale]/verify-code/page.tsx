@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,12 +20,13 @@ export default function VerifyCodePage() {
   const [success, setSuccess] = useState('');
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutos
   const [attemptsLeft, setAttemptsLeft] = useState(3);
-  
+
   const { verifyCodeAndLogin, sendVerificationCode } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const locale = useLocale();
   const email = searchParams?.get('email') || '';
-  const redirectTo = searchParams?.get('redirect') || '/dashboard';
+  const redirectTo = searchParams?.get('redirect') || `/${locale}/dashboard`;
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>(new Array(6).fill(null));
 
@@ -44,9 +46,9 @@ export default function VerifyCodePage() {
   // Redirecionar se não tiver email
   useEffect(() => {
     if (!email) {
-      router.push('/login');
+      router.push(`/${locale}/login`);
     }
-  }, [email, router]);
+  }, [email, router, locale]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -156,7 +158,7 @@ export default function VerifyCodePage() {
   };
 
   const handleBackToLogin = () => {
-    router.push('/login');
+    router.push(`/${locale}/login`);
   };
 
   if (!email) {
@@ -176,8 +178,8 @@ export default function VerifyCodePage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-center block">Código de Verificação</Label>
-              <div className="flex justify-center space-x-2">
+              <Label className="text-center block text-gray-700 dark:text-gray-300">Código de Verificação</Label>
+              <div className="flex justify-center gap-2">
                 {code.map((digit, index) => (
                   <Input
                     key={index}
@@ -192,8 +194,18 @@ export default function VerifyCodePage() {
                     onChange={(e) => handleCodeChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     onPaste={index === 0 ? handlePaste : undefined}
-                    className="w-12 h-12 text-center text-lg font-bold"
+                    aria-label={`Dígito ${index + 1}`}
+                    autoFocus={index === 0}
                     disabled={isLoading}
+                    className="w-14 h-16 text-center text-2xl font-bold
+                      border-2 border-gray-300 dark:border-gray-600
+                      bg-white dark:bg-gray-800
+                      text-gray-900 dark:text-white
+                      rounded-lg
+                      focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                      transition-all duration-200
+                      hover:border-gray-400 dark:hover:border-gray-500"
                   />
                 ))}
               </div>

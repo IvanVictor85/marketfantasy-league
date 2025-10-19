@@ -95,7 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [connected, publicKey, user?.loginMethod, logout]);
 
   const sendVerificationCode = async (email: string) => {
-    setIsLoading(true);
     try {
       const response = await fetch('/api/auth/send-code', {
         method: 'POST',
@@ -119,8 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       throw new Error('Falha ao enviar código de verificação.');
-    } finally {
-      setIsLoading(false);
     }
   };
 

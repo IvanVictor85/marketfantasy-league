@@ -1,10 +1,10 @@
 'use client';
 
 import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from './button';
 import { Globe } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,25 +22,34 @@ export function LanguageSelector() {
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const handleLanguageChange = (newLocale: string) => {
-    // Remove o locale atual do pathname
-    const pathnameWithoutLocale = pathname?.replace(/^\/(pt|en)/, '') || '';
-    
-    // Cria o novo pathname com o novo locale
-    const newPathname = `/${newLocale}${pathnameWithoutLocale}`;
-    
-    // Usa window.location para garantir que a navegação funcione
-    if (typeof window !== 'undefined') {
-      window.location.href = newPathname;
-    } else {
-      // Fallback para router.push em caso de SSR
-      router.push(newPathname);
-    }
+    if (newLocale === locale) return;
+
+    console.log('🌍 LanguageSelector: Changing language', {
+      currentLocale: locale,
+      newLocale,
+      pathname
+    });
+
+    // Remove o locale atual do pathname e adiciona o novo
+    const currentPath = pathname?.replace(/^\/(pt|en)/, '') || '';
+    const newPath = `/${newLocale}${currentPath}`;
+
+    console.log('🌍 LanguageSelector: New path', { currentPath, newPath });
+
+    startTransition(() => {
+      router.push(newPath);
+      // Aguardar um frame antes de refresh para garantir navegação
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
+    });
   };
 
   const currentLanguage = languages.find(lang => lang.code === locale);

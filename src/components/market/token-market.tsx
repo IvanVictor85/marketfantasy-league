@@ -19,6 +19,7 @@ import {
 import { useTokens, type Token } from '@/hooks/use-tokens';
 import { type TokenMarketData } from '@/data/expanded-tokens';
 import { useXstocksTokens, type UseXstocksTokensReturn } from '@/hooks/useXstocksTokens';
+import { formatTokenPrice, formatPercentage } from '@/lib/utils';
 import Image from 'next/image';
 
 // Time periods for filtering
@@ -182,29 +183,9 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
     setFilteredTokens(filtered);
   }, [rawTokens, searchTerm, sortBy, sortOrder, selectedPeriod, fixedFilter, isXStocks]);
 
-  const formatPrice = (price: number) => {
-    if (price >= 1000) {
-      return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-    return `$${price.toFixed(4)}`;
-  };
+  // Removidas as funções antigas - agora usando formatTokenPrice e formatPercentage do utils
 
-  const formatCurrency = (price: number | undefined | null) => {
-    if (price === undefined || price === null) return '$0.00';
-    try {
-      if (price >= 1000) {
-        return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      }
-      return `$${price.toFixed(4)}`;
-    } catch (error) {
-      return '$0.00';
-    }
-  };
-
-  const formatPercentage = (value: number | undefined | null) => {
-    if (value === undefined || value === null) return '0.00%';
-    return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
-  };
+  // Função formatPercentage agora vem do utils
 
   const getPercentageColorClass = (value: number | undefined | null) => {
     if (value === undefined || value === null) return 'text-gray-600';
@@ -576,7 +557,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                 </div>
                 
                 <div className="col-span-2 text-sm font-medium text-right">
-                  {formatCurrency(token.price)}
+                  {formatTokenPrice(token.price)}
                 </div>
                 
                 <div className="col-span-2 text-sm font-medium text-right">
@@ -707,7 +688,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   <div className="mt-2 grid grid-cols-3 gap-3 text-xs">
                     <div className="text-center">
                       <div className="text-gray-500 mb-1">Preço</div>
-                      <div className="font-medium">{formatCurrency(token.price)}</div>
+                      <div className="font-medium">{formatTokenPrice(token.price)}</div>
                     </div>
                     <div className="text-center">
                       <div className="text-gray-500 mb-1">

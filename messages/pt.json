@@ -1,6 +1,7 @@
 {
   "common": {
     "loading": "Carregando...",
+    "verifying": "Verificando...",
     "error": "Erro",
     "success": "Sucesso",
     "cancel": "Cancelar",
@@ -50,6 +51,8 @@
     "forgotPassword": "Esqueci a senha",
     "resetPassword": "Redefinir senha",
     "verifyCode": "Verificar código",
+    "verify": "Verificar",
+    "verifying": "Verificando...",
     "connectWallet": "Conectar Carteira",
     "disconnectWallet": "Desconectar Carteira",
     "walletConnected": "Carteira conectada",
@@ -175,13 +178,18 @@
   },
   "validation": {
     "required": "Este campo é obrigatório",
+    "emailRequired": "Email é obrigatório",
     "invalidEmail": "Email inválido",
+    "emailInvalid": "Email inválido",
     "invalidPassword": "Senha inválida",
     "passwordMismatch": "Senhas não coincidem",
     "minLength": "Mínimo de {min} caracteres",
     "maxLength": "Máximo de {max} caracteres",
     "invalidFormat": "Formato inválido",
     "invalidNumber": "Número inválido",
-    "invalidDate": "Data inválida"
+    "invalidDate": "Data inválida",
+    "codeRequired": "Digite o código de 6 dígitos",
+    "invalidCode": "Código inválido",
+    "codeExpired": "Código expirado"
   }
 }

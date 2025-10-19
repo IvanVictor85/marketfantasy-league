@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,11 +17,12 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   const { sendVerificationCode } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams?.get('redirect') || '/dashboard';
+  const locale = useLocale();
+  const redirectTo = searchParams?.get('redirect') || `/${locale}/dashboard`;
 
   // Traduções
   const tAuth = useAuthTranslations();
@@ -31,7 +33,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+
     if (!email) {
       setError(tValidation('emailRequired'));
       return;
@@ -43,17 +45,21 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    
+
     try {
       const result = await sendVerificationCode(email);
       setSuccess(result.message);
-      
-      // Redirecionar imediatamente para página de verificação
-      const verifyUrl = `/verify-code?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`;
+
+      // Aguardar um pequeno delay para garantir que a mensagem de sucesso seja exibida
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Redirecionar para página de verificação com locale
+      const verifyUrl = `/${locale}/verify-code?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`;
       router.push(verifyUrl);
     } catch (error: any) {
       console.error('Erro ao enviar código:', error);
       setError(error.message || 'Erro ao enviar código de verificação');
+    } finally {
       setIsLoading(false);
     }
   };

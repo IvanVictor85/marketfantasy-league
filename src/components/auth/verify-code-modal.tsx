@@ -162,7 +162,9 @@ export function VerifyCodeModal({
         <div className="space-y-4">
           <form onSubmit={handleVerifyCode} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="verification-code">Código de Verificação</Label>
+              <Label htmlFor="verification-code" className="text-gray-700 dark:text-gray-300">
+                Código de Verificação
+              </Label>
               <Input
                 id="verification-code"
                 type="text"
@@ -173,7 +175,18 @@ export function VerifyCodeModal({
                   setCode(value);
                 }}
                 disabled={isLoading}
-                className="text-center text-lg tracking-widest"
+                autoFocus
+                aria-label="Código de verificação de 6 dígitos"
+                className="text-center text-2xl font-bold tracking-widest h-16
+                  border-2 border-gray-300 dark:border-gray-600
+                  bg-white dark:bg-gray-800
+                  text-gray-900 dark:text-white
+                  placeholder:text-gray-400 dark:placeholder:text-gray-500
+                  rounded-lg
+                  focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-all duration-200
+                  hover:border-gray-400 dark:hover:border-gray-500"
                 maxLength={6}
               />
             </div>

@@ -23,6 +23,7 @@ import {
 import { useXstocksTokens } from '@/hooks/useXstocksTokens';
 import type { XStockApiItem } from '@/app/api/xstocks/route';
 import { TokenIcon } from '@/components/ui/token-icon';
+import { formatTokenPrice } from '@/lib/utils';
 import Image from 'next/image';
 
 interface XStocksMarketProps {
@@ -112,15 +113,7 @@ export function XStocksMarket({ onSelectToken, selectedToken, className = '' }: 
     onSelectToken?.(token);
   };
 
-  const formatPrice = (price: number | null) => {
-    if (price === null) return 'N/A';
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 6
-    }).format(price);
-  };
+  // Usando formatTokenPrice do utils para formatação consistente
 
   const formatVolume = (volume: number | null) => {
     if (volume === null) return 'N/A';
@@ -264,7 +257,7 @@ export function XStocksMarket({ onSelectToken, selectedToken, className = '' }: 
                         
                         <div className="text-right">
                           <div className="font-semibold">
-                            {formatPrice(token.priceUsd)}
+                            {formatTokenPrice(token.priceUsd)}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             Vol: {formatVolume(token.volume24hUsd)}

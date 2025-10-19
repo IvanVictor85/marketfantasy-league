@@ -132,15 +132,4 @@ export function formatPercentageChange(change: number): string {
   return `${sign}${change.toFixed(2)}%`;
 }
 
-/**
- * Formata o preço para exibição
- */
-export function formatPrice(price: number): string {
-  if (price >= 1) {
-    return `$${price.toFixed(2)}`;
-  } else if (price >= 0.01) {
-    return `$${price.toFixed(4)}`;
-  } else {
-    return `$${price.toFixed(8)}`;
-  }
-}
+// Função formatPrice removida - usar formatTokenPrice do utils para formatação consistente

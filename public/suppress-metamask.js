@@ -177,18 +177,41 @@
     return element;
   };
   
-  // Criar um objeto ethereum falso para evitar erros
-  if (typeof window !== 'undefined' && !window.ethereum) {
-    window.ethereum = {
-      isMetaMask: false,
-      isPhantom: true,
-      request: function() {
-        return Promise.resolve(null);
-      },
-      on: function() {},
-      removeListener: function() {},
-      autoRefreshOnNetworkChange: false
+  // Prevenir detecção de MetaMask pelo WalletModalProvider
+  if (typeof window !== 'undefined') {
+    // Interceptar Object.defineProperty para prevenir definição de ethereum
+    const originalDefineProperty = Object.defineProperty;
+    Object.defineProperty = function(obj, prop, descriptor) {
+      // Se tentando definir 'ethereum' com MetaMask, ignorar
+      if (obj === window && prop === 'ethereum' && descriptor.value?.isMetaMask) {
+        console.log('🚫 Blocked MetaMask ethereum injection');
+        return obj;
+      }
+      return originalDefineProperty.call(this, obj, prop, descriptor);
     };
+
+    // Se ethereum já existe e é MetaMask, tentar mascarar
+    if (window.ethereum?.isMetaMask) {
+      try {
+        // Redefinir como propriedade configurável
+        delete window.ethereum;
+
+        // Definir um ethereum falso somente Phantom
+        Object.defineProperty(window, 'ethereum', {
+          get: function() {
+            return window.solana || {
+              isPhantom: false,
+              request: () => Promise.resolve(null),
+              on: () => {},
+              removeListener: () => {},
+            };
+          },
+          configurable: true
+        });
+      } catch (e) {
+        console.warn('Could not override window.ethereum:', e);
+      }
+    }
   }
-  
+
 })();

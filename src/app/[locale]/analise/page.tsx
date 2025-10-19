@@ -14,7 +14,8 @@ import {
   Sparkles,
   Loader2
 } from 'lucide-react'
-import { getMarketAnalysisData, formatPercentageChange, formatPrice, type MarketToken } from '@/lib/market-analysis'
+import { getMarketAnalysisData, formatPercentageChange, type MarketToken } from '@/lib/market-analysis'
+import { formatTokenPrice } from '@/lib/utils'
 
 // Dados mock para social e trend (mantidos por enquanto)
 // Os dados de gainers e losers agora vêm da API real
@@ -121,7 +122,7 @@ function InsightCard({ title, icon, items, type }: InsightCardProps) {
               <p className={`font-bold ${type === 'gainers' ? 'text-[#2A9D8F]' : 'text-[#E76F51]'}`}>
                 {item.value || formatPercentageChange(item.priceChange24h)}
               </p>
-              <p className="text-sm text-slate-500">{item.price || formatPrice(item.currentPrice)}</p>
+              <p className="text-sm text-slate-500">{item.price || formatTokenPrice(item.currentPrice)}</p>
             </div>
           </div>
         )

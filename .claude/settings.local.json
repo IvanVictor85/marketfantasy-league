@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(timeout 15 bash -c 'while ! curl -s http://localhost:3000 > /dev/null; do sleep 1; done && echo \"\"Server ready!\"\"')",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Seconds 2\")",
+      "Bash(npx tsx scripts/normalize-team-tokens.ts)",
+      "Bash(npx tsx scripts/test-team-save.ts)",
+      "Bash(npx tsx scripts/validate-all-teams.ts)",
+      "Bash(npx tsx scripts/fix-incomplete-teams.ts)",
+      "Bash(npm run build:check)",
+      "Bash(npm info @solana/wallet-adapter-react-ui@0.9.39)",
+      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")",
+      "Bash(git add messages/en.json messages/pt.json src/app/[locale]/login/page.tsx src/app/[locale]/verify-code/page.tsx src/components/auth/verify-code-modal.tsx src/components/ui/input.tsx src/components/ui/language-selector.tsx src/contexts/auth-context.tsx)",
+      "Bash(git add .claude/ CLAUDE.md DEMO-GUIDE.md docs/ scripts/)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
