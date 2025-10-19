@@ -1095,7 +1095,7 @@ export default function Dashboard() {
           image: player.image || "",
           price: player.price,
           points: player.points || 0,
-          rarity: player.rarity || "common",
+          rarity: (player.rarity || "common") as "common" | "legendary" | "epic" | "rare",
           change_24h: player.change_24h || 0
         }))
       } : undefined;

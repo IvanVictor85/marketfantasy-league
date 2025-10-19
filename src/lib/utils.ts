@@ -26,3 +26,12 @@ export function formatTokenPrice(price: number): string {
     return price.toFixed(6);
   }
 }
+
+/**
+ * Formata percentuais com sinal + ou -
+ * Exemplo: +5.23% ou -3.45%
+ */
+export function formatPercentage(value: number): string {
+  const formatted = value.toFixed(2);
+  return `${value >= 0 ? '+' : ''}${formatted}%`;
+}

@@ -279,9 +279,10 @@ export function SoccerField({
                         </div>
                         <div className="text-xs text-gray-600 flex items-center gap-2 mt-1">
                           <span className="font-mono">{player.token}</span>
-                          <Badge variant="secondary" className={getRarityColor(player.rarity)}>
+                          {/* TODO: Substituir "rarity" por algo útil como "volatilidade" ou "categoria" */}
+                          {/* <Badge variant="secondary" className={getRarityColor(player.rarity)}>
                             {player.rarity}
-                          </Badge>
+                          </Badge> */}
                         </div>
                         <div className="text-xs text-gray-600 mt-1">
                           {formatPrice(player.price)} • {player.points} pts
