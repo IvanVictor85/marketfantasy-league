@@ -12,6 +12,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Mail, ArrowRight } from 'lucide-react';
 import { useAuthTranslations, useCommonTranslations, useValidationTranslations } from '@/hooks/useTranslations';
 
+interface SendCodeResponse {
+  message: string;
+  email: string;
+  expiresIn: number;
+  developmentCode?: string;
+  note?: string;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +56,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await sendVerificationCode(email);
+      const result: SendCodeResponse = await sendVerificationCode(email);
       setSuccess(result.message);
       
       // Se estiver em modo desenvolvimento, mostrar o código
