@@ -15,7 +15,7 @@ interface CoinGeckoResponse {
   data: CoinGeckoCoin[];
 }
 
-interface TokenPriceData {
+export interface TokenPriceData {
   symbol: string;
   name: string;
   price: number;
