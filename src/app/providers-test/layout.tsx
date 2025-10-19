@@ -21,13 +21,10 @@ export const metadata: Metadata = {
 };
 
 export default async function LayoutWithProviders({
-  children,
-  params
+  children
 }: Readonly<{ 
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
 }>) {
-  const { locale } = await params;
   const messages = await getMessages();
   
   return (
