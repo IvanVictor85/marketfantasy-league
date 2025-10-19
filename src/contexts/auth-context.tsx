@@ -17,6 +17,14 @@ interface User {
   bio?: string;
 }
 
+interface SendCodeResponse {
+  message: string;
+  email: string;
+  expiresIn: number;
+  developmentCode?: string;
+  note?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -98,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [connected, publicKey, user?.loginMethod, logout]);
 
-  const sendVerificationCode = async (email: string) => {
+  const sendVerificationCode = async (email: string): Promise<SendCodeResponse> => {
     try {
       const response = await fetch('/api/auth/send-code', {
         method: 'POST',
@@ -108,10 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email }),
       });
 
-      const result = await response.json();
+      const result: SendCodeResponse = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Erro ao enviar código');
+        throw new Error(result.message || 'Erro ao enviar código');
       }
 
       return result;
