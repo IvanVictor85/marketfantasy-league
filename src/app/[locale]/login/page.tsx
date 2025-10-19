@@ -26,6 +26,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [devCode, setDevCode] = useState('');
+  const [showCode, setShowCode] = useState(false);
 
   const { sendVerificationCode } = useAuth();
   const router = useRouter();
@@ -62,11 +63,14 @@ export default function LoginPage() {
       // Se estiver em modo desenvolvimento, mostrar o código
       if (result.developmentCode) {
         setDevCode(result.developmentCode);
-        setSuccess(`${result.message} - Código: ${result.developmentCode}`);
+        setShowCode(true);
+        setSuccess(`${result.message} - Código gerado!`);
+        // Não redirecionar automaticamente em modo desenvolvimento
+        return;
       }
 
       // Aguardar um pequeno delay para garantir que a mensagem de sucesso seja exibida
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Redirecionar para página de verificação com locale
       const verifyUrl = `/${locale}/verify-code?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`;
@@ -118,7 +122,7 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {devCode && (
+            {showCode && devCode && (
               <Alert className="border-blue-200 bg-blue-50">
                 <AlertDescription className="text-blue-800">
                   <div className="text-center">
@@ -126,7 +130,16 @@ export default function LoginPage() {
                     <div className="text-2xl font-mono font-bold text-blue-900 bg-white p-3 rounded border">
                       {devCode}
                     </div>
-                    <p className="text-sm mt-2">Use este código na próxima página</p>
+                    <p className="text-sm mt-2 mb-4">Use este código na próxima página</p>
+                    <Button 
+                      onClick={() => {
+                        const verifyUrl = `/${locale}/verify-code?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`;
+                        router.push(verifyUrl);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Continuar para Verificação
+                    </Button>
                   </div>
                 </AlertDescription>
               </Alert>

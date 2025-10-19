@@ -116,13 +116,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email }),
       });
 
-      const result = await response.json() as SendCodeResponse;
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || 'Erro ao enviar código');
+        throw new Error(result.error || 'Erro ao enviar código');
       }
 
-      return result;
+      // Garantir que o resultado tenha todos os campos necessários
+      const sendCodeResponse: SendCodeResponse = {
+        message: result.message || 'Código enviado com sucesso',
+        email: result.email || email,
+        expiresIn: result.expiresIn || 300,
+        developmentCode: result.developmentCode,
+        note: result.note
+      };
+
+      return sendCodeResponse;
     } catch (error) {
       console.error('Send verification code error:', error);
       // Preservar a mensagem de erro original se for um Error

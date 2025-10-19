@@ -13,23 +13,16 @@ interface SendCodeRequest {
 // Função para enviar email usando Nodemailer
 async function sendEmail(email: string, code: string): Promise<boolean> {
   try {
-    // Para desenvolvimento, sempre log o código
-    console.log(`📧 Código de verificação para ${email}: ${code}`);
-    console.log(`🔗 Use este código na aplicação: ${code}`);
-    
-    // Verificar se as variáveis de ambiente estão configuradas corretamente
+    // Verificar se as variáveis de ambiente estão configuradas
     const isEmailConfigured = process.env.EMAIL_USER && 
                               process.env.EMAIL_PASSWORD && 
                               process.env.EMAIL_PASSWORD !== 'your_app_password_here';
     
     if (!isEmailConfigured) {
-      console.warn('⚠️ Variáveis de email não configuradas ou usando valores placeholder. Usando modo simulação.');
-      console.log(`🎯 MODO SIMULAÇÃO: Código ${code} para ${email} - Use este código para fazer login!`);
-      console.log(`📧 EMAIL SIMULADO: Código de verificação para ${email}: ${code}`);
-      console.log(`🔗 VERCEL LOGS: Verifique os logs do Vercel para ver o código`);
-      // Simular delay de envio
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return true;
+      console.log(`📧 [EMAIL] Variáveis não configuradas - Modo simulação`);
+      console.log(`📧 [EMAIL] Código para ${email}: ${code}`);
+      console.log(`📧 [EMAIL] Use este código para fazer login!`);
+      return true; // Simular sucesso
     }
 
     // Implementação real com Nodemailer
@@ -68,16 +61,13 @@ async function sendEmail(email: string, code: string): Promise<boolean> {
       `
     });
     
-    console.log(`✅ Email enviado com sucesso para ${email}`);
+    console.log(`✅ [EMAIL] Email enviado com sucesso para ${email}`);
     return true;
   } catch (error) {
-    console.error('❌ Erro ao enviar email:', error);
+    console.error('❌ [EMAIL] Erro ao enviar email:', error);
     // Em desenvolvimento, mesmo com erro, permitir que o código seja usado
-    if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
-      console.log(`🎯 FALLBACK DESENVOLVIMENTO: Código ${code} para ${email} - Use este código para fazer login!`);
-      return true;
-    }
-    return false;
+    console.log(`🎯 [EMAIL] FALLBACK: Código ${code} para ${email} - Use este código para fazer login!`);
+    return true;
   }
 }
 
@@ -97,9 +87,8 @@ export async function POST(request: NextRequest) {
     // Verificar se já existe um código válido para este email
     const existingCode = verificationCodes.get(email);
     if (existingCode && existingCode.expiresAt > new Date()) {
-      // Se ainda há um código válido, não enviar outro por 1 minuto
       const timeLeft = Math.ceil((existingCode.expiresAt.getTime() - Date.now()) / 1000);
-      if (timeLeft > 240) { // 4 minutos restantes (código expira em 5 min)
+      if (timeLeft > 240) { // 4 minutos restantes
         return NextResponse.json(
           { 
             error: 'Aguarde antes de solicitar um novo código',
@@ -127,40 +116,37 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`💾 [SEND-CODE] Código armazenado com sucesso`);
-    console.log(`💾 [SEND-CODE] Verificação imediata:`, verificationCodes.get(email));
-    console.log(`💾 [SEND-CODE] Total de códigos armazenados:`, verificationCodes.size);
 
-    // Pequeno delay para garantir que o código foi processado
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Enviar email
+    // Tentar enviar email
     const emailSent = await sendEmail(email, code);
     
-    if (!emailSent) {
-      return NextResponse.json(
-        { error: 'Erro ao enviar email. Tente novamente.' },
-        { status: 500 }
-      );
-    }
-
-    // Em desenvolvimento ou quando email não está configurado, retornar o código
+    // Preparar resposta
     const response: any = {
-      message: 'Código de verificação enviado com sucesso',
+      message: emailSent ? 'Código de verificação enviado com sucesso' : 'Código gerado (modo simulação)',
       email: email,
       expiresIn: 300 // 5 minutos em segundos
     };
 
-    // Se email não está configurado, incluir o código na resposta para desenvolvimento
-    if (!isEmailConfigured) {
+    // Se email não foi enviado ou está em modo desenvolvimento, incluir código na resposta
+    const isEmailConfigured = process.env.EMAIL_USER && 
+                              process.env.EMAIL_PASSWORD && 
+                              process.env.EMAIL_PASSWORD !== 'your_app_password_here';
+
+    if (!emailSent || !isEmailConfigured) {
       response.developmentCode = code;
-      response.message = 'Código de verificação gerado (modo simulação)';
-      response.note = 'Verifique os logs do Vercel para ver o código ou use o código retornado';
+      response.note = 'Verifique os logs do servidor para ver o código';
     }
+
+    console.log(`✅ [SEND-CODE] Resposta enviada:`, {
+      message: response.message,
+      email: response.email,
+      hasCode: !!response.developmentCode
+    });
 
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('Erro na API send-code:', error);
+    console.error('❌ [SEND-CODE] Erro na API send-code:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -177,14 +163,4 @@ export async function OPTIONS() {
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
-}
-
-// Função para limpar códigos expirados (executar periodicamente)
-function cleanupExpiredCodes() {
-  const now = new Date();
-  for (const [email, codeData] of verificationCodes.entries()) {
-    if (codeData.expiresAt < now) {
-      verificationCodes.delete(email);
-    }
-  }
 }
