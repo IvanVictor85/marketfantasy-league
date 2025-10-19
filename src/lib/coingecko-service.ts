@@ -203,23 +203,6 @@ export class CoinGeckoService {
       'GARI': 'gari-network',
       'C98': 'coin98',
       'HXRO': 'hxro',
-      'MEDIA': 'media-network',
-      'TULIP': 'tulip-protocol',
-      'SLIM': 'solanium',
-      'ATLAS': 'star-atlas',
-      'POLIS': 'star-atlas-dao',
-      'GST': 'green-satoshi-token',
-      'GMT': 'stepn',
-      'SAMO': 'samoyedcoin',
-      'SLND': 'solend',
-      'MNDE': 'marinade',
-      'LARIX': 'larix',
-      'PRISM': 'prism',
-      'LIQ': 'liq-protocol',
-      'STEPN': 'stepn',
-      'GARI': 'gari-network',
-      'C98': 'coin98',
-      'HXRO': 'hxro',
       'MEDIA': 'media-network'
     };
 
