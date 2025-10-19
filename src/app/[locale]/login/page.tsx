@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [devCode, setDevCode] = useState('');
 
   const { sendVerificationCode } = useAuth();
   const router = useRouter();
@@ -49,6 +50,12 @@ export default function LoginPage() {
     try {
       const result = await sendVerificationCode(email);
       setSuccess(result.message);
+      
+      // Se estiver em modo desenvolvimento, mostrar o código
+      if (result.developmentCode) {
+        setDevCode(result.developmentCode);
+        setSuccess(`${result.message} - Código: ${result.developmentCode}`);
+      }
 
       // Aguardar um pequeno delay para garantir que a mensagem de sucesso seja exibida
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -100,6 +107,20 @@ export default function LoginPage() {
             {success && (
               <Alert>
                 <AlertDescription className="text-green-600">{success}</AlertDescription>
+              </Alert>
+            )}
+
+            {devCode && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <AlertDescription className="text-blue-800">
+                  <div className="text-center">
+                    <p className="font-semibold mb-2">Código de Verificação (Modo Desenvolvimento)</p>
+                    <div className="text-2xl font-mono font-bold text-blue-900 bg-white p-3 rounded border">
+                      {devCode}
+                    </div>
+                    <p className="text-sm mt-2">Use este código na próxima página</p>
+                  </div>
+                </AlertDescription>
               </Alert>
             )}
 

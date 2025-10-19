@@ -24,7 +24,9 @@ async function sendEmail(email: string, code: string): Promise<boolean> {
     
     if (!isEmailConfigured) {
       console.warn('⚠️ Variáveis de email não configuradas ou usando valores placeholder. Usando modo simulação.');
-      console.log(`🎯 MODO DESENVOLVIMENTO: Código ${code} para ${email} - Use este código para fazer login!`);
+      console.log(`🎯 MODO SIMULAÇÃO: Código ${code} para ${email} - Use este código para fazer login!`);
+      console.log(`📧 EMAIL SIMULADO: Código de verificação para ${email}: ${code}`);
+      console.log(`🔗 VERCEL LOGS: Verifique os logs do Vercel para ver o código`);
       // Simular delay de envio
       await new Promise(resolve => setTimeout(resolve, 1000));
       return true;
@@ -141,11 +143,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    // Em desenvolvimento ou quando email não está configurado, retornar o código
+    const response: any = {
       message: 'Código de verificação enviado com sucesso',
       email: email,
       expiresIn: 300 // 5 minutos em segundos
-    });
+    };
+
+    // Se email não está configurado, incluir o código na resposta para desenvolvimento
+    if (!isEmailConfigured) {
+      response.developmentCode = code;
+      response.message = 'Código de verificação gerado (modo simulação)';
+      response.note = 'Verifique os logs do Vercel para ver o código ou use o código retornado';
+    }
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Erro na API send-code:', error);
