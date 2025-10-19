@@ -12,13 +12,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Mail, ArrowRight } from 'lucide-react';
 import { useAuthTranslations, useCommonTranslations, useValidationTranslations } from '@/hooks/useTranslations';
 
-interface SendCodeResponse {
-  message: string;
-  email: string;
-  expiresIn: number;
-  developmentCode?: string;
-  note?: string;
-}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

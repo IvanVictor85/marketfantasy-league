@@ -3,43 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { signIn, getSession } from 'next-auth/react';
+import { SendCodeResponse, User, AuthContextType } from '@/types/auth';
 
-interface User {
-  id: string;
-  email?: string;
-  walletAddress?: string;
-  name?: string;
-  avatar?: string;
-  loginMethod: 'email' | 'wallet';
-  // Campos de perfil adicionais
-  twitter?: string;
-  discord?: string;
-  bio?: string;
-}
-
-interface SendCodeResponse {
-  message: string;
-  email: string;
-  expiresIn: number;
-  developmentCode?: string;
-  note?: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  loginWithEmail: (email: string, password: string) => Promise<void>;
-  loginWithWallet: () => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
-  logout: () => void;
-  register: (email: string, password: string, name: string) => Promise<void>;
-  // Novo método para atualizar o perfil do usuário
-  updateUserProfile: (updates: Partial<User>) => void;
-  // Métodos para verificação de código
-  sendVerificationCode: (email: string) => Promise<{ message: string }>;
-  verifyCodeAndLogin: (email: string, code: string, name?: string) => Promise<void>;
-}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
