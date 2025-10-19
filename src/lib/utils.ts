@@ -7,23 +7,29 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Formata preços de tokens com precisão adequada
- * - Preços >= $1: 2 casas decimais
+ * - Aceita null/undefined e retorna $0.00
+ * - Preços >= $1: 2 casas decimais com formatação de moeda
  * - Preços >= $0.01: 4 casas decimais
  * - Preços < $0.01: 6 casas decimais
  */
-export function formatTokenPrice(price: number): string {
+export function formatTokenPrice(price: number | null | undefined): string {
+  // Verificar se o valor é null, undefined ou 0
+  if (!price || price === 0) {
+    return '$0.00';
+  }
+
   if (price >= 1) {
-    // Preços maiores que $1: 2 casas decimais
-    return price.toLocaleString('en-US', {
+    // Preços maiores que $1: 2 casas decimais com formatação de moeda
+    return `$${price.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    });
+    })}`;
   } else if (price >= 0.01) {
     // Preços entre $0.01 e $1: 4 casas decimais
-    return price.toFixed(4);
+    return `$${price.toFixed(4)}`;
   } else {
     // Preços menores que $0.01: 6 casas decimais
-    return price.toFixed(6);
+    return `$${price.toFixed(6)}`;
   }
 }
 

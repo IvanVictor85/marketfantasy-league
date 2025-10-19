@@ -1,22 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run dev:*)",
-      "Bash(timeout 15 bash -c 'while ! curl -s http://localhost:3000 > /dev/null; do sleep 1; done && echo \"\"Server ready!\"\"')",
-      "Bash(curl:*)",
-      "Bash(taskkill:*)",
-      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Seconds 2\")",
-      "Bash(npx tsx scripts/normalize-team-tokens.ts)",
-      "Bash(npx tsx scripts/test-team-save.ts)",
-      "Bash(npx tsx scripts/validate-all-teams.ts)",
-      "Bash(npx tsx scripts/fix-incomplete-teams.ts)",
-      "Bash(npm run build:check)",
-      "Bash(npm info @solana/wallet-adapter-react-ui@0.9.39)",
-      "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, StartTime\")",
-      "Bash(netstat -ano)",
-      "Bash(findstr \":3000\")",
-      "Bash(git add messages/en.json messages/pt.json src/app/[locale]/login/page.tsx src/app/[locale]/verify-code/page.tsx src/components/auth/verify-code-modal.tsx src/components/ui/input.tsx src/components/ui/language-selector.tsx src/contexts/auth-context.tsx)",
-      "Bash(git add .claude/ CLAUDE.md DEMO-GUIDE.md docs/ scripts/)"
+      "Bash(git commit --allow-empty -m \"trigger: create cron jobs\")",
+      "Bash(vercel link)",
+      "Bash(vercel crons ls)",
+      "Bash(cat .vercel/project.json)",
+      "Bash(git add vercel.json src/app/api/cron/competition-start/ src/app/api/cron/competition-end/ src/hooks/useCompetitionStatus.ts)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: optimize crons and polling strategy\n\n## 🎯 STRATEGY OVERVIEW\nOptimize cron jobs and polling to comply with Vercel Hobby Plan limits\nand prevent CoinGecko API rate limiting.\n\n## ✅ CHANGES\n\n### 1. Vercel Cron Jobs (vercel.json)\n- BEFORE: Hourly (0 * * * *) + 30min (*/30 * * * *)\n- AFTER: Weekly only\n  - competition-start: Sunday 21:00 UTC (0 21 * * 0)\n  - competition-end: Friday 21:00 UTC (0 21 * * 5)\n- Compliance: Vercel Hobby Plan (daily max frequency)\n\n### 2. New Cron Endpoints\n- src/app/api/cron/competition-start/route.ts\n  - Starts pending competitions weekly\n  - 24h window check (±1 day from execution)\n- src/app/api/cron/competition-end/route.ts\n  - Ends active competitions weekly\n  - Calculates winners and distributes prizes\n\n### 3. Smart Frontend Polling (useCompetitionStatus)\n- Active competition: 5 min intervals\n- Inactive/Pending: 15 min intervals\n- Completed: 60 min intervals\n- Prevents excessive CoinGecko API calls\n\n### 4. CoinGecko Cache (already optimized)\n- Memory cache: 5 min TTL\n- Database cache: 15 min TTL\n- Max ~12 API calls/hour (well under limits)\n\n## 🚀 IMPACT\n- Cron executions: 1,584/day → 2/week (99.9% reduction)\n- CoinGecko calls: Max 12/hour (safe from rate limits)\n- User experience: \"Real-time\" via polling\n- Cost: $0 (Vercel Hobby Plan compatible)\n\n🤖 Generated with Claude Code (https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git add src/lib/utils.ts)",
+      "Bash(git add -A)",
+      "Bash(git add src/lib/utils.ts \"src/app/[locale]/dashboard/page.backup.tsx\" src/components/field/soccer-field.tsx)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: add formatPercentage, fix rarity type, hide rarity from UI\n\n## 🐛 PROBLEMA 1: formatPercentage não existe\nArquivos tentavam importar formatPercentage de ''@/lib/utils''\nmas a função não existia.\n\nArquivos afetados:\n- src/components/market/token-market.tsx\n- src/app/[locale]/market/page.tsx\n\n### ✅ SOLUÇÃO:\nAdicionada função formatPercentage em src/lib/utils.ts:\n```typescript\nexport function formatPercentage(value: number): string {\n  const formatted = value.toFixed(2);\n  return `$value >= 0 ? ''+'' : ''''$formatted%`;\n}\n```\n\n## 🐛 PROBLEMA 2: Erro de tipo TypeScript - rarity\nArquivo: src/app/[locale]/dashboard/page.backup.tsx (linha 1098)\n\nERRO:\nType ''string'' is not assignable to type ''\"common\" | \"legendary\" | \"epic\" | \"rare\"''\n\n### ✅ SOLUÇÃO:\nAdicionado cast correto do tipo rarity:\n```typescript\nrarity: (player.rarity || \"common\") as \"common\" | \"legendary\" | \"epic\" | \"rare\"\n```\n\n## 🎨 PROBLEMA 3: Conceito de \"rarity\" não faz sentido\nA raridade baseada em market cap não faz sentido para fantasy game.\n\n### ✅ SOLUÇÃO:\n- ESCONDIDO badges de rarity da UI (src/components/field/soccer-field.tsx)\n- MANTIDO no código backend/tipos (para não quebrar)\n- Adicionado TODO para futuro: substituir por \"volatilidade\" ou \"categoria\"\n\nANTES:\n```tsx\n<Badge variant=\"secondary\" className={getRarityColor(player.rarity)}>\n  {player.rarity}\n</Badge>\n```\n\nDEPOIS:\n```tsx\n{/* TODO: Substituir \"rarity\" por algo útil como \"volatilidade\" ou \"categoria\" */}\n{/* <Badge variant=\"secondary\" className={getRarityColor(player.rarity)}>\n  {player.rarity}\n</Badge> */}\n```\n\n## 📋 VERIFICAÇÕES:\n- ✅ getRarityByMarketCap retorna apenas valores permitidos\n- ✅ Tipos TypeScript corretos\n- ✅ Rarity escondido da UI mas mantido no backend\n- ✅ formatPercentage funcionando\n\n🤖 Generated with Claude Code (https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
