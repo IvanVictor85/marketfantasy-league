@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAuth } from '@/contexts/auth-context';
@@ -87,13 +87,25 @@ export function TeamsContent() {
   const [existingTeam, setExistingTeam] = useState<any>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // 🛡️ SAFEGUARD: Prevent duplicate calls
+  const lastCheckRef = useRef<string | null>(null);
+  const checkInProgressRef = useRef<boolean>(false);
   
   // Obter o nome do time a partir do nome do usuário
   const teamName = user?.name || 'Meu Time';
 
   // Função para verificar status de pagamento e carregar time existente
   const checkPaymentAndLoadTeam = useCallback(async () => {
-    console.log('DEBUG checkPaymentAndLoadTeam: Iniciando verificação', {
+    // 🛡️ SAFEGUARD 1: Prevent duplicate calls
+    const checkKey = `${publicKey?.toString()}-${selectedLeagueId}`;
+    if (checkInProgressRef.current || lastCheckRef.current === checkKey) {
+      console.log('🛡️ SAFEGUARD: Chamada duplicada bloqueada', { checkKey, inProgress: checkInProgressRef.current });
+      return;
+    }
+
+    console.log('🔍 checkPaymentAndLoadTeam: Verificando entrada na liga', {
+      timestamp: new Date().toISOString(),
       connected,
       publicKey: publicKey?.toString(),
       selectedLeagueId
@@ -102,8 +114,13 @@ export function TeamsContent() {
     if (!connected || !publicKey) {
       console.log('DEBUG checkPaymentAndLoadTeam: Carteira não conectada');
       setHasValidEntry(null);
+      checkInProgressRef.current = false;
       return;
     }
+
+    // 🛡️ SAFEGUARD 2: Mark as in progress
+    checkInProgressRef.current = true;
+    lastCheckRef.current = checkKey;
 
     setIsLoadingTeam(true);
     setPaymentError(null);
@@ -193,6 +210,8 @@ export function TeamsContent() {
     } finally {
       console.log('DEBUG checkPaymentAndLoadTeam: Finalizando verificação');
       setIsLoadingTeam(false);
+      // 🛡️ SAFEGUARD 3: Release lock after completion
+      checkInProgressRef.current = false;
     }
   }, [connected, publicKey, selectedLeagueId]);
 
@@ -215,7 +234,8 @@ export function TeamsContent() {
     if (connected && publicKey) {
       checkPaymentAndLoadTeam();
     }
-  }, [connected, publicKey, selectedLeagueId, checkPaymentAndLoadTeam]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, publicKey, selectedLeagueId]);
 
   // Função para obter filtro fixo baseado no tipo de liga
   const getFixedFilter = (leagueType: string) => {

@@ -20,18 +20,33 @@ export async function POST(request: NextRequest) {
     const body: VerifyCodeRequest = await request.json();
     const { email, code } = body;
 
+    console.log(`🔍 [VERIFY] Tentativa de verificação para: ${email}`);
+    console.log(`🔍 [VERIFY] Código recebido: ${code}`);
+
     // Validação dos dados
     if (!email || !code) {
+      console.error(`❌ [VERIFY] Dados faltando - email: ${!!email}, code: ${!!code}`);
       return NextResponse.json(
         { error: 'Email e código são obrigatórios' },
         { status: 400 }
       );
     }
 
+    // Delay maior para evitar race condition (código sendo criado/verificado simultaneamente)
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     // Verificar se existe código para este email
     const storedCode = verificationCodes.get(email);
-    
+
+    console.log(`🔍 [VERIFY] Código armazenado encontrado: ${!!storedCode}`);
+    if (storedCode) {
+      console.log(`🔍 [VERIFY] Código armazenado: ${storedCode.code}`);
+      console.log(`🔍 [VERIFY] Expira em: ${storedCode.expiresAt.toISOString()}`);
+      console.log(`🔍 [VERIFY] Tentativas: ${storedCode.attempts}/3`);
+    }
+
     if (!storedCode) {
+      console.error(`❌ [VERIFY] Código não encontrado para ${email}`);
       return NextResponse.json(
         { error: 'Código não encontrado. Solicite um novo código.' },
         { status: 404 }
@@ -59,12 +74,33 @@ export async function POST(request: NextRequest) {
     // Verificar se o código está correto
     if (storedCode.code !== code) {
       storedCode.attempts++;
+      console.error(`❌ [VERIFY] Código incorreto! Esperado: ${storedCode.code}, Recebido: ${code}`);
+      console.error(`❌ [VERIFY] Tentativas restantes: ${3 - storedCode.attempts}`);
+      
+      // Só remover se excedeu tentativas
+      if (storedCode.attempts >= 3) {
+        verificationCodes.delete(email);
+        console.log(`🗑️ [VERIFY] Código removido após 3 tentativas inválidas`);
+      }
+      
       return NextResponse.json(
-        { 
+        {
           error: 'Código inválido',
           attemptsLeft: 3 - storedCode.attempts
         },
         { status: 401 }
+      );
+    }
+
+    console.log(`✅ [VERIFY] Código válido! Criando sessão para ${email}`);
+
+    // Verificação dupla: garantir que o código ainda existe (evitar race condition)
+    const finalCodeCheck = verificationCodes.get(email);
+    if (!finalCodeCheck || finalCodeCheck.code !== code) {
+      console.error(`❌ [VERIFY] Código foi removido ou alterado durante processamento`);
+      return NextResponse.json(
+        { error: 'Código expirado durante verificação. Tente novamente.' },
+        { status: 410 }
       );
     }
 
@@ -84,6 +120,7 @@ export async function POST(request: NextRequest) {
 
     // Remover código usado
     verificationCodes.delete(email);
+    console.log(`🗑️ [VERIFY] Código removido após uso bem-sucedido`);
 
     // Criar resposta com cookie de sessão
     const response = NextResponse.json({

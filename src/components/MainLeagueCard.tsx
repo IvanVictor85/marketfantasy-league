@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +49,10 @@ export function MainLeagueCard() {
   const [loading, setLoading] = useState(true);
   const [transactionLoading, setTransactionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 🛡️ SAFEGUARD: Prevent duplicate calls
+  const lastCheckRef = useRef<string | null>(null);
+  const checkInProgressRef = useRef<boolean>(false);
 
   const fetchLeagueData = async (retryCount = 0) => {
     const maxRetries = 3;
@@ -129,8 +133,22 @@ export function MainLeagueCard() {
   const checkEntryStatus = useCallback(async () => {
     if (!publicKey || !leagueData) return;
 
-    console.log('🔍 MainLeagueCard: Verificando status de entrada para:', publicKey.toString());
-    console.log('🔍 MainLeagueCard: Liga ID:', leagueData.id);
+    // 🛡️ SAFEGUARD 1: Prevent duplicate calls
+    const checkKey = `${publicKey.toString()}-${leagueData.id}`;
+    if (checkInProgressRef.current || lastCheckRef.current === checkKey) {
+      console.log('🛡️ SAFEGUARD: Chamada duplicada bloqueada (MainLeagueCard)', { checkKey, inProgress: checkInProgressRef.current });
+      return;
+    }
+
+    console.log('🔍 MainLeagueCard: Verificando entrada na liga', {
+      timestamp: new Date().toISOString(),
+      wallet: publicKey.toString(),
+      leagueId: leagueData.id
+    });
+
+    // 🛡️ SAFEGUARD 2: Mark as in progress
+    checkInProgressRef.current = true;
+    lastCheckRef.current = checkKey;
 
     try {
       const response = await fetch('/api/league/check-entry', {
@@ -157,6 +175,9 @@ export function MainLeagueCard() {
       }
     } catch (err) {
       console.error('❌ MainLeagueCard: Erro ao verificar status de entrada:', err);
+    } finally {
+      // 🛡️ SAFEGUARD 3: Release lock after completion
+      checkInProgressRef.current = false;
     }
   }, [publicKey, leagueData, setEntryStatus, setLeagueData]);
 
@@ -171,10 +192,11 @@ export function MainLeagueCard() {
       const timeoutId = setTimeout(() => {
         checkEntryStatus();
       }, 500); // 500ms debounce
-      
+
       return () => clearTimeout(timeoutId);
     }
-  }, [connected, publicKey, leagueData, checkEntryStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, publicKey, leagueData]);
 
   const handleConnectWallet = () => {
     setVisible(true);

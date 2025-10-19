@@ -112,6 +112,10 @@ export async function POST(request: NextRequest) {
     const code = generateVerificationCode();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
 
+    console.log(`📝 [SEND-CODE] Gerando código para ${email}`);
+    console.log(`📝 [SEND-CODE] Código gerado: ${code}`);
+    console.log(`📝 [SEND-CODE] Expira em: ${expiresAt.toISOString()}`);
+
     // Armazenar código
     verificationCodes.set(email, {
       email,
@@ -119,6 +123,8 @@ export async function POST(request: NextRequest) {
       expiresAt,
       attempts: 0
     });
+
+    console.log(`💾 [SEND-CODE] Código armazenado com sucesso`);
 
     // Enviar email
     const emailSent = await sendEmail(email, code);
