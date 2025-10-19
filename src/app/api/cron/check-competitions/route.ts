@@ -4,19 +4,20 @@ import { prisma } from '@/lib/prisma';
 /**
  * POST /api/cron/check-competitions
  *
- * Cron job que roda a cada 1 minuto para:
- * - Iniciar competições pending que já atingiram startTime
- * - Finalizar competições active que já atingiram endTime
+ * Cron job otimizado para Vercel Hobby Plan (executa a cada hora):
+ * - Iniciar competições pending que já atingiram startTime ou vão iniciar na próxima hora
+ * - Finalizar competições active que já atingiram endTime ou vão finalizar na próxima hora
  *
- * Para Vercel Cron, adicionar em vercel.json:
+ * Para Vercel Cron, configurado em vercel.json:
  * {
  *   "crons": [{
  *     "path": "/api/cron/check-competitions",
- *     "schedule": "* * * * *"
+ *     "schedule": "0 * * * *"
  *   }]
  * }
  *
- * Executa a cada 1 minuto.
+ * Executa a cada hora (no minuto 0).
+ * Janela de verificação: próximas 65 minutos (para garantir cobertura).
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -34,26 +35,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🔄 Cron Job: Verificando competições...');
+    console.log('🔄 Cron Job: Verificando competições (Execução Horária - Vercel Hobby Plan)...');
 
     const now = new Date();
+    // Verificar competições que vão iniciar/finalizar na próxima hora + 5min de margem
+    const oneHourLater = new Date(now.getTime() + 65 * 60 * 1000);
+
     const results = {
       started: [] as string[],
       ended: [] as string[],
       errors: [] as { competitionId: string; error: string }[]
     };
 
+    console.log(`⏰ Janela de verificação: ${now.toISOString()} até ${oneHourLater.toISOString()}`);
+
     // ============================================
     // ETAPA 1: INICIAR COMPETIÇÕES PENDENTES
     // ============================================
 
     console.log('🔍 Buscando competições pendentes para iniciar...');
+    console.log('   - Competições atrasadas (já deveriam ter iniciado)');
+    console.log('   - Competições que vão iniciar na próxima hora');
 
     const pendingCompetitions = await prisma.competition.findMany({
       where: {
         status: 'pending',
         startTime: {
-          lte: now
+          lte: oneHourLater
         }
       },
       include: {
@@ -114,12 +122,14 @@ export async function POST(request: NextRequest) {
     // ============================================
 
     console.log('🔍 Buscando competições ativas para finalizar...');
+    console.log('   - Competições atrasadas (já deveriam ter finalizado)');
+    console.log('   - Competições que vão finalizar na próxima hora');
 
     const activeCompetitions = await prisma.competition.findMany({
       where: {
         status: 'active',
         endTime: {
-          lte: now
+          lte: oneHourLater
         }
       },
       include: {

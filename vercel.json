@@ -5,12 +5,12 @@
   "framework": "nextjs",
   "crons": [
     {
-      "path": "/api/cron/refresh-market",
-      "schedule": "*/10 * * * *"
+      "path": "/api/cron/check-competitions",
+      "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/check-competitions",
-      "schedule": "* * * * *"
+      "path": "/api/cron/refresh-market",
+      "schedule": "*/30 * * * *"
     }
   ],
   "headers": [
