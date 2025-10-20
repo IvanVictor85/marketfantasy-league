@@ -1,28 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Interface para os dados do perfil do usuário
-interface UserProfile {
-  id: string;
-  name?: string;
-  email?: string;
-  walletAddress?: string;
-  avatar?: string;
-  twitter?: string;
-  discord?: string;
-  bio?: string;
-  loginMethod: 'email' | 'wallet';
-}
+import { prisma } from '@/lib/prisma';
 
 // Interface para os dados de atualização do perfil
 interface ProfileUpdateData {
   name?: string;
+  avatar?: string;
   twitter?: string;
   discord?: string;
   bio?: string;
 }
-
-// Simulação de banco de dados em memória (em produção, usar um banco real)
-const userProfiles = new Map<string, UserProfile>();
 
 // Função para validar os dados de entrada
 function validateProfileData(data: ProfileUpdateData): { isValid: boolean; errors: string[] } {
@@ -66,21 +52,32 @@ function validateProfileData(data: ProfileUpdateData): { isValid: boolean; error
   };
 }
 
-// Função para obter o usuário do localStorage (simulação de autenticação)
-function getUserFromRequest(request: NextRequest): UserProfile | null {
+// Função para obter o usuário autenticado
+async function getUserFromRequest(request: NextRequest): Promise<string | null> {
   try {
-    // Em uma aplicação real, você obteria o usuário do token JWT ou sessão
-    // Por enquanto, vamos simular obtendo do header Authorization
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
+    // Buscar token do cookie ou header
+    const token = request.cookies.get('auth-token')?.value ||
+                  request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      console.log('❌ [PROFILE] Token não encontrado');
       return null;
     }
 
-    // Simular decodificação do token (em produção, usar JWT)
-    const userData = JSON.parse(decodeURIComponent(authHeader.replace('Bearer ', '')));
-    return userData;
+    // Buscar token no banco
+    const authToken = await prisma.authToken.findUnique({
+      where: { token },
+      include: { user: true }
+    });
+
+    if (!authToken || authToken.expiresAt < new Date()) {
+      console.log('❌ [PROFILE] Token inválido ou expirado');
+      return null;
+    }
+
+    return authToken.userId;
   } catch (error) {
-    console.error('Erro ao obter usuário da requisição:', error);
+    console.error('❌ [PROFILE] Erro ao obter usuário:', error);
     return null;
   }
 }
@@ -88,25 +85,38 @@ function getUserFromRequest(request: NextRequest): UserProfile | null {
 // Handler para GET - obter perfil do usuário
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    
-    if (!user) {
+    const userId = await getUserFromRequest(request);
+
+    if (!userId) {
       return NextResponse.json(
         { error: 'Usuário não autenticado' },
         { status: 401 }
       );
     }
 
-    // Buscar perfil salvo ou retornar o perfil atual
-    const savedProfile = userProfiles.get(user.id) || user;
+    console.log('🔍 [PROFILE-GET] Buscando perfil para:', userId);
+
+    // Buscar perfil no banco
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    console.log('✅ [PROFILE-GET] Perfil encontrado:', user.email);
 
     return NextResponse.json({
       success: true,
-      data: savedProfile
+      data: user
     });
 
   } catch (error) {
-    console.error('Erro ao obter perfil:', error);
+    console.error('❌ [PROFILE-GET] Erro:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -117,9 +127,9 @@ export async function GET(request: NextRequest) {
 // Handler para PUT - atualizar perfil do usuário
 export async function PUT(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    
-    if (!user) {
+    const userId = await getUserFromRequest(request);
+
+    if (!userId) {
       return NextResponse.json(
         { error: 'Usuário não autenticado' },
         { status: 401 }
@@ -129,11 +139,17 @@ export async function PUT(request: NextRequest) {
     // Parse dos dados da requisição
     const updateData: ProfileUpdateData = await request.json();
 
+    console.log('📝 [PROFILE-UPDATE] Atualizando perfil:', {
+      userId,
+      fields: Object.keys(updateData)
+    });
+
     // Validar dados de entrada
     const validation = validateProfileData(updateData);
     if (!validation.isValid) {
+      console.error('❌ [PROFILE-UPDATE] Dados inválidos:', validation.errors);
       return NextResponse.json(
-        { 
+        {
           error: 'Dados inválidos',
           details: validation.errors
         },
@@ -141,30 +157,26 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Obter perfil atual ou criar novo
-    const currentProfile = userProfiles.get(user.id) || user;
+    // Atualizar perfil no banco
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData
+    });
 
-    // Atualizar perfil com novos dados
-    const updatedProfile: UserProfile = {
-      ...currentProfile,
-      ...updateData,
-      id: user.id, // Garantir que o ID não seja alterado
-      loginMethod: user.loginMethod // Garantir que o método de login não seja alterado
-    };
-
-    // Salvar perfil atualizado
-    userProfiles.set(user.id, updatedProfile);
-
-    console.log(`Perfil atualizado para usuário ${user.id}:`, updateData);
+    console.log('✅ [PROFILE-UPDATE] Perfil atualizado com sucesso:', {
+      userId,
+      email: updatedUser.email,
+      name: updatedUser.name
+    });
 
     return NextResponse.json({
       success: true,
-      data: updatedProfile,
+      data: updatedUser,
       message: 'Perfil atualizado com sucesso'
     });
 
   } catch (error) {
-    console.error('Erro ao atualizar perfil:', error);
+    console.error('❌ [PROFILE-UPDATE] Erro:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

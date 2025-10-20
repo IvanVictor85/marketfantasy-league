@@ -119,15 +119,16 @@ model PriceHistory {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  avatar    String?
-  twitter   String?
-  discord   String?
-  bio       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  email      String   @unique
+  publicKey  String?  @unique // Carteira Solana (única por usuário)
+  name       String
+  avatar     String?
+  twitter    String?
+  discord    String?
+  bio        String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   authTokens AuthToken[]
 

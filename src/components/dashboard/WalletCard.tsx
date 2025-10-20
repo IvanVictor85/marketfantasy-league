@@ -20,12 +20,47 @@ export function WalletCard() {
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        if (!publicKey) return;
+        if (!publicKey) {
+          console.log('🔍 [BALANCE] Carteira não conectada');
+          return;
+        }
+
+        console.log('🔍 [BALANCE] Buscando saldo para:', publicKey.toString());
+        console.log('🔍 [BALANCE] RPC Endpoint:', connection.rpcEndpoint);
+
         const lamports = await connection.getBalance(publicKey);
         const sol = lamports / LAMPORTS_PER_SOL;
+
+        console.log('✅ [BALANCE] Saldo obtido:', {
+          lamports,
+          sol: sol.toFixed(4)
+        });
+
         setBalance(sol.toFixed(4));
       } catch (err) {
-        console.error('Erro ao buscar saldo:', err);
+        console.error('❌ [BALANCE] Erro ao buscar saldo:', err);
+        console.error('❌ [BALANCE] RPC Endpoint que falhou:', connection.rpcEndpoint);
+
+        // Tentar usar API route como fallback
+        try {
+          console.log('🔄 [BALANCE] Tentando API route como fallback...');
+          const response = await fetch('/api/wallet/balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ publicKey: publicKey.toString() })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setBalance(data.balance);
+            console.log('✅ [BALANCE] Saldo obtido via API:', data.balance);
+          } else {
+            toast.error('Erro ao buscar saldo. Verifique sua conexão.');
+          }
+        } catch (fallbackErr) {
+          console.error('❌ [BALANCE] Fallback também falhou:', fallbackErr);
+          toast.error('Erro ao conectar com a rede Solana');
+        }
       }
     };
     fetchBalance();
