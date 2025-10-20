@@ -3,20 +3,73 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { validateTokens } from '@/lib/valid-tokens'
 
+// 🔒 SEGURANÇA: Schema NÃO aceita mais userWallet do cliente
 const teamSchema = z.object({
-  userWallet: z.string().min(32, 'Invalid wallet address'),
   leagueId: z.string().optional(),
   teamName: z.string().min(1, 'Team name is required').max(50, 'Team name too long'),
   tokens: z.array(z.string()).length(10, 'Team must have exactly 10 tokens')
 })
 
+// Função para obter o usuário autenticado
+async function getUserFromRequest(request: NextRequest): Promise<string | null> {
+  try {
+    const token = request.cookies.get('auth-token')?.value ||
+                  request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      return null;
+    }
+
+    const authToken = await prisma.authToken.findUnique({
+      where: { token },
+      include: { user: true }
+    });
+
+    if (!authToken || authToken.expiresAt < new Date()) {
+      return null;
+    }
+
+    return authToken.userId;
+  } catch (error) {
+    console.error('❌ [AUTH] Erro ao obter usuário:', error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log('🚀 API team POST: Iniciando salvamento de time...');
   try {
+    // 🔒 SEGURANÇA: Obter userId do usuário autenticado
+    const userId = await getUserFromRequest(request);
+
+    if (!userId) {
+      console.error('❌ [TEAM] Usuário não autenticado');
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // 🔒 SEGURANÇA: Buscar a carteira do usuário no banco (fonte confiável)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { publicKey: true, email: true }
+    });
+
+    if (!user || !user.publicKey) {
+      console.error('❌ [TEAM] Usuário sem carteira vinculada');
+      return NextResponse.json(
+        { error: 'Você precisa conectar uma carteira antes de criar um time' },
+        { status: 400 }
+      );
+    }
+
+    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco, não do cliente!
+
     const body = await request.json()
     console.log('📥 API team POST: Body recebido:', body);
-    const { userWallet, leagueId, teamName, tokens } = teamSchema.parse(body)
-    console.log('✅ API team POST: Dados validados:', { userWallet, leagueId, teamName, tokensLength: tokens.length });
+    const { leagueId, teamName, tokens } = teamSchema.parse(body)
+    console.log('✅ API team POST: Dados validados:', { userId, userWallet, leagueId, teamName, tokensLength: tokens.length });
 
     // Validar exatamente 10 tokens
     if (tokens.length !== 10) {
