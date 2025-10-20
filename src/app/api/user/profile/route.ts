@@ -136,7 +136,8 @@ export async function PUT(request: NextRequest) {
 
     if (!userId) {
       // Fallback: tentar pegar do token
-      userId = await getUserFromRequest(request);
+      const tokenUserId = await getUserFromRequest(request);
+      userId = tokenUserId || undefined;
     }
 
     if (!userId) {
