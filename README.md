@@ -1,10 +1,10 @@
-# CryptoFantasy League - CFL
+# MarketFantasy League - CFL
 
 ![CFL](https://img.shields.io/badge/CryptoFantasy_League-CFL-green)
 
 ## 🎮 Sobre o Projeto
 
-**CryptoFantasy League** é uma plataforma de fantasy game de criptomoedas, onde você pode montar seu time de ativos digitais e competir em ligas baseadas no desempenho real do mercado. É a união perfeita entre a emoção dos esportes de fantasia e o dinâmico mundo das criptos.
+**MarketFantasy League** é uma plataforma de fantasy game de criptomoedas, onde você pode montar seu time de ativos digitais e competir em ligas baseadas no desempenho real do mercado. É a união perfeita entre a emoção dos esportes de fantasia e o dinâmico mundo das criptos.
 
 Este projeto foi construído com as mais modernas tecnologias web3, utilizando a blockchain Solana para garantir transações rápidas e de baixo custo.
 
