@@ -127,7 +127,17 @@ export async function GET(request: NextRequest) {
 // Handler para PUT - atualizar perfil do usuário
 export async function PUT(request: NextRequest) {
   try {
-    const userId = await getUserFromRequest(request);
+    // Parse dos dados da requisição primeiro
+    const body = await request.json();
+    const { userId: bodyUserId, ...updateData }: ProfileUpdateData & { userId?: string } = body;
+
+    // Tentar pegar userId do body OU do token
+    let userId = bodyUserId;
+
+    if (!userId) {
+      // Fallback: tentar pegar do token
+      userId = await getUserFromRequest(request);
+    }
 
     if (!userId) {
       return NextResponse.json(
@@ -135,9 +145,6 @@ export async function PUT(request: NextRequest) {
         { status: 401 }
       );
     }
-
-    // Parse dos dados da requisição
-    const updateData: ProfileUpdateData = await request.json();
 
     console.log('📝 [PROFILE-UPDATE] Atualizando perfil:', {
       userId,

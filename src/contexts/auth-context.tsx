@@ -256,15 +256,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Atualiza perfil do usuário localmente
-  const updateUserProfile = (updates: Partial<User>) => {
+  // Atualiza perfil do usuário no banco E localmente
+  const updateUserProfile = async (updates: Partial<User>) => {
     if (!user) {
       throw new Error('Usuário não autenticado');
     }
 
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
+    try {
+      console.log('📝 [UPDATE-PROFILE] Atualizando perfil:', { userId: user.id, fields: Object.keys(updates) });
+
+      // 1. Salvar no banco via API
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          name: updates.name,
+          avatar: updates.avatar,
+          twitter: updates.twitter,
+          discord: updates.discord,
+          bio: updates.bio
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao atualizar perfil');
+      }
+
+      console.log('✅ [UPDATE-PROFILE] Perfil atualizado no banco');
+
+      // 2. Atualizar estado local
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
+
+      console.log('✅ [UPDATE-PROFILE] Estado local atualizado');
+
+      return true;
+    } catch (error) {
+      console.error('❌ [UPDATE-PROFILE] Erro:', error);
+      throw error;
+    }
   };
 
 
