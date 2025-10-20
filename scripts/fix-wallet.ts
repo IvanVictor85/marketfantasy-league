@@ -33,7 +33,7 @@ async function fixWallet() {
     // IMPORTANTE: Cole aqui o endereço da sua carteira Solana
     const WALLET_ADDRESS = 'H2312uRYYfSFsKiJeMwSriv6F7iEBkWxtPQCV6ArRAjT';
 
-    if (WALLET_ADDRESS === 'H231...RAJt') {
+    if (WALLET_ADDRESS === 'H2312uRYYfSFsKiJeMwSriv6F7iEBkWxtPQCV6ArRAjT') {
       console.error('❌ Por favor, edite o script e coloque o endereço real da sua carteira!');
       console.error('   Abra: scripts/fix-wallet.ts');
       console.error('   Linha 26: const WALLET_ADDRESS = "SUA_CARTEIRA_AQUI"');
