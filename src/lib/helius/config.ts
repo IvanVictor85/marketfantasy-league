@@ -36,8 +36,8 @@ export const getHeliusApiKey = (): string => {
   const apiKey = process.env.NEXT_PUBLIC_HELIUS_API_KEY || process.env.HELIUS_API_KEY;
   
   if (!apiKey || apiKey === 'demo') {
-    console.warn('Using demo Helius API key. Please set HELIUS_API_KEY environment variable for production.');
-    return 'demo';
+    console.warn('⚠️ [HELIUS] API key não configurada. Usando RPC público do Solana.');
+    return 'public'; // Usar RPC público em vez de demo
   }
   
   return apiKey;
@@ -74,9 +74,16 @@ export const buildApiUrl = (endpoint: string, params?: Record<string, string>): 
 // Build RPC URL with key
 export const buildRpcUrl = (): string => {
   const network = getCurrentNetwork();
-  const rpcUrl = HELIUS_CONFIG.rpcUrl[network];
   const apiKey = getHeliusApiKey();
   
+  // Se não há API key válida, usar RPC público do Solana
+  if (apiKey === 'public') {
+    return network === 'devnet' 
+      ? 'https://api.devnet.solana.com'
+      : 'https://api.mainnet-beta.solana.com';
+  }
+  
+  const rpcUrl = HELIUS_CONFIG.rpcUrl[network];
   return `${rpcUrl}?api-key=${apiKey}`;
 };
 
