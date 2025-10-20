@@ -1,24 +1,24 @@
-# MarketFantasy League - CFL
+# MarketFantasy League - MFL
 
-![CFL](https://img.shields.io/badge/CryptoFantasy_League-CFL-green)
+![MFL](https://img.shields.io/badge/MarketFantasy_League-MFL-green)
 
-## 🎮 Sobre o Projeto
+## 🎮 About the Project
 
-**MarketFantasy League** é uma plataforma de fantasy game de criptomoedas, onde você pode montar seu time de ativos digitais e competir em ligas baseadas no desempenho real do mercado. É a união perfeita entre a emoção dos esportes de fantasia e o dinâmico mundo das criptos.
+**MarketFantasy League** is a cryptocurrency fantasy game platform where you can build your team of digital assets and compete in leagues based on real market performance. It's the perfect blend of the excitement of fantasy sports and the dynamic world of crypto.
 
-Este projeto foi construído com as mais modernas tecnologias web3, utilizando a blockchain Solana para garantir transações rápidas e de baixo custo.
+This project was built with the most modern web3 technologies, using the Solana blockchain to ensure fast, low-cost transactions.
 
 ### ✨ Features
 
--   **Criação de Ligas:** Crie ligas públicas ou privadas e convide seus amigos.
--   **Draft de Criptoativos:** Monte seu time selecionando seus criptoativos favoritos.
--   **Competição em Tempo Real:** Acompanhe a pontuação do seu time baseada nas flutuações do mercado.
--   **Conexão com Carteira:** Integração nativa com carteiras Solana (Phantom, Solflare, etc.).
--   **Dashboard Intuitivo:** Visualize o desempenho do seu time, o ranking da liga e as estatísticas do mercado.
+-   **League Creation:** Create public or private leagues and invite your friends.
+-   **Crypto-Asset Draft:** Build your team by selecting your favorite crypto-assets.
+-   **Real-Time Competition:** Track your team's score based on market fluctuations.
+-   **Wallet Connection:** Native integration with Solana wallets (Phantom, Solflare, etc.).
+-   **Intuitive Dashboard:** View your team's performance, league rankings, and market statistics.
 
 ---
 
-## 🚀 Tecnologias Utilizadas
+## 🚀 Technologies Used
 
 -   **Frontend:**
     -   [Next.js](https://nextjs.org/) (React Framework)
@@ -32,62 +32,62 @@ Este projeto foi construído com as mais modernas tecnologias web3, utilizando a
 
 ---
 
-## 🛠️ Como Começar
+## 🛠️ Getting Started
 
-Siga os passos abaixo para configurar e rodar o projeto em seu ambiente local.
+Follow the steps below to set up and run the project in your local environment.
 
-### Pré-requisitos
+### Prerequisites
 
--   [Node.js](https://nodejs.org/en/) (v18.x ou superior)
--   [Yarn](https://yarnpkg.com/) ou [npm](https://www.npmjs.com/)
--   [Rust](https://www.rust-lang.org/tools/install) e [Anchor](https://www.anchor-lang.com/docs/installation) para o desenvolvimento de programas Solana.
+-   [Node.js](https://nodejs.org/en/) (v18.x or higher)
+-   [Yarn](https://yarnpkg.com/) or [npm](https://www.npmjs.com/)
+-   [Rust](https://www.rust-lang.org/tools/install) and [Anchor](https://www.anchor-lang.com/docs/installation) for Solana program development.
 
-### Instalação
+### Installation
 
-1.  **Clone o repositório:**
+1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/IvanVictor85/cryptofantasy-league.git
+    git clone [https://github.com/IvanVictor85/cryptofantasy-league.git](https://github.com/IvanVictor85/cryptofantasy-league.git)
     cd cryptofantasy-league
     ```
 
-2.  **Instale as dependências do frontend:**
+2.  **Install frontend dependencies:**
 
     ```bash
     npm install
     ```
 
-3.  **Construa e deploy os programas Solana (se necessário):**
+3.  **Build and deploy the Solana programs (if necessary):**
 
     ```bash
     anchor build
     anchor deploy
     ```
 
-### Rodando a Aplicação
+### Running the Application
 
-1.  **Inicie o servidor de desenvolvimento:**
+1.  **Start the development server:**
 
     ```bash
     npm run dev
     ```
 
-2.  Abra [http://localhost:3000](http://localhost:3000) em seu navegador para ver a aplicação.
+2.  Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
 ---
 
-## 🤝 Contribuindo
+## 🤝 Contributing
 
-Contribuições são sempre bem-vindas! Se você tem alguma ideia para melhorar o projeto, sinta-se à vontade para abrir uma *issue* ou enviar um *pull request*.
+Contributions are always welcome! If you have any ideas to improve the project, feel free to open an *issue* or submit a *pull request*.
 
-1.  Faça um *fork* do projeto.
-2.  Crie uma nova *branch* (`git checkout -b feature/sua-feature`).
-3.  Faça o *commit* de suas alterações (`git commit -m 'feat: adiciona nova feature'`).
-4.  Faça o *push* para a *branch* (`git push origin feature/sua-feature`).
-5.  Abra um *Pull Request*.
+1.  *Fork* the project.
+2.  Create a new *branch* (`git checkout -b feature/your-feature`).
+3.  *Commit* your changes (`git commit -m 'feat: add new feature'`).
+4.  *Push* to the *branch* (`git push origin feature/your-feature`).
+5.  Open a *Pull Request*.
 
 ---
 
-## 📄 Licença
+## 📄 License
 
-Distribuído sob a licença MIT. Veja o arquivo `LICENSE` para mais informações.
+Distributed under the MIT license. See the `LICENSE` file for more information.
