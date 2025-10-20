@@ -129,6 +129,12 @@ export async function PUT(request: NextRequest) {
   try {
     // Parse dos dados da requisição primeiro
     const body = await request.json();
+
+    // 🔍 LOGS CRÍTICOS
+    console.log('🔍 [PROFILE] Body completo:', JSON.stringify(body, null, 2));
+    console.log('🔍 [PROFILE] userId recebido:', body.userId);
+    console.log('🔍 [PROFILE] Tipo do userId:', typeof body.userId);
+
     const { userId: bodyUserId, ...updateData }: ProfileUpdateData & { userId?: string } = body;
 
     // Tentar pegar userId do body OU do token
@@ -136,14 +142,17 @@ export async function PUT(request: NextRequest) {
 
     if (!userId) {
       // Fallback: tentar pegar do token
+      console.log('⚠️ [PROFILE] userId não veio no body, tentando token...');
       const tokenUserId = await getUserFromRequest(request);
       userId = tokenUserId || undefined;
+      console.log('🔍 [PROFILE] userId do token:', userId);
     }
 
     if (!userId) {
+      console.error('❌ [PROFILE] userId está vazio/null/undefined!');
       return NextResponse.json(
-        { error: 'Usuário não autenticado' },
-        { status: 401 }
+        { error: 'userId obrigatório' },
+        { status: 400 }
       );
     }
 
@@ -151,6 +160,34 @@ export async function PUT(request: NextRequest) {
       userId,
       fields: Object.keys(updateData)
     });
+
+    // 🔍 VERIFICAR SE USUÁRIO EXISTE ANTES DE TENTAR ATUALIZAR
+    console.log('🔍 [PROFILE] Buscando usuário no banco...');
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    console.log('🔍 [PROFILE] Usuário encontrado?', !!userExists);
+
+    if (!userExists) {
+      console.error('❌ [PROFILE] Usuário não existe no banco!');
+      console.error('❌ [PROFILE] userId buscado:', userId);
+
+      // Listar alguns usuários para comparar
+      const allUsers = await prisma.user.findMany({
+        select: { id: true, email: true },
+        take: 5
+      });
+      console.log('📋 [PROFILE] Primeiros 5 usuários no banco:', JSON.stringify(allUsers, null, 2));
+
+      return NextResponse.json({
+        error: 'Usuário não encontrado no banco de dados',
+        receivedUserId: userId,
+        hint: 'O userId fornecido não existe. Verifique se o usuário foi criado corretamente.'
+      }, { status: 404 });
+    }
+
+    console.log('✅ [PROFILE] Usuário existe! Email:', userExists.email);
 
     // Validar dados de entrada
     const validation = validateProfileData(updateData);
@@ -166,6 +203,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar perfil no banco
+    console.log('💾 [PROFILE] Executando update no banco...');
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData
