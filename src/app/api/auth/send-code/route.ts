@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  verificationCodes, 
-  generateVerificationCode, 
-  isValidEmail 
-} from '@/lib/verification-storage';
+import { prisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
+
+// Função para validar email
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Função para gerar código de 6 dígitos
+function generateVerificationCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 interface SendCodeRequest {
   email: string;
@@ -85,14 +92,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se já existe um código válido para este email
-    const existingCode = verificationCodes.get(email);
+    const existingCode = await prisma.verificationCode.findUnique({
+      where: { email }
+    });
+
     if (existingCode && existingCode.expiresAt > new Date()) {
       const timeLeft = Math.ceil((existingCode.expiresAt.getTime() - Date.now()) / 1000);
       if (timeLeft > 240) { // 4 minutos restantes
         return NextResponse.json(
-          { 
+          {
             error: 'Aguarde antes de solicitar um novo código',
-            timeLeft: timeLeft - 240 
+            timeLeft: timeLeft - 240
           },
           { status: 429 }
         );
@@ -107,17 +117,42 @@ export async function POST(request: NextRequest) {
     console.log(`📝 [SEND-CODE] Código gerado: ${code}`);
     console.log(`📝 [SEND-CODE] Expira em: ${expiresAt.toISOString()}`);
 
-    // Armazenar código
-    verificationCodes.set(email, {
-      email,
-      code,
-      expiresAt,
-      attempts: 0
+    // 🔧 CRÍTICO: SALVAR NO BANCO PRIMEIRO, ANTES DE ENVIAR EMAIL!
+    const savedCode = await prisma.verificationCode.upsert({
+      where: { email },
+      update: {
+        code,
+        expiresAt,
+        attempts: 0
+      },
+      create: {
+        email,
+        code,
+        expiresAt,
+        attempts: 0
+      }
     });
 
-    console.log(`💾 [SEND-CODE] Código armazenado com sucesso`);
+    console.log(`✅ [SEND-CODE] Código salvo no banco:`, {
+      id: savedCode.id,
+      email: savedCode.email,
+      code: savedCode.code,
+      expiresAt: savedCode.expiresAt
+    });
 
-    // Tentar enviar email
+    // Verificação dupla: garantir que foi salvo
+    const verification = await prisma.verificationCode.findUnique({
+      where: { email }
+    });
+
+    if (!verification || verification.code !== code) {
+      console.error('❌ [SEND-CODE] Falha ao salvar código no banco!');
+      throw new Error('Falha ao salvar código no banco');
+    }
+
+    console.log(`✅ [SEND-CODE] Verificação dupla OK - Código confirmado no banco`);
+
+    // 📧 AGORA SIM ENVIAR EMAIL (após garantir que está no banco)
     const emailSent = await sendEmail(email, code);
     
     // Preparar resposta

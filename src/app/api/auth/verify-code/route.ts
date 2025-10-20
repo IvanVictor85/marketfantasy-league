@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  verificationCodes, 
-  authTokens, 
-  users, 
-  generateSessionToken, 
-  createOrUpdateUser,
-  AuthToken 
-} from '@/lib/verification-storage';
+import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
+
+// Função para gerar token de sessão
+function generateSessionToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 interface VerifyCodeRequest {
   email: string;
@@ -32,19 +31,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Delay maior para evitar race condition (código sendo criado/verificado simultaneamente)
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 🔧 BUSCAR CÓDIGO NO BANCO COM RETRY (5 tentativas de 1 segundo)
+    let storedCode = null;
+    const maxRetries = 5;
+    const retryDelay = 1000; // 1 segundo
 
-    // Tentar múltiplas vezes para encontrar o código (evitar race condition)
-    let storedCode = verificationCodes.get(email);
-    let attempts = 0;
-    const maxAttempts = 3;
-    
-    while (!storedCode && attempts < maxAttempts) {
-      console.log(`🔄 [VERIFY] Tentativa ${attempts + 1}/${maxAttempts} - Código não encontrado, aguardando...`);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      storedCode = verificationCodes.get(email);
-      attempts++;
+    for (let i = 0; i < maxRetries; i++) {
+      storedCode = await prisma.verificationCode.findUnique({
+        where: { email }
+      });
+
+      if (storedCode) {
+        console.log(`✅ [VERIFY] Código encontrado na tentativa ${i + 1}/${maxRetries}`);
+        break;
+      }
+
+      if (i < maxRetries - 1) {
+        console.log(`🔄 [VERIFY] Tentativa ${i + 1}/${maxRetries} - Código não encontrado, aguardando ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
 
     console.log(`🔍 [VERIFY] Código armazenado encontrado: ${!!storedCode}`);
@@ -55,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!storedCode) {
-      console.error(`❌ [VERIFY] Código não encontrado para ${email}`);
+      console.error(`❌ [VERIFY] Código não encontrado para ${email} após ${maxRetries} tentativas`);
       return NextResponse.json(
         { error: 'Código não encontrado. Solicite um novo código.' },
         { status: 404 }
@@ -64,7 +69,10 @@ export async function POST(request: NextRequest) {
 
     // Verificar se o código expirou
     if (storedCode.expiresAt < new Date()) {
-      verificationCodes.delete(email);
+      await prisma.verificationCode.delete({
+        where: { email }
+      });
+      console.log(`🗑️ [VERIFY] Código expirado removido do banco`);
       return NextResponse.json(
         { error: 'Código expirado. Solicite um novo código.' },
         { status: 410 }
@@ -73,7 +81,10 @@ export async function POST(request: NextRequest) {
 
     // Verificar tentativas
     if (storedCode.attempts >= 3) {
-      verificationCodes.delete(email);
+      await prisma.verificationCode.delete({
+        where: { email }
+      });
+      console.log(`🗑️ [VERIFY] Código removido após exceder tentativas`);
       return NextResponse.json(
         { error: 'Muitas tentativas inválidas. Solicite um novo código.' },
         { status: 429 }
@@ -82,20 +93,29 @@ export async function POST(request: NextRequest) {
 
     // Verificar se o código está correto
     if (storedCode.code !== code) {
-      storedCode.attempts++;
+      // Incrementar tentativas no banco
+      await prisma.verificationCode.update({
+        where: { email },
+        data: {
+          attempts: storedCode.attempts + 1
+        }
+      });
+
       console.error(`❌ [VERIFY] Código incorreto! Esperado: ${storedCode.code}, Recebido: ${code}`);
-      console.error(`❌ [VERIFY] Tentativas restantes: ${3 - storedCode.attempts}`);
-      
-      // Só remover se excedeu tentativas
-      if (storedCode.attempts >= 3) {
-        verificationCodes.delete(email);
+      console.error(`❌ [VERIFY] Tentativas restantes: ${3 - (storedCode.attempts + 1)}`);
+
+      // Remover se excedeu tentativas
+      if (storedCode.attempts + 1 >= 3) {
+        await prisma.verificationCode.delete({
+          where: { email }
+        });
         console.log(`🗑️ [VERIFY] Código removido após 3 tentativas inválidas`);
       }
-      
+
       return NextResponse.json(
         {
           error: 'Código inválido',
-          attemptsLeft: 3 - storedCode.attempts
+          attemptsLeft: 3 - (storedCode.attempts + 1)
         },
         { status: 401 }
       );
@@ -103,32 +123,43 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ [VERIFY] Código válido! Criando sessão para ${email}`);
 
-    // Verificação dupla: garantir que o código ainda existe (evitar race condition)
-    const finalCodeCheck = verificationCodes.get(email);
-    if (!finalCodeCheck || finalCodeCheck.code !== code) {
-      console.error(`❌ [VERIFY] Código foi removido ou alterado durante processamento`);
-      return NextResponse.json(
-        { error: 'Código expirado durante verificação. Tente novamente.' },
-        { status: 410 }
-      );
-    }
-
     // Código válido! Criar ou atualizar usuário
-    const user = createOrUpdateUser(email);
-    
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: {
+        email,
+        name: email.split('@')[0]
+      }
+    });
+
+    console.log(`✅ [VERIFY] Usuário criado/atualizado:`, {
+      id: user.id,
+      email: user.email,
+      name: user.name
+    });
+
     // Gerar token de sessão
     const sessionToken = generateSessionToken();
     const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
-    
-    authTokens.set(sessionToken, {
-      userId: user.id,
-      email: user.email,
-      name: user.name,
+
+    await prisma.authToken.create({
+      data: {
+        userId: user.id,
+        token: sessionToken,
+        expiresAt: tokenExpiresAt
+      }
+    });
+
+    console.log(`✅ [VERIFY] Token de sessão criado:`, {
+      token: sessionToken.substring(0, 10) + '...',
       expiresAt: tokenExpiresAt
     });
 
-    // Remover código usado
-    verificationCodes.delete(email);
+    // Remover código usado do banco
+    await prisma.verificationCode.delete({
+      where: { email }
+    });
     console.log(`🗑️ [VERIFY] Código removido após uso bem-sucedido`);
 
     // Criar resposta com cookie de sessão
@@ -155,10 +186,11 @@ export async function POST(request: NextRequest) {
       maxAge: 24 * 60 * 60 // 24 horas
     });
 
+    console.log(`🎉 [VERIFY] Autenticação completa com sucesso para ${email}`);
     return response;
 
   } catch (error) {
-    console.error('Erro na API verify-code:', error);
+    console.error('❌ [VERIFY] Erro na API verify-code:', error);
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -176,31 +208,3 @@ export async function OPTIONS() {
     },
   });
 }
-
-// Função para validar token de sessão (para uso em outras APIs)
-function validateAuthToken(token: string): AuthToken | null {
-  const authToken = authTokens.get(token);
-  
-  if (!authToken) {
-    return null;
-  }
-  
-  if (authToken.expiresAt < new Date()) {
-    authTokens.delete(token);
-    return null;
-  }
-  
-  return authToken;
-}
-
-// Função para obter usuário pelo token
-function getUserByToken(token: string) {
-  const authToken = validateAuthToken(token);
-  if (!authToken) {
-    return null;
-  }
-  
-  return users.get(authToken.userId);
-}
-
-// Variáveis para uso interno da API
