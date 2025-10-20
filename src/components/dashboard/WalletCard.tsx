@@ -43,6 +43,12 @@ export function WalletCard() {
 
         // Tentar usar API route como fallback
         try {
+          // ✅ CORREÇÃO: Verificar novamente se publicKey existe antes de usar
+          if (!publicKey) {
+            console.log('❌ [BALANCE] PublicKey não disponível no fallback');
+            return;
+          }
+
           console.log('🔄 [BALANCE] Tentando API route como fallback...');
           const response = await fetch('/api/wallet/balance', {
             method: 'POST',
@@ -91,8 +97,10 @@ export function WalletCard() {
 
     await toast.promise(
       (async () => {
+        // ✅ JÁ ESTÁ PROTEGIDO: publicKey foi verificado no início da função
         const signature = await sendTransaction(tx, connection);
         await connection.confirmTransaction(signature, 'confirmed');
+        
         // Atualiza saldo após confirmação
         const newLamports = await connection.getBalance(publicKey);
         setBalance((newLamports / LAMPORTS_PER_SOL).toFixed(4));
