@@ -47,7 +47,7 @@ Follow the steps below to set up and run the project in your local environment.
 1.  **Clone the repository:**
 
     ```bash
-    git clone [https://github.com/IvanVictor85/cryptofantasy-league.git](https://github.com/IvanVictor85/cryptofantasy-league.git)
+    git clone [https://github.com/IvanVictor85/marketfantasy-league.git](https://github.com/IvanVictor85/marketfantasy-league.git)
     cd cryptofantasy-league
     ```
 
