@@ -30,6 +30,8 @@ export interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<void>;
   // Novo método para atualizar o perfil do usuário
   updateUserProfile: (updates: Partial<User>) => void;
+  // Método para conectar carteira a usuário logado
+  connectWalletToUser: (publicKey: string) => Promise<any>;
   // Métodos para verificação de código
   sendVerificationCode: (email: string) => Promise<SendCodeResponse>;
   verifyCodeAndLogin: (email: string, code: string, name?: string) => Promise<void>;

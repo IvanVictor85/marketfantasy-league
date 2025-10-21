@@ -174,6 +174,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     try {
+      console.log('🔗 [WALLET-LOGIN] Iniciando login com carteira:', publicKey.toString());
+      
+      // VALIDAR NO BACKEND se carteira já está em uso
+      const response = await fetch('/api/wallet/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'wallet@temp.com', // Email temporário para validação
+          publicKey: publicKey.toString()
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 409) {
+          // Carteira em uso
+          console.error('❌ [WALLET-LOGIN] Carteira já em uso:', result);
+          throw new Error(result.error || 'Esta carteira já está conectada a outra conta');
+        }
+        throw new Error(result.error || 'Erro ao validar carteira');
+      }
+      
+      console.log('✅ [WALLET-LOGIN] Carteira validada com sucesso');
+      
       // TODO: Implement wallet signature verification
       const userData: User = {
         id: `wallet_${publicKey.toString()}`,
@@ -185,9 +210,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(userData);
       localStorage.setItem('mfl_user', JSON.stringify(userData));
+      
+      console.log('✅ [WALLET-LOGIN] Login concluído com sucesso');
     } catch (error) {
-      console.error('Wallet login error:', error);
-      throw new Error('Falha no login com carteira');
+      console.error('❌ [WALLET-LOGIN] Erro:', error);
+      throw new Error(error instanceof Error ? error.message : 'Falha no login com carteira');
     } finally {
       setIsLoading(false);
     }
@@ -256,6 +283,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Conecta carteira a um usuário já logado por email
+  const connectWalletToUser = async (publicKey: string) => {
+    if (!user || !user.email) {
+      throw new Error('Usuário não autenticado ou sem email');
+    }
+
+    try {
+      console.log('🔗 [CONNECT-WALLET-USER] Conectando carteira ao usuário:', {
+        userId: user.id,
+        email: user.email,
+        publicKey
+      });
+
+      // VALIDAR NO BACKEND se carteira já está em uso
+      const response = await fetch('/api/wallet/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          publicKey: publicKey
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 409) {
+          // Carteira em uso
+          console.error('❌ [CONNECT-WALLET-USER] Carteira já em uso:', result);
+          throw new Error(result.error || 'Esta carteira já está conectada a outra conta');
+        }
+        throw new Error(result.error || 'Erro ao conectar carteira');
+      }
+      
+      console.log('✅ [CONNECT-WALLET-USER] Carteira conectada com sucesso');
+      
+      // Atualizar usuário local com a carteira
+      const updatedUser = { ...user, walletAddress: publicKey };
+      setUser(updatedUser);
+      localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
+      
+      return result.user;
+    } catch (error) {
+      console.error('❌ [CONNECT-WALLET-USER] Erro:', error);
+      throw error;
+    }
+  };
+
   // Atualiza perfil do usuário no banco E localmente
   const updateUserProfile = async (updates: Partial<User>) => {
     if (!user) {
@@ -263,7 +338,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // 🔍 LOGS CRÍTICOS
+      console.log('🔐 [AUTH] updateUserProfile chamado');
+      console.log('🔐 [AUTH] User completo:', JSON.stringify(user, null, 2));
+      console.log('🔐 [AUTH] user.id:', user.id);
+      console.log('🔐 [AUTH] Tipo do user.id:', typeof user.id);
+      console.log('🔐 [AUTH] Updates:', JSON.stringify(updates, null, 2));
+      
       console.log('📝 [UPDATE-PROFILE] Atualizando perfil:', { userId: user.id, fields: Object.keys(updates) });
+
+      const payload = {
+        userId: user.id,
+        name: updates.name,
+        avatar: updates.avatar,
+        twitter: updates.twitter,
+        discord: updates.discord,
+        bio: updates.bio
+      };
+      
+      console.log('📡 [UPDATE-PROFILE] Payload enviado:', JSON.stringify(payload, null, 2));
 
       // 1. Salvar no banco via API
       const response = await fetch('/api/user/profile', {
@@ -271,19 +364,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId: user.id,
-          name: updates.name,
-          avatar: updates.avatar,
-          twitter: updates.twitter,
-          discord: updates.discord,
-          bio: updates.bio
-        })
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json();
+      
+      console.log('📡 [UPDATE-PROFILE] Status da resposta:', response.status);
+      console.log('📡 [UPDATE-PROFILE] Resposta da API:', JSON.stringify(result, null, 2));
 
       if (!response.ok) {
+        console.error('❌ [UPDATE-PROFILE] Erro na API:', result);
         throw new Error(result.error || 'Erro ao atualizar perfil');
       }
 
@@ -317,6 +407,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     register,
     updateUserProfile,
+    connectWalletToUser,
     sendVerificationCode,
     verifyCodeAndLogin
   };

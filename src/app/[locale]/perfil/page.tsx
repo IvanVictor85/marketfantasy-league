@@ -79,6 +79,14 @@ export default function PerfilPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // 🔍 LOGS CRÍTICOS
+    console.log('🔍 [PROFILE-FRONTEND] ===================');
+    console.log('🔍 [PROFILE-FRONTEND] User completo:', JSON.stringify(user, null, 2));
+    console.log('🔍 [PROFILE-FRONTEND] user.id:', user?.id);
+    console.log('🔍 [PROFILE-FRONTEND] Tipo:', typeof user?.id);
+    console.log('🔍 [PROFILE-FRONTEND] FormData:', { name, twitter, discord, bio });
+    console.log('🔍 [PROFILE-FRONTEND] ===================');
+    
     try {
       // Salva dados do perfil e mascote gerado (se houver)
       const profileData: any = { name, twitter, discord, bio };
@@ -86,11 +94,13 @@ export default function PerfilPage() {
         profileData.generatedMascot = generatedMascot;
       }
       
+      console.log('📡 [PROFILE-FRONTEND] ProfileData:', JSON.stringify(profileData, null, 2));
+      
       await updateUserProfile(profileData);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (error) {
-      console.error('Erro ao salvar perfil:', error);
+      console.error('❌ [PROFILE-FRONTEND] Erro:', error);
       // Você pode adicionar um estado de erro aqui se quiser mostrar uma mensagem de erro
       alert('Erro ao salvar perfil. Tente novamente.');
     }
