@@ -9,10 +9,39 @@ export async function POST(request: NextRequest) {
     console.log('🔗 [CONNECT-WALLET] Email:', email);
     console.log('🔗 [CONNECT-WALLET] PublicKey:', publicKey);
     
-    if (!email || !publicKey) {
+    if (!publicKey) {
       return NextResponse.json({ 
-        error: 'Email e publicKey são obrigatórios' 
+        error: 'PublicKey é obrigatório' 
       }, { status: 400 });
+    }
+    
+    // Se email não foi fornecido, é login direto com carteira
+    if (!email) {
+      console.log('🔗 [CONNECT-WALLET] Login direto com carteira');
+      
+      // Verificar se carteira já está conectada
+      const existingUser = await prisma.user.findUnique({
+        where: { publicKey }
+      });
+      
+      if (existingUser) {
+        console.log('✅ [CONNECT-WALLET] Carteira já conectada:', existingUser.email);
+        return NextResponse.json({ 
+          success: true, 
+          user: {
+            id: existingUser.id,
+            email: existingUser.email,
+            publicKey: existingUser.publicKey
+          }
+        });
+      }
+      
+      // Carteira não conectada - permitir login direto
+      return NextResponse.json({ 
+        success: true, 
+        user: null,
+        message: 'Carteira não conectada - pode fazer login direto'
+      });
     }
     
     // Buscar usuário pelo email

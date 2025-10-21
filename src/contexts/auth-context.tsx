@@ -110,6 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifyCodeAndLogin = async (email: string, code: string, name?: string) => {
     setIsLoading(true);
     try {
+      console.log('🔐 [VERIFY-CODE] Iniciando verificação:', { email, code, name });
+      
       const response = await fetch('/api/auth/verify-code', {
         method: 'POST',
         headers: {
@@ -119,23 +121,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const result = await response.json();
+      
+      console.log('📡 [VERIFY-CODE] Resposta da API:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Código inválido');
       }
 
+      // Usar o ID do usuário retornado pela API (que foi criado no banco)
       const userData: User = {
-        id: generateUserIdFromEmail(email),
-        email,
-        name: name || email.split('@')[0],
+        id: result.user.id, // ID real do banco de dados
+        email: result.user.email,
+        name: result.user.name || name || email.split('@')[0],
         loginMethod: 'email',
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
+        avatar: result.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+        walletAddress: result.user.publicKey
       };
+
+      console.log('✅ [VERIFY-CODE] Usuário criado/encontrado:', userData);
 
       setUser(userData);
       localStorage.setItem('mfl_user', JSON.stringify(userData));
+      
+      // Armazenar token de autenticação se fornecido
+      if (result.token) {
+        localStorage.setItem('auth-token', result.token);
+        console.log('🔑 [VERIFY-CODE] Token armazenado');
+      }
+      
     } catch (error) {
-      console.error('Verify code error:', error);
+      console.error('❌ [VERIFY-CODE] Erro:', error);
       throw new Error('Código inválido ou expirado.');
     } finally {
       setIsLoading(false);
@@ -181,7 +196,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: 'wallet@temp.com', // Email temporário para validação
           publicKey: publicKey.toString()
         })
       });
@@ -199,17 +213,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('✅ [WALLET-LOGIN] Carteira validada com sucesso');
       
-      // TODO: Implement wallet signature verification
-      const userData: User = {
-        id: `wallet_${publicKey.toString()}`,
-        walletAddress: publicKey.toString(),
-        name: `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`,
-        loginMethod: 'wallet',
-        avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`
-      };
+      // Se a carteira já está conectada a um usuário, usar os dados dele
+      if (result.user) {
+        console.log('✅ [WALLET-LOGIN] Carteira já conectada, usando dados existentes');
+        const userData: User = {
+          id: result.user.id,
+          email: result.user.email,
+          walletAddress: result.user.publicKey,
+          name: result.user.name || `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`,
+          loginMethod: 'wallet',
+          avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`
+        };
+        
+        setUser(userData);
+        localStorage.setItem('mfl_user', JSON.stringify(userData));
+      } else {
+        // Carteira nova - criar usuário temporário
+        console.log('✅ [WALLET-LOGIN] Carteira nova, criando usuário temporário');
+        const userData: User = {
+          id: `wallet_${publicKey.toString()}`,
+          walletAddress: publicKey.toString(),
+          name: `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`,
+          loginMethod: 'wallet',
+          avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`
+        };
 
-      setUser(userData);
-      localStorage.setItem('mfl_user', JSON.stringify(userData));
+        setUser(userData);
+        localStorage.setItem('mfl_user', JSON.stringify(userData));
+      }
       
       console.log('✅ [WALLET-LOGIN] Login concluído com sucesso');
     } catch (error) {
