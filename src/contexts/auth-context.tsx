@@ -52,24 +52,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    console.log('🚪 [LOGOUT] Iniciando logout:', { 
+      user: user?.email, 
+      loginMethod: user?.loginMethod, 
+      connected, 
+      publicKey: publicKey?.toString() 
+    });
+    
     setUser(null);
     localStorage.removeItem('mfl_user');
+    localStorage.removeItem('auth-token');
     
-    // If user was logged in with wallet, disconnect it
-    if (user?.loginMethod === 'wallet' && connected) {
+    // SEMPRE desconectar carteira no logout, independente do método de login
+    if (connected) {
+      console.log('🔌 [LOGOUT] Desconectando carteira:', publicKey?.toString());
       disconnect();
     }
-  }, [user?.loginMethod, connected, disconnect]);
+    
+    console.log('✅ [LOGOUT] Logout concluído');
+  }, [user?.email, user?.loginMethod, connected, publicKey, disconnect]);
 
   useEffect(() => {
-    // Handle wallet connection changes
+    console.log('🔄 [WALLET-CHANGE] Estado da carteira mudou:', { 
+      connected, 
+      publicKey: publicKey?.toString(), 
+      user: user?.email, 
+      loginMethod: user?.loginMethod 
+    });
+    
+    // Se carteira conectou e usuário está logado por wallet
     if (connected && publicKey && user?.loginMethod === 'wallet') {
+      console.log('✅ [WALLET-CHANGE] Atualizando endereço da carteira no usuário');
       setUser(prev => prev ? { ...prev, walletAddress: publicKey.toString() } : null);
-    } else if (!connected && user?.loginMethod === 'wallet') {
-      // If wallet disconnects, logout the user
+    } 
+    // Se carteira desconectou e usuário estava logado por wallet
+    else if (!connected && user?.loginMethod === 'wallet') {
+      console.log('🚪 [WALLET-CHANGE] Carteira desconectada - fazendo logout');
       logout();
     }
-  }, [connected, publicKey, user?.loginMethod, logout]);
+    // Se carteira conectou mas usuário está logado por email
+    else if (connected && publicKey && user?.loginMethod === 'email') {
+      console.log('⚠️ [WALLET-CHANGE] Carteira conectada mas usuário logado por email - validando...');
+      // Validar se carteira já está em uso por outro usuário
+      connectWalletToUser(publicKey.toString()).catch(error => {
+        console.error('❌ [WALLET-CHANGE] Erro ao conectar carteira:', error);
+        // Se erro 409, desconectar carteira
+        if (error.message.includes('já está conectada')) {
+          disconnect();
+        }
+      });
+    }
+  }, [connected, publicKey, user?.loginMethod, user?.email, logout, disconnect]);
 
   const sendVerificationCode = async (email: string): Promise<SendCodeResponse> => {
     try {
@@ -227,6 +260,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         setUser(userData);
         localStorage.setItem('mfl_user', JSON.stringify(userData));
+        
+        // Armazenar token se fornecido
+        if (result.token) {
+          localStorage.setItem('auth-token', result.token);
+        }
       } else {
         // Carteira nova - criar usuário temporário
         console.log('✅ [WALLET-LOGIN] Carteira nova, criando usuário temporário');

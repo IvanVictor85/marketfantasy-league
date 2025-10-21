@@ -44,11 +44,8 @@ export function LanguageSelector() {
     console.log('🌍 LanguageSelector: New path', { currentPath, newPath });
 
     startTransition(() => {
-      router.push(newPath);
-      // Aguardar um frame antes de refresh para garantir navegação
-      setTimeout(() => {
-        router.refresh();
-      }, 100);
+      // Forçar navegação completa para garantir mudança de idioma
+      window.location.href = newPath;
     });
   };
 

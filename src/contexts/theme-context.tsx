@@ -19,9 +19,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Carrega o tema do localStorage na inicialização
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     
-    setTheme(savedTheme || systemTheme);
+    // SEMPRE usar light como padrão, ignorando preferência do sistema
+    setTheme(savedTheme || 'light');
     setMounted(true);
   }, []);
 
