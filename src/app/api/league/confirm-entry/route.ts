@@ -9,12 +9,65 @@ const confirmEntrySchema = z.object({
   leagueId: z.string().optional()
 })
 
+// Função para obter o usuário autenticado
+async function getUserFromRequest(request: NextRequest): Promise<string | null> {
+  try {
+    const token = request.cookies.get('auth-token')?.value ||
+                  request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      return null;
+    }
+
+    const authToken = await prisma.authToken.findUnique({
+      where: { token },
+      include: { user: true }
+    });
+
+    if (!authToken || authToken.expiresAt < new Date()) {
+      return null;
+    }
+
+    return authToken.userId;
+  } catch (error) {
+    console.error('❌ [AUTH] Erro ao obter usuário:', error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 SEGURANÇA: Obter userId do usuário autenticado
+    const userId = await getUserFromRequest(request);
+
+    if (!userId) {
+      console.error('❌ [CONFIRM-ENTRY] Usuário não autenticado');
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // 🔒 SEGURANÇA: Buscar a carteira do usuário no banco (fonte confiável)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { publicKey: true, email: true }
+    });
+
+    if (!user || !user.publicKey) {
+      console.error('❌ [CONFIRM-ENTRY] Usuário sem carteira vinculada');
+      return NextResponse.json(
+        { error: 'Você precisa conectar uma carteira antes de confirmar entrada' },
+        { status: 400 }
+      );
+    }
+
+    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco, não do cliente!
+
     const body = await request.json()
     console.log('🔍 [CONFIRM-ENTRY] Request body:', body)
     
-    const { userWallet, transactionHash, leagueId } = confirmEntrySchema.parse(body)
+    const { transactionHash, leagueId } = confirmEntrySchema.parse(body)
     console.log('🔍 [CONFIRM-ENTRY] Parsed data:', { userWallet, transactionHash, leagueId })
 
     // Get Main League if no specific league ID provided
@@ -40,12 +93,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if entry already exists
-    const existingEntry = await prisma.leagueEntry.findUnique({
+    const existingEntry = await prisma.leagueEntry.findFirst({
       where: {
-        leagueId_userWallet: {
-          leagueId: league.id,
-          userWallet: userWallet
-        }
+        userId: userId,
+        leagueId: league.id,
+        status: 'CONFIRMED'
       }
     })
 
@@ -138,6 +190,7 @@ export async function POST(request: NextRequest) {
     // Create or update entry record
     const entryData = {
       leagueId: league.id,
+      userId: userId,
       userWallet: userWallet,
       transactionHash: transactionHash,
       amountPaid: league.entryFee,
@@ -149,10 +202,7 @@ export async function POST(request: NextRequest) {
     if (existingEntry) {
       entry = await prisma.leagueEntry.update({
         where: {
-          leagueId_userWallet: {
-            leagueId: league.id,
-            userWallet: userWallet
-          }
+          id: existingEntry.id
         },
         data: entryData
       })
@@ -174,7 +224,7 @@ export async function POST(request: NextRequest) {
     // Update user's team to mark as having valid entry
     await prisma.team.updateMany({
       where: {
-        userWallet: userWallet,
+        userId: userId,
         leagueId: league.id
       },
       data: {
