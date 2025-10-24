@@ -133,12 +133,11 @@ export async function POST(request: NextRequest) {
       })
 
       if (mainLeague) {
-        const mainLeagueEntry = await prisma.leagueEntry.findUnique({
+        const mainLeagueEntry = await prisma.leagueEntry.findFirst({
           where: {
-            leagueId_userWallet: {
-              leagueId: mainLeague.id,
-              userWallet: userWallet
-            }
+            userId: userId,
+            leagueId: mainLeague.id,
+            status: 'CONFIRMED'
           }
         })
 
