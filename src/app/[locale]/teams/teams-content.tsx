@@ -29,7 +29,8 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  Clock
 } from 'lucide-react';
 
 // Mock data para ligas
