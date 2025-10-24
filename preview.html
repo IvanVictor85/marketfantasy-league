@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Fantasy League - Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.400.0/lucide.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .hero-bg {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect fill="%236341f4" width="1200" height="600"/><circle fill="%23a855f7" cx="200" cy="150" r="100" opacity="0.3"/><circle fill="%23ec4899" cx="1000" cy="450" r="150" opacity="0.2"/><circle fill="%23f59e0b" cx="600" cy="300" r="80" opacity="0.4"/></svg>');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg"></div>
+                <h1 class="text-2xl font-bold text-gray-800">Market Fantasy League</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="loginBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                    Login
+                </button>
+                <button id="connectWallet" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                    Conectar Carteira
+                </button>
+                <button id="languageBtn" class="text-gray-600 hover:text-gray-800">PT</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Modal de Login -->
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Entrar na Conta</h2>
+                <button id="closeLoginModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="emailInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="seu@email.com">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
+                    <input type="password" id="passwordInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Sua senha">
+                </div>
+                
+                <button id="submitLogin" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-medium transition">
+                    Entrar
+                </button>
+                
+                <div class="text-center">
+                    <p class="text-gray-600 text-sm">Ou</p>
+                </div>
+                
+                <button id="loginWithWallet" class="w-full bg-gray-800 hover:bg-gray-900 text-white py-3 rounded-lg font-medium transition">
+                    Entrar com Carteira
+                </button>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    Não tem conta? <button id="showRegister" class="text-purple-600 hover:text-purple-700 font-medium">Criar conta</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Perfil do Usuário -->
+    <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Perfil do Usuário</h2>
+                <button id="closeProfileModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-gray-800 mb-2">👤 Informações da Conta</h3>
+                    <p><strong>Email:</strong> <span id="userEmail">pretimaoairdrops@gmail.com</span></p>
+                    <p><strong>Carteira Vinculada:</strong> <span id="profileWalletAddress" class="font-mono text-sm">H2312uRYYfSFsKiJeMwSriv6F7iEBkWxtPQCV6ArRAjT</span></p>
+                </div>
+                
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-yellow-800 mb-2">🔒 Sistema de Segurança</h3>
+                    <p class="text-sm text-yellow-700 mb-3">
+                        Esta carteira está vinculada ao seu perfil. Se você conectar uma carteira diferente na sua extensão (Phantom/Solflare), o sistema detectará a incompatibilidade e bloqueará ações inseguras.
+                    </p>
+                    <div class="flex gap-2">
+                        <button id="simulateCompatible" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                            Simular Carteira Compatível
+                        </button>
+                        <button id="simulateIncompatible" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
+                            Simular Carteira Incompatível
+                        </button>
+                    </div>
+                </div>
+                
+                <button id="logoutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-medium transition">
+                    Sair da Conta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero-bg py-20 text-white text-center">
+        <div class="container mx-auto px-4">
+            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 drop-shadow-lg">
+                O Fantasy Game do <span class="text-yellow-400">Universo Cripto</span>
+            </h1>
+            <p class="text-xl md:text-2xl max-w-4xl mx-auto mb-8 drop-shadow-md">
+                Desafie seus amigos e sua comunidade favorita. Monte seu time de cripto e conquiste prêmios reais em ligas seguras e 100% on-chain.
+            </p>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4">
+                <button id="startPlaying" class="bg-yellow-500 hover:bg-yellow-600 text-black text-lg px-8 py-6 rounded-xl shadow-xl font-bold">
+                    Começar a Jogar →
+                </button>
+                <button id="viewDashboard" class="bg-transparent border-2 border-white text-white hover:bg-white/10 text-lg px-8 py-6 rounded-xl font-medium">
+                    Ver Dashboard
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Como Funciona -->
+    <section class="py-20 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <h2 class="text-4xl font-bold text-center text-gray-800 mb-12">
+                Jogue em Apenas 3 Passos
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center hover:transform hover:scale-105 transition">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl">₿</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">1. Monte seu Time</h3>
+                    <p class="text-gray-600">Selecione até 5 criptomoedas para formar seu time dos sonhos baseado nas suas análises e estratégias.</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center hover:transform hover:scale-105 transition">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl">🏆</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">2. Entre em uma Liga</h3>
+                    <p class="text-gray-600">Escolha entre ligas gratuitas ou pagas e compita contra outros jogadores por prêmios reais em cripto.</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center hover:transform hover:scale-105 transition">
+                    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl">🎁</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">3. Ganhe Prêmios</h3>
+                    <p class="text-gray-600">Acompanhe o desempenho do seu time e ganhe prêmios baseados na performance das criptomoedas escolhidas.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Preview -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-4xl font-bold text-center text-gray-800 mb-12">
+                Dashboard do Jogador
+            </h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Carteira -->
+                <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
+                    <h3 class="text-2xl font-bold mb-4">💰 Carteira</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span>Saldo Total:</span>
+                            <span class="font-bold">0.005 SOL</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Depositado:</span>
+                            <span class="font-bold">0.002 SOL</span>
+                        </div>
+                        <button id="depositBtn" class="w-full bg-white/20 hover:bg-white/30 text-white py-2 rounded-lg transition">
+                            Depositar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time Atual -->
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-2xl font-bold mb-4 text-gray-800">⚽ Time Atual</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center bg-white p-3 rounded-lg">
+                            <span class="font-medium">BTC</span>
+                            <span class="text-green-600">+2.5%</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-white p-3 rounded-lg">
+                            <span class="font-medium">ETH</span>
+                            <span class="text-red-600">-1.2%</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-white p-3 rounded-lg">
+                            <span class="font-medium">SOL</span>
+                            <span class="text-green-600">+5.8%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Liga Principal -->
+    <section class="py-20 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <h2 class="text-4xl font-bold text-center text-gray-800 mb-12">
+                Liga Principal
+            </h2>
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                <span class="text-2xl">🏆</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold">Liga Principal CryptoFantasy</h3>
+                                <p class="text-gray-600">Competição mensal de tokens</p>
+                            </div>
+                        </div>
+                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                            Oficial
+                        </span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="text-center">
+                            <p class="text-gray-600">Entrada:</p>
+                            <p class="text-xl font-bold">0.005 SOL</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-600">Prêmio Total:</p>
+                            <p class="text-xl font-bold text-purple-600">0.01 SOL</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-600">Participantes:</p>
+                            <p class="text-xl font-bold">0</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-600">Tempo Restante:</p>
+                            <p class="text-xl font-bold">7d 12h</p>
+                        </div>
+                    </div>
+
+                    <button id="enterLeague" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-medium transition">
+                        Entrar na Liga (0.005 SOL)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sistema de Segurança -->
+    <section class="py-20 bg-red-50">
+        <div class="container mx-auto px-4">
+            <h2 class="text-4xl font-bold text-center text-red-800 mb-12">
+                🚨 Sistema de Segurança Ativo
+            </h2>
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-6 border-2 border-red-200">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <span class="text-2xl">⚠️</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-red-800">Modo de Depuração Ativo</h3>
+                            <p class="text-gray-600">Sistema de detecção de incompatibilidade de carteira</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-yellow-800 mb-2">🔍 Logs de Depuração:</h4>
+                            <ul class="text-sm text-yellow-700 space-y-1">
+                                <li>• <code>useAppWalletStatus</code> - Monitorando mudanças de carteira</li>
+                                <li>• <code>useGuardedActionHook</code> - Bloqueando ações incompatíveis</li>
+                                <li>• <code>MainLeagueCard</code> - Interceptando cliques de transação</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-red-800 mb-2">🛡️ Proteções Ativas:</h4>
+                            <ul class="text-sm text-red-700 space-y-1">
+                                <li>• Detecção automática de carteira incompatível</li>
+                                <li>• Bloqueio de transações com carteira errada</li>
+                                <li>• Alertas visuais no header</li>
+                                <li>• Prevenção de criação de dados duplicados</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4 text-center">
+            <div class="flex items-center justify-center space-x-2 mb-4">
+                <div class="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg"></div>
+                <h3 class="text-2xl font-bold">Market Fantasy League</h3>
+            </div>
+            <p class="text-gray-400 mb-4">
+                O fantasy game do universo cripto - Seguro, transparente e divertido
+            </p>
+            <div class="text-sm text-gray-500">
+                <p>🚨 <strong>Status:</strong> Modo de depuração ativo - Sistema de segurança funcionando</p>
+                <p>🔧 <strong>Problema:</strong> Incompatibilidade de versão Node.js (requer >= 20.9.0, atual: 18.18.0)</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Interativo -->
+    <script>
+        // Estado da aplicação
+        let isLoggedIn = false;
+        let isWalletConnected = false;
+        let currentLanguage = 'PT';
+        let profileWalletAddress = 'H2312uRYYfSFsKiJeMwSriv6F7iEBkWxtPQCV6ArRAjT'; // Carteira do perfil
+        let connectedWalletAddress = null; // Carteira conectada na extensão
+        let isMismatched = false;
+        let userEmail = 'pretimaoairdrops@gmail.com';
+
+        // Elementos do DOM
+        const loginBtn = document.getElementById('loginBtn');
+        const connectWalletBtn = document.getElementById('connectWallet');
+        const languageBtn = document.getElementById('languageBtn');
+        const startPlayingBtn = document.getElementById('startPlaying');
+        const viewDashboardBtn = document.getElementById('viewDashboard');
+        const depositBtn = document.getElementById('depositBtn');
+        const enterLeagueBtn = document.getElementById('enterLeague');
+        
+        // Modais
+        const loginModal = document.getElementById('loginModal');
+        const profileModal = document.getElementById('profileModal');
+        const closeLoginModal = document.getElementById('closeLoginModal');
+        const closeProfileModal = document.getElementById('closeProfileModal');
+        const submitLogin = document.getElementById('submitLogin');
+        const loginWithWallet = document.getElementById('loginWithWallet');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const simulateCompatible = document.getElementById('simulateCompatible');
+        const simulateIncompatible = document.getElementById('simulateIncompatible');
+
+        // Função para mostrar notificação
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'error' ? 'bg-red-500 text-white' :
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'warning' ? 'bg-yellow-500 text-black' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Função para verificar incompatibilidade de carteira
+        function checkWalletMismatch() {
+            if (!isLoggedIn || !isWalletConnected) {
+                isMismatched = false;
+                return;
+            }
+            
+            // Simular duas cenários: carteira compatível e incompatível
+            // Para demonstração, vamos simular carteira compatível primeiro
+            const scenarios = [
+                { wallet: profileWalletAddress, compatible: true }, // Carteira correta
+                { wallet: '3GLFWDvTtxdmq6rSRFfeYExYVfpL5PTBR6LpfNq2eeFw', compatible: false } // Carteira diferente
+            ];
+            
+            // Simular cenário baseado no tempo
+            const now = Date.now();
+            const scenarioIndex = Math.floor(now / 10000) % 2; // Muda a cada 10 segundos
+            const scenario = scenarios[scenarioIndex];
+            
+            connectedWalletAddress = scenario.wallet;
+            isMismatched = !scenario.compatible;
+            
+            if (isMismatched) {
+                showNotification('🚨 Carteira Incompatível Detectada!', 'warning');
+                connectWalletBtn.innerHTML = '⚠️ Carteira Incompatível';
+                connectWalletBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-yellow-900 px-4 py-2 rounded-lg transition';
+                
+                console.warn('🚨 WALLET MISMATCH DETECTED:', {
+                    profileWallet: profileWalletAddress,
+                    connectedWallet: connectedWalletAddress,
+                    isAuthenticated: isLoggedIn,
+                    isLoading: false
+                });
+            } else {
+                showNotification('✅ Carteira Compatível!', 'success');
+                connectWalletBtn.innerHTML = '🔗 ' + profileWalletAddress.slice(0, 8) + '...';
+                connectWalletBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition';
+                
+                console.log('✅ WALLET COMPATIBLE:', {
+                    profileWallet: profileWalletAddress,
+                    connectedWallet: connectedWalletAddress,
+                    isAuthenticated: isLoggedIn,
+                    isLoading: false
+                });
+            }
+        }
+
+        // Função para atualizar interface baseada no estado de login
+        function updateUI() {
+            if (isLoggedIn) {
+                loginBtn.innerHTML = '👤 ' + userEmail.split('@')[0];
+                loginBtn.className = 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition';
+                loginBtn.onclick = () => profileModal.classList.remove('hidden');
+            } else {
+                loginBtn.innerHTML = 'Login';
+                loginBtn.className = 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition';
+                loginBtn.onclick = () => loginModal.classList.remove('hidden');
+            }
+        }
+
+        // Event Listeners
+        loginBtn.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                loginModal.classList.remove('hidden');
+            } else {
+                profileModal.classList.remove('hidden');
+            }
+        });
+
+        closeLoginModal.addEventListener('click', () => {
+            loginModal.classList.add('hidden');
+        });
+
+        closeProfileModal.addEventListener('click', () => {
+            profileModal.classList.add('hidden');
+        });
+
+        submitLogin.addEventListener('click', () => {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            
+            if (email && password) {
+                isLoggedIn = true;
+                userEmail = email;
+                loginModal.classList.add('hidden');
+                updateUI();
+                showNotification('Login realizado com sucesso!', 'success');
+                
+                console.log('🔍 [AUTH] Usuário logado:', {
+                    email: userEmail,
+                    profileWallet: profileWalletAddress,
+                    isAuthenticated: true
+                });
+            } else {
+                showNotification('Preencha email e senha!', 'warning');
+            }
+        });
+
+        loginWithWallet.addEventListener('click', () => {
+            showNotification('Conecte sua carteira primeiro!', 'info');
+            loginModal.classList.add('hidden');
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            isLoggedIn = false;
+            isWalletConnected = false;
+            isMismatched = false;
+            connectedWalletAddress = null;
+            profileModal.classList.add('hidden');
+            updateUI();
+            
+            connectWalletBtn.innerHTML = 'Conectar Carteira';
+            connectWalletBtn.className = 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition';
+            
+            showNotification('Logout realizado com sucesso!', 'info');
+            
+            console.log('🔍 [AUTH] Usuário deslogado');
+        });
+
+        simulateCompatible.addEventListener('click', () => {
+            if (!isLoggedIn || !isWalletConnected) {
+                showNotification('Faça login e conecte uma carteira primeiro!', 'warning');
+                return;
+            }
+            
+            connectedWalletAddress = profileWalletAddress; // Mesma carteira do perfil
+            isMismatched = false;
+            
+            showNotification('✅ Carteira Compatível Simulada!', 'success');
+            connectWalletBtn.innerHTML = '🔗 ' + profileWalletAddress.slice(0, 8) + '...';
+            connectWalletBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition';
+            
+            console.log('✅ WALLET COMPATIBLE SIMULATED:', {
+                profileWallet: profileWalletAddress,
+                connectedWallet: connectedWalletAddress,
+                isAuthenticated: isLoggedIn,
+                isLoading: false
+            });
+        });
+
+        simulateIncompatible.addEventListener('click', () => {
+            if (!isLoggedIn || !isWalletConnected) {
+                showNotification('Faça login e conecte uma carteira primeiro!', 'warning');
+                return;
+            }
+            
+            connectedWalletAddress = '3GLFWDvTtxdmq6rSRFfeYExYVfpL5PTBR6LpfNq2eeFw'; // Carteira diferente
+            isMismatched = true;
+            
+            showNotification('🚨 Carteira Incompatível Simulada!', 'warning');
+            connectWalletBtn.innerHTML = '⚠️ Carteira Incompatível';
+            connectWalletBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-yellow-900 px-4 py-2 rounded-lg transition';
+            
+            console.warn('🚨 WALLET MISMATCH SIMULATED:', {
+                profileWallet: profileWalletAddress,
+                connectedWallet: connectedWalletAddress,
+                isAuthenticated: isLoggedIn,
+                isLoading: false
+            });
+        });
+
+        connectWalletBtn.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                showNotification('Faça login primeiro!', 'warning');
+                return;
+            }
+            
+            if (!isWalletConnected) {
+                isWalletConnected = true;
+                showNotification('Carteira conectada com sucesso!', 'success');
+                
+                // Simular detecção de incompatibilidade após 2 segundos
+                setTimeout(checkWalletMismatch, 2000);
+            } else {
+                isWalletConnected = false;
+                isMismatched = false;
+                connectWalletBtn.innerHTML = 'Conectar Carteira';
+                connectWalletBtn.className = 'bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition';
+                showNotification('Carteira desconectada', 'info');
+            }
+        });
+
+        languageBtn.addEventListener('click', () => {
+            currentLanguage = currentLanguage === 'PT' ? 'EN' : 'PT';
+            languageBtn.textContent = currentLanguage;
+            showNotification(`Idioma alterado para ${currentLanguage}`, 'info');
+        });
+
+        startPlayingBtn.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                showNotification('Faça login primeiro!', 'warning');
+                return;
+            }
+            if (!isWalletConnected) {
+                showNotification('Conecte uma carteira primeiro!', 'warning');
+                return;
+            }
+            if (isMismatched) {
+                showNotification('🚨 AÇÃO BLOQUEADA: Carteira incompatível!', 'error');
+                return;
+            }
+            showNotification('Redirecionando para criação de time...', 'success');
+        });
+
+        viewDashboardBtn.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                showNotification('Faça login primeiro!', 'warning');
+                return;
+            }
+            showNotification('Abrindo dashboard...', 'info');
+        });
+
+        depositBtn.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                showNotification('Faça login primeiro!', 'warning');
+                return;
+            }
+            if (!isWalletConnected) {
+                showNotification('Conecte uma carteira primeiro!', 'warning');
+                return;
+            }
+            if (isMismatched) {
+                showNotification('🚨 AÇÃO BLOQUEADA: Carteira incompatível!', 'error');
+                return;
+            }
+            showNotification('Abrindo modal de depósito...', 'info');
+        });
+
+        enterLeagueBtn.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                showNotification('Faça login primeiro!', 'warning');
+                return;
+            }
+            if (!isWalletConnected) {
+                showNotification('Conecte uma carteira primeiro!', 'warning');
+                return;
+            }
+            if (isMismatched) {
+                showNotification('🚨 AÇÃO BLOQUEADA: Carteira incompatível!', 'error');
+                return;
+            }
+            showNotification('Processando entrada na liga...', 'success');
+        });
+
+        // Inicializar interface
+        updateUI();
+
+        // Simular logs de depuração no console
+        console.log('🔍 [useAppWalletStatus] ATUALIZOU:', {
+            profileWallet: null, // Sem login ainda
+            connectedWallet: null,
+            isProfileLoading: false,
+            isMismatched: false
+        });
+
+        // Simulação automática removida - use os botões no modal de perfil
+
+        // Inicializar ícones Lucide
+        lucide.createIcons();
+    </script>
+</body>
+</html>

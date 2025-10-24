@@ -34,6 +34,12 @@ export function Header() {
               Dashboard
             </LocalizedLink>
             <LocalizedLink 
+              href="/ranking" 
+              className="text-white hover:text-orange-100 transition-colors font-medium"
+            >
+              Ranking
+            </LocalizedLink>
+            <LocalizedLink 
                 href="/ligas" 
                 className="text-white hover:text-orange-100 transition-colors font-medium"
               >
@@ -113,6 +119,13 @@ export function Header() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Dashboard
+              </LocalizedLink>
+              <LocalizedLink 
+                href="/ranking" 
+                className="text-white hover:text-orange-100 transition-colors font-medium py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Ranking
               </LocalizedLink>
               <LocalizedLink 
                 href="/leagues" 

@@ -3,16 +3,47 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 
 const testEntrySchema = z.object({
-  userWallet: z.string().min(32, 'Invalid wallet address'),
   leagueId: z.string().optional()
 })
+
+async function getUserFromRequest(request: NextRequest): Promise<string | null> {
+  try {
+    // Try to get from Authorization header first
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const authToken = await prisma.authToken.findUnique({
+        where: { token },
+        include: { user: true }
+      });
+      
+      if (authToken && authToken.expiresAt > new Date()) {
+        return authToken.userId;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting user from request:', error);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userWallet, leagueId } = testEntrySchema.parse(body)
+    const { leagueId } = testEntrySchema.parse(body)
 
-    console.log('🧪 [TEST-ENTRY] Criando entrada de teste para:', userWallet)
+    // Get userId from authentication
+    const userId = await getUserFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    console.log('🧪 [TEST-ENTRY] Criando entrada de teste para userId:', userId)
 
     // Get Main League if no specific league ID provided
     let league
@@ -37,12 +68,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if entry already exists
-    const existingEntry = await prisma.leagueEntry.findUnique({
+    const existingEntry = await prisma.leagueEntry.findFirst({
       where: {
-        leagueId_userWallet: {
-          leagueId: league.id,
-          userWallet: userWallet
-        }
+        userId: userId,
+        leagueId: league.id
       }
     })
 
@@ -58,10 +87,24 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Get user's wallet address from database
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { publicKey: true }
+    });
+
+    if (!user || !user.publicKey) {
+      return NextResponse.json(
+        { error: 'Usuário sem carteira vinculada' },
+        { status: 400 }
+      );
+    }
+
     // Create test entry (bypass on-chain verification)
     const entryData = {
       leagueId: league.id,
-      userWallet: userWallet,
+      userId: userId,
+      userWallet: user.publicKey,
       transactionHash: `TEST_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       amountPaid: league.entryFee,
       status: 'CONFIRMED' as const,
@@ -71,12 +114,7 @@ export async function POST(request: NextRequest) {
     let entry
     if (existingEntry) {
       entry = await prisma.leagueEntry.update({
-        where: {
-          leagueId_userWallet: {
-            leagueId: league.id,
-            userWallet: userWallet
-          }
-        },
+        where: { id: existingEntry.id },
         data: entryData
       })
     } else {
@@ -97,7 +135,7 @@ export async function POST(request: NextRequest) {
     // Update user's team to mark as having valid entry
     await prisma.team.updateMany({
       where: {
-        userWallet: userWallet,
+        userId: userId,
         leagueId: league.id
       },
       data: {

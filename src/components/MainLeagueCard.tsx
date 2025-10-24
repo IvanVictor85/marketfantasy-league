@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Trophy, Users, Coins, Clock, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useAppWalletStatus } from '@/hooks/useAppWalletStatus';
+import { useGuardedActionHook } from '@/hooks/useGuardedActionHook';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { LocalizedLink } from '@/components/ui/localized-link';
+import { useAuth } from '@/contexts/auth-context';
 import { useLocaleNavigation } from '@/hooks/useLocaleNavigation';
 
 interface MainLeagueData {
@@ -40,7 +42,9 @@ interface EntryStatus {
 }
 
 export function MainLeagueCard() {
-  const { publicKey, connected, sendTransaction } = useWallet();
+  const { publicKey, connected, sendTransaction, isMismatched, canExecuteAction } = useGuardedActionHook();
+  const { profileWallet, isProfileLoading } = useAppWalletStatus();
+  const { user, isAuthenticated } = useAuth();
   const { setVisible } = useWalletModal();
   const { push } = useLocaleNavigation();
   
@@ -131,10 +135,14 @@ export function MainLeagueCard() {
   };
 
   const checkEntryStatus = useCallback(async () => {
-    if (!publicKey || !leagueData) return;
+    // 🔒 CORREÇÃO CRÍTICA: Usar carteira do perfil, não a carteira conectada
+    if (!profileWallet || !leagueData) {
+      console.log('🔍 MainLeagueCard: Não verificando entrada - sem carteira do perfil ou dados da liga');
+      return;
+    }
 
     // 🛡️ SAFEGUARD 1: Prevent duplicate calls
-    const checkKey = `${publicKey.toString()}-${leagueData.id}`;
+    const checkKey = `${profileWallet}-${leagueData.id}`;
     if (checkInProgressRef.current || lastCheckRef.current === checkKey) {
       console.log('🛡️ SAFEGUARD: Chamada duplicada bloqueada (MainLeagueCard)', { checkKey, inProgress: checkInProgressRef.current });
       return;
@@ -142,7 +150,7 @@ export function MainLeagueCard() {
 
     console.log('🔍 MainLeagueCard: Verificando entrada na liga', {
       timestamp: new Date().toISOString(),
-      wallet: publicKey.toString(),
+      profileWallet, // ✅ Usando carteira do perfil
       leagueId: leagueData.id
     });
 
@@ -153,9 +161,11 @@ export function MainLeagueCard() {
     try {
       const response = await fetch('/api/league/check-entry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
         body: JSON.stringify({ 
-          userWallet: publicKey.toString(),
           leagueId: leagueData.id 
         })
       });
@@ -179,16 +189,16 @@ export function MainLeagueCard() {
       // 🛡️ SAFEGUARD 3: Release lock after completion
       checkInProgressRef.current = false;
     }
-  }, [publicKey, leagueData, setEntryStatus, setLeagueData]);
+  }, [profileWallet, leagueData, setEntryStatus, setLeagueData]);
 
   // Fetch league data
   useEffect(() => {
     fetchLeagueData();
   }, []);
 
-  // Check entry status when wallet connects (with debounce)
+  // Check entry status when profile wallet changes (with debounce)
   useEffect(() => {
-    if (connected && publicKey && leagueData) {
+    if (profileWallet && leagueData && !isProfileLoading) {
       const timeoutId = setTimeout(() => {
         checkEntryStatus();
       }, 500); // 500ms debounce
@@ -196,13 +206,40 @@ export function MainLeagueCard() {
       return () => clearTimeout(timeoutId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected, publicKey, leagueData]);
+  }, [profileWallet, leagueData, isProfileLoading]);
 
   const handleConnectWallet = () => {
     setVisible(true);
   };
 
   const handleEnterLeague = async () => {
+    // --- INÍCIO DO BLOCO DE DEBUG ---
+    const debugState = {
+      hook: 'useGuardedActionHook',
+      mismatched: isMismatched, // vindo do useGuardedActionHook
+      canExecute: canExecuteAction(), // vindo do useGuardedActionHook
+      profile: profileWallet, // vindo do useAppWalletStatus
+      connected: publicKey?.toString(), // vindo do useGuardedActionHook
+    };
+
+    console.error(
+      '🚨🚨🚨 AÇÃO DE TRANSAÇÃO DISPARADA! 🚨🚨🚨',
+      debugState
+    );
+
+    alert(
+      '🚨 AÇÃO INTERCEPTADA 🚨\n\n' +
+      'Uma transação está prestes a começar.\n' +
+      'Verifique o console (F12) para ver o "debugState".\n\n' +
+      `IS MISMATCHED: ${debugState.mismatched}`
+    );
+    // --- FIM DO BLOCO DE DEBUG ---
+
+    // Verificar se pode executar a ação
+    if (!canExecuteAction()) {
+      return;
+    }
+
     if (!connected || !publicKey || !leagueData) {
       handleConnectWallet();
       return;
@@ -310,9 +347,11 @@ export function MainLeagueCard() {
       // TEMPORÁRIO: Usar endpoint de teste para bypass da verificação on-chain
       const confirmResponse = await fetch('/api/league/test-entry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
         body: JSON.stringify({
-          userWallet: publicKey.toString(),
           leagueId: leagueData?.id
         })
       });
@@ -467,7 +506,7 @@ export function MainLeagueCard() {
         </div>
 
         {/* Entry Status */}
-        {connected && entryStatus?.hasPaid && (
+        {entryStatus?.hasPaid && !isMismatched && (
           <Alert className="mb-4 border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
@@ -512,7 +551,7 @@ export function MainLeagueCard() {
           >
             Conectar Carteira
           </Button>
-        ) : entryStatus?.hasPaid ? (
+        ) : entryStatus?.hasPaid && !isMismatched ? (
           <Button 
             asChild
             className="w-full bg-green-600 hover:bg-green-700 text-white"
@@ -520,6 +559,13 @@ export function MainLeagueCard() {
             <LocalizedLink href="/teams?league=main">
               Ver Meu Time
             </LocalizedLink>
+          </Button>
+        ) : isMismatched ? (
+          <Button 
+            disabled
+            className="w-full bg-red-600 text-white cursor-not-allowed"
+          >
+            Carteira Incompatível
           </Button>
         ) : (
           <Button 

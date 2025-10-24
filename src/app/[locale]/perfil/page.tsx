@@ -149,19 +149,38 @@ export default function PerfilPage() {
     }
   };
 
-  const handleSaveMascot = () => {
-    if (generatedMascot) {
-      // Usar ID do usuário se autenticado, senão usar ID padrão
-      const userId = user?.id || 'user-1';
-      const key = `savedMascot_${userId}`;
-      
+  const handleSaveMascot = async () => {
+    if (generatedMascot && user) {
       try {
+        // 1. Salvar no banco de dados via API
+        const response = await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            avatar: generatedMascot.imageUrl
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao salvar mascote no banco');
+        }
+
+        // 2. Salvar no localStorage também
+        const key = `savedMascot_${user.id}`;
         localStorage.setItem(key, JSON.stringify(generatedMascot));
+        
+        // 3. Atualizar estado local
         setSavedMascot(generatedMascot);
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
+        
+        console.log('✅ Mascote salvo no banco e localStorage');
       } catch (error) {
-        console.error('Erro ao salvar no localStorage:', error);
+        console.error('Erro ao salvar mascote:', error);
+        alert('Erro ao salvar mascote. Tente novamente.');
       }
     }
   };

@@ -38,7 +38,7 @@ import {
   ShoppingCart,
   Plus
 } from 'lucide-react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useGuardedActionHook } from '@/hooks/useGuardedActionHook';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { getConnectionSync, formatSolAmount, solToLamports } from '@/lib/solana/connection';
 
@@ -182,8 +182,8 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
   selectedTeamData: { league: League | null, team: LeagueTeam | MainTeam | null, isMainTeam: boolean },
   savedMascot: SavedMascot | null
 }) => {
-  const wallet = useWallet();
-  const { publicKey, connected } = wallet;
+  const wallet = useGuardedActionHook();
+  const { publicKey, connected, canExecuteAction } = wallet;
   const { setTransactionActive } = useTransactionState();
   const [balance, setBalance] = useState<number | null>(null);
   const [isDepositing, setIsDepositing] = useState(false);
@@ -410,7 +410,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
     } finally {
       setIsDepositingReal(false);
     }
-  }, [publicKey, balance, lastDepositTime, wallet, setTransactionActive, setBalance, setDepositedBalance, setTreasuryBalance, setIsDepositingReal, setLastDepositTime]);
+  }, [publicKey, balance, lastDepositTime, connected, setTransactionActive, setBalance, setDepositedBalance, setTreasuryBalance, setIsDepositingReal, setLastDepositTime]);
 
   // Handle modal deposit
   const handleModalDeposit = useCallback(async () => {
@@ -427,7 +427,13 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
 
   // Handle fund treasury
   const handleFundTreasury = useCallback(async () => {
-    if (!publicKey || !connected || !wallet.signTransaction) {
+    // 🔒 TRAVA DE SEGURANÇA: Verificar compatibilidade de carteira
+    if (!canExecuteAction()) {
+      console.error('🚨 Dashboard: Ação bloqueada - carteira incompatível');
+      return;
+    }
+
+    if (!publicKey || !connected) {
       toast.error('Conecte sua carteira adequadamente para financiar o treasury');
       return;
     }
@@ -488,11 +494,17 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
     } finally {
       setIsFundingTreasury(false);
     }
-  }, [publicKey, fundTreasuryAmount, balance, wallet, connected, setTransactionActive, setBalance, setTreasuryBalance, setFundTreasuryAmount, setIsFundTreasuryModalOpen, setIsFundingTreasury]);
+  }, [publicKey, fundTreasuryAmount, balance, connected, setTransactionActive, setBalance, setTreasuryBalance, setFundTreasuryAmount, setIsFundTreasuryModalOpen, setIsFundingTreasury]);
 
   // Handle withdrawal
   const handleWithdraw = useCallback(async () => {
-    if (!publicKey || !connected || !wallet.signTransaction) {
+    // 🔒 TRAVA DE SEGURANÇA: Verificar compatibilidade de carteira
+    if (!canExecuteAction()) {
+      console.error('🚨 Dashboard: Ação bloqueada - carteira incompatível');
+      return;
+    }
+
+    if (!publicKey || !connected) {
       toast.error('Conecte sua carteira adequadamente para retirar');
       return;
     }
@@ -555,7 +567,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
     } finally {
       setIsWithdrawing(false);
     }
-  }, [publicKey, withdrawAmount, depositedBalance, wallet, connected, setTransactionActive, setBalance, setDepositedBalance, setTreasuryBalance, setWithdrawAmount, setIsWithdrawModalOpen, setIsWithdrawing]);
+  }, [publicKey, withdrawAmount, depositedBalance, connected, setTransactionActive, setBalance, setDepositedBalance, setTreasuryBalance, setWithdrawAmount, setIsWithdrawModalOpen, setIsWithdrawing]);
 
   return (
     <div className="flex flex-col gap-4 w-full lg:w-64">

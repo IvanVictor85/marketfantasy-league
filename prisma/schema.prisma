@@ -44,6 +44,7 @@ model League {
 model LeagueEntry {
   id               String   @id @default(cuid())
   leagueId         String
+  userId           String   // User ID from authentication
   userWallet       String   // User's Solana wallet address
   transactionHash  String   @unique // Solana transaction signature
   amountPaid       Float    // Amount paid in SOL
@@ -53,14 +54,16 @@ model LeagueEntry {
   updatedAt        DateTime @updatedAt
   
   league           League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  @@unique([leagueId, userWallet])
+  @@unique([userId, leagueId]) // Previne duplicatas por usuário
   @@map("league_entries")
 }
 
 model Team {
   id               String   @id @default(cuid())
   leagueId         String
+  userId           String   // User ID from authentication
   userWallet       String   // User's Solana wallet address
   teamName         String
   tokens           String   // JSON array of token symbols only: ["BTC", "ETH", "SOL", ...]. Details fetched from CoinGecko.
@@ -72,8 +75,9 @@ model Team {
   updatedAt        DateTime @updatedAt
   
   league           League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  @@unique([leagueId, userWallet])
+  @@unique([userId, leagueId]) // Previne duplicatas por usuário
   @@map("teams")
 }
 
@@ -131,6 +135,8 @@ model User {
   updatedAt  DateTime @updatedAt
 
   authTokens AuthToken[]
+  teams      Team[]
+  leagueEntries LeagueEntry[]
 
   @@map("users")
 }

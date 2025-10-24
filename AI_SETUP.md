@@ -31,8 +31,8 @@ Este projeto suporta múltiplos provedores de IA para geração de imagens de ma
 
 ## Provedores Suportados
 
-### 1. Nano Banana (Gemini 2.5 Flash Image) - RECOMENDADO
-- **Modelo**: Gemini 2.5 Flash Image
+### 1. Nano Banana (Gemini 1.5 Flash) - RECOMENDADO
+- **Modelo**: Gemini 1.5 Flash
 - **Qualidade**: Excelente
 - **Custo**: Baixo
 - **Velocidade**: Muito rápida
@@ -52,7 +52,7 @@ Este projeto suporta múltiplos provedores de IA para geração de imagens de ma
 
 ## Opções de Configuração
 
-### Nano Banana - Gemini 2.5 Flash Image (RECOMENDADO)
+### Nano Banana - Gemini 1.5 Flash (RECOMENDADO)
 
 1. Obtenha uma chave de API em: https://aistudio.google.com/app/apikey
 2. Configure no arquivo `.env.local`:

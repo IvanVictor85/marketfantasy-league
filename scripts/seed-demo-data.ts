@@ -211,6 +211,22 @@ async function main() {
     // Ordenar por pontuação para definir ranks corretos
     teamsToCreate.sort((a, b) => b.totalScore - a.totalScore);
 
+    // Criar usuários demo primeiro
+    console.log('👤 Criando usuários demo...');
+    const demoUsers = [];
+    for (let i = 1; i <= 5; i++) {
+      const user = await prisma.user.create({
+        data: {
+          id: 'demo-user-' + i,
+          email: `demo${i}@example.com`,
+          name: `Usuário Demo ${i}`,
+          publicKey: teamsToCreate[i-1].userWallet,
+        },
+      });
+      demoUsers.push(user);
+      console.log(`  ✅ Usuário ${i}: ${user.email}`);
+    }
+
     // Criar times no banco com ranks corretos
     for (let i = 0; i < teamsToCreate.length; i++) {
       const { teamName, userWallet, tokens, totalScore } = teamsToCreate[i];
@@ -219,6 +235,7 @@ async function main() {
       const team = await prisma.team.create({
         data: {
           leagueId: mainLeague.id,
+          userId: 'demo-user-' + (i + 1), // Usuário demo
           userWallet,
           teamName,
           tokens: JSON.stringify(tokens),

@@ -173,6 +173,7 @@ export async function POST(request: NextRequest) {
         twitter: user.twitter,
         discord: user.discord,
         bio: user.bio,
+        publicKey: user.publicKey,
         loginMethod: 'email'
       },
       token: sessionToken

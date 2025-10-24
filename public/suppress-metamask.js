@@ -44,49 +44,62 @@
     if (window.__metamaskErrorShown) return;
     window.__metamaskErrorShown = true;
 
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.style.position = 'fixed';
-    notification.style.bottom = '20px';
-    notification.style.right = '20px';
-    notification.style.backgroundColor = '#f8f9fa';
-    notification.style.color = '#212529';
-    notification.style.padding = '15px 20px';
-    notification.style.borderRadius = '8px';
-    notification.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-    notification.style.zIndex = '9999';
-    notification.style.maxWidth = '350px';
-    notification.style.display = 'flex';
-    notification.style.flexDirection = 'column';
-    notification.style.gap = '10px';
-    notification.style.fontSize = '14px';
-    notification.style.border = '1px solid #dee2e6';
+    // Wait for React to be ready before showing notification
+    const showNotification = () => {
+      if (!document.body) return;
+      
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.style.position = 'fixed';
+      notification.style.bottom = '20px';
+      notification.style.right = '20px';
+      notification.style.backgroundColor = '#f8f9fa';
+      notification.style.color = '#212529';
+      notification.style.padding = '15px 20px';
+      notification.style.borderRadius = '8px';
+      notification.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+      notification.style.zIndex = '9999';
+      notification.style.maxWidth = '350px';
+      notification.style.display = 'flex';
+      notification.style.flexDirection = 'column';
+      notification.style.gap = '10px';
+      notification.style.fontSize = '14px';
+      notification.style.border = '1px solid #dee2e6';
 
-    // Add content
-    notification.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
-        <strong style="font-size: 16px;">Aviso de Carteira</strong>
-        <button id="close-metamask-notification" style="background: none; border: none; cursor: pointer; font-size: 18px;">&times;</button>
-      </div>
-      <p style="margin: 0;">Este aplicativo usa a blockchain <strong>Solana</strong> e não é compatível com MetaMask.</p>
-      <p style="margin: 0;">Por favor, use a carteira <strong>Phantom</strong> para interagir com este aplicativo.</p>
-      <a href="https://phantom.app/" target="_blank" style="display: inline-block; background: linear-gradient(to right, #9945FF, #14F195); color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; margin-top: 5px; text-align: center;">Instalar Phantom</a>
-    `;
+      // Add content
+      notification.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+          <strong style="font-size: 16px;">Aviso de Carteira</strong>
+          <button id="close-metamask-notification" style="background: none; border: none; cursor: pointer; font-size: 18px;">&times;</button>
+        </div>
+        <p style="margin: 0;">Este aplicativo usa a blockchain <strong>Solana</strong> e não é compatível com MetaMask.</p>
+        <p style="margin: 0;">Por favor, use a carteira <strong>Phantom</strong> para interagir com este aplicativo.</p>
+        <a href="https://phantom.app/" target="_blank" style="display: inline-block; background: linear-gradient(to right, #9945FF, #14F195); color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; margin-top: 5px; text-align: center;">Instalar Phantom</a>
+      `;
 
-    // Add to document
-    document.body.appendChild(notification);
+      // Add to document
+      document.body.appendChild(notification);
 
-    // Add close button functionality
-    document.getElementById('close-metamask-notification').addEventListener('click', function() {
-      notification.remove();
-    });
-
-    // Auto-remove after 10 seconds
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
+      // Add close button functionality
+      document.getElementById('close-metamask-notification').addEventListener('click', function() {
         notification.remove();
-      }
-    }, 10000);
+      });
+
+      // Auto-remove after 10 seconds
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          notification.remove();
+        }
+      }, 10000);
+    };
+    
+    // Wait for React to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', showNotification);
+    } else {
+      // Use setTimeout to ensure React has finished rendering
+      setTimeout(showNotification, 100);
+    }
   }
   
   // Override console.error
@@ -190,28 +203,61 @@
       return originalDefineProperty.call(this, obj, prop, descriptor);
     };
 
-    // Se ethereum já existe e é MetaMask, tentar mascarar
+    // Bloquear completamente window.ethereum se for MetaMask
     if (window.ethereum?.isMetaMask) {
       try {
         // Redefinir como propriedade configurável
         delete window.ethereum;
 
-        // Definir um ethereum falso somente Phantom
+        // Definir um ethereum falso que sempre retorna null
         Object.defineProperty(window, 'ethereum', {
           get: function() {
-            return window.solana || {
-              isPhantom: false,
-              request: () => Promise.resolve(null),
-              on: () => {},
-              removeListener: () => {},
-            };
+            return null;
           },
-          configurable: true
+          set: function(value) {
+            // Bloquear qualquer tentativa de definir ethereum
+            return;
+          },
+          configurable: true,
+          enumerable: false
         });
       } catch (e) {
         console.warn('Could not override window.ethereum:', e);
       }
     }
+
+    // Bloquear detecção automática de carteiras Ethereum
+    const originalHasOwnProperty = Object.prototype.hasOwnProperty;
+    Object.prototype.hasOwnProperty = function(prop) {
+      try {
+        if (prop === 'ethereum' && this === window) {
+          return false;
+        }
+        return originalHasOwnProperty.call(this, prop);
+      } catch (error) {
+        // Se der erro, retornar false
+        return false;
+      }
+    };
+
+    // Bloquear Object.keys de detectar ethereum
+    const originalKeys = Object.keys;
+    Object.keys = function(obj) {
+      try {
+        // Verificar se obj é válido antes de chamar originalKeys
+        if (obj === null || obj === undefined || typeof obj !== 'object') {
+          return [];
+        }
+        const keys = originalKeys.call(obj);
+        if (obj === window) {
+          return keys.filter(key => key !== 'ethereum');
+        }
+        return keys;
+      } catch (error) {
+        // Se der erro, retornar array vazio
+        return [];
+      }
+    };
   }
 
 })();

@@ -51,6 +51,13 @@ export default function VerifyCodePage() {
     }
   }, [email, router, locale]);
 
+  // Focar no primeiro input quando o componente montar
+  useEffect(() => {
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+  }, []);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -58,22 +65,74 @@ export default function VerifyCodePage() {
   };
 
   const handleCodeChange = (index: number, value: string) => {
-    if (value.length > 1) return; // Apenas um dígito
+    console.log(`🔍 handleCodeChange: index=${index}, value="${value}"`);
     
+    // Permitir apenas um dígito
+    if (value.length > 1) {
+      // Se o usuário colou múltiplos dígitos, pegar apenas o primeiro
+      value = value.charAt(0);
+    }
+    
+    // Atualizar o código
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
     
-    // Focar no próximo input se um dígito foi inserido
+    console.log(`📝 Código atualizado:`, newCode);
+    
+    // Avançar para o próximo campo se um dígito foi inserido
     if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+      console.log(`➡️ Tentando focar no próximo campo: ${index + 1}`);
+      // Usar requestAnimationFrame para garantir que o DOM foi atualizado
+      requestAnimationFrame(() => {
+        const nextInput = inputRefs.current[index + 1];
+        console.log(`🎯 Próximo input encontrado:`, !!nextInput);
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+          console.log(`✅ Foco aplicado no campo ${index + 1}`);
+        }
+      });
+    }
+    
+    // Se o usuário apagou o campo, voltar para o anterior
+    if (!value && index > 0) {
+      console.log(`⬅️ Voltando para o campo anterior: ${index - 1}`);
+      requestAnimationFrame(() => {
+        const prevInput = inputRefs.current[index - 1];
+        if (prevInput) {
+          prevInput.focus();
+          prevInput.select();
+        }
+      });
     }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
     // Backspace: focar no input anterior se o atual estiver vazio
     if (e.key === 'Backspace' && !code[index] && index > 0) {
+      e.preventDefault();
       inputRefs.current[index - 1]?.focus();
+    }
+    
+    // Arrow keys: navegar entre os campos
+    if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    }
+    
+    if (e.key === 'ArrowRight' && index < 5) {
+      e.preventDefault();
+      inputRefs.current[index + 1]?.focus();
+    }
+    
+    // Enter: submeter o formulário se todos os campos estiverem preenchidos
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const fullCode = code.join('');
+      if (fullCode.length === 6) {
+        handleSubmit(e as any);
+      }
     }
   };
 

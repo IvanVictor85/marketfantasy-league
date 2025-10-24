@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useAuth } from '@/contexts/auth-context';
 
 export interface TeamPlayer {
   id: string;
@@ -29,13 +29,13 @@ export interface TeamData {
 }
 
 export function useTeamData(leagueId?: string) {
-  const { publicKey } = useWallet();
+  const { user, isAuthenticated } = useAuth();
   const [teamData, setTeamData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!publicKey) {
+    if (!isAuthenticated || !user) {
       setTeamData(null);
       return;
     }
@@ -45,15 +45,17 @@ export function useTeamData(leagueId?: string) {
       setError(null);
 
       try {
-        const params = new URLSearchParams({
-          userWallet: publicKey.toString(),
-        });
+        const params = new URLSearchParams();
 
         if (leagueId) {
           params.append('leagueId', leagueId);
         }
 
-        const response = await fetch(`/api/team?${params}`);
+        const response = await fetch(`/api/team?${params}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          }
+        });
         const data = await response.json();
 
         if (!response.ok) {
@@ -88,10 +90,10 @@ export function useTeamData(leagueId?: string) {
     };
 
     fetchTeamData();
-  }, [publicKey, leagueId]);
+  }, [isAuthenticated, user, leagueId]);
 
   return { teamData, loading, error, refetch: () => {
-    if (publicKey) {
+    if (isAuthenticated && user) {
       // Re-trigger the effect
       setTeamData(null);
     }

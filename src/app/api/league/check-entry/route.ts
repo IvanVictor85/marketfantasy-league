@@ -4,15 +4,67 @@ import { prisma } from '@/lib/prisma'
 import { Connection, PublicKey } from '@solana/web3.js'
 
 const checkEntrySchema = z.object({
-  userWallet: z.string().min(32, 'Invalid wallet address'),
   leagueId: z.string().optional()
 })
+
+// Função para obter o usuário autenticado
+async function getUserFromRequest(request: NextRequest): Promise<string | null> {
+  try {
+    const token = request.cookies.get('auth-token')?.value ||
+                  request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      return null;
+    }
+
+    const authToken = await prisma.authToken.findUnique({
+      where: { token },
+      include: { user: true }
+    });
+
+    if (!authToken || authToken.expiresAt < new Date()) {
+      return null;
+    }
+
+    return authToken.userId;
+  } catch (error) {
+    console.error('❌ [AUTH] Erro ao obter usuário:', error);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   try {
+    // 🔒 SEGURANÇA: Obter userId do usuário autenticado
+    const userId = await getUserFromRequest(request);
+
+    if (!userId) {
+      console.error('❌ [CHECK-ENTRY] Usuário não autenticado');
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // 🔒 SEGURANÇA: Buscar a carteira do usuário no banco (fonte confiável)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { publicKey: true, email: true }
+    });
+
+    if (!user || !user.publicKey) {
+      console.error('❌ [CHECK-ENTRY] Usuário sem carteira vinculada');
+      return NextResponse.json(
+        { error: 'Você precisa conectar uma carteira antes de verificar entrada' },
+        { status: 400 }
+      );
+    }
+
+    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco, não do cliente!
+
     const body = await request.json()
-    const { userWallet, leagueId } = checkEntrySchema.parse(body)
+    const { leagueId } = checkEntrySchema.parse(body)
     
     console.log('🔍 API check-entry: Verificando entrada para:', userWallet, 'Liga:', leagueId || 'MAIN');
 
@@ -39,12 +91,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has a valid entry in the database
-    const existingEntry = await prisma.leagueEntry.findUnique({
+    const existingEntry = await prisma.leagueEntry.findFirst({
       where: {
-        leagueId_userWallet: {
-          leagueId: league.id,
-          userWallet: userWallet
-        }
+        userId: userId,
+        leagueId: league.id,
+        status: 'CONFIRMED'
       }
     })
 

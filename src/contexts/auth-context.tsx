@@ -23,11 +23,23 @@ function generateUserIdFromEmail(email: string): string {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { publicKey, connected, disconnect } = useWallet();
+  const [isClient, setIsClient] = useState(false);
+  
+  // Always call useWallet, but handle client-side logic inside
+  const wallet = useWallet();
+  const { publicKey, connected, disconnect } = wallet;
 
   const isAuthenticated = !!user;
 
+  // Detect client side
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    // Only run on client side
+    if (!isClient) return;
+    
     // Check for existing session on mount
     const checkExistingSession = () => {
       const savedUser = localStorage.getItem('mfl_user');
@@ -49,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkExistingSession();
-  }, []);
+  }, [isClient]);
 
   const logout = useCallback(() => {
     console.log('🚪 [LOGOUT] Iniciando logout:', { 
@@ -83,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Se carteira conectou e usuário está logado por wallet
     if (connected && publicKey && user?.loginMethod === 'wallet') {
       console.log('✅ [WALLET-CHANGE] Atualizando endereço da carteira no usuário');
-      setUser(prev => prev ? { ...prev, walletAddress: publicKey.toString() } : null);
+      setUser(prev => prev ? { ...prev, publicKey: publicKey.toString() } : null);
     } 
     // Se carteira desconectou e usuário estava logado por wallet
     else if (!connected && user?.loginMethod === 'wallet') {
@@ -92,15 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // Se carteira conectou mas usuário está logado por email
     else if (connected && publicKey && user?.loginMethod === 'email') {
-      console.log('⚠️ [WALLET-CHANGE] Carteira conectada mas usuário logado por email - validando...');
-      // Validar se carteira já está em uso por outro usuário
-      connectWalletToUser(publicKey.toString()).catch(error => {
-        console.error('❌ [WALLET-CHANGE] Erro ao conectar carteira:', error);
-        // Se erro 409, desconectar carteira
-        if (error.message.includes('já está conectada')) {
-          disconnect();
-        }
-      });
+      console.log('⚠️ [WALLET-CHANGE] Carteira conectada mas usuário logado por email - AUTO-VINCULAR DESABILITADO');
+      // DESABILITADO: Auto-vinculação de carteira
+      // A vinculação deve ser feita manualmente pelo usuário
+      console.log('🔒 [WALLET-CHANGE] Sistema de segurança ativo - carteira não será vinculada automaticamente');
     }
   }, [connected, publicKey, user?.loginMethod, user?.email, logout, disconnect]);
 
@@ -168,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: result.user.name || name || email.split('@')[0],
         loginMethod: 'email',
         avatar: result.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-        walletAddress: result.user.publicKey
+        publicKey: result.user.publicKey
       };
 
       console.log('✅ [VERIFY-CODE] Usuário criado/encontrado:', userData);
@@ -252,7 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData: User = {
           id: result.user.id,
           email: result.user.email,
-          walletAddress: result.user.publicKey,
+          publicKey: result.user.publicKey,
           name: result.user.name || `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`,
           loginMethod: 'wallet',
           avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`
@@ -270,7 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('✅ [WALLET-LOGIN] Carteira nova, criando usuário temporário');
         const userData: User = {
           id: `wallet_${publicKey.toString()}`,
-          walletAddress: publicKey.toString(),
+          publicKey: publicKey.toString(),
           name: `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`,
           loginMethod: 'wallet',
           avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`
@@ -389,7 +396,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('✅ [CONNECT-WALLET-USER] Carteira conectada com sucesso');
       
       // Atualizar usuário local com a carteira
-      const updatedUser = { ...user, walletAddress: publicKey };
+      const updatedUser = { ...user, publicKey: publicKey };
       setUser(updatedUser);
       localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
       

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAuth } from '@/contexts/auth-context';
+import { useGuardedActionHook } from '@/hooks/useGuardedActionHook';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,7 +46,8 @@ export function TeamsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { publicKey, connected } = useWallet();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { canExecuteAction } = useGuardedActionHook();
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -104,7 +106,7 @@ export function TeamsContent() {
   // Função para verificar status de pagamento e carregar time existente
   const checkPaymentAndLoadTeam = useCallback(async () => {
     // 🛡️ SAFEGUARD 1: Prevent duplicate calls
-    const checkKey = `${publicKey?.toString()}-${selectedLeagueId}`;
+    const checkKey = `${user?.id}-${selectedLeagueId}`;
     if (checkInProgressRef.current || lastCheckRef.current === checkKey) {
       console.log('🛡️ SAFEGUARD: Chamada duplicada bloqueada', { checkKey, inProgress: checkInProgressRef.current });
       return;
@@ -113,12 +115,12 @@ export function TeamsContent() {
     console.log('🔍 checkPaymentAndLoadTeam: Verificando entrada na liga', {
       timestamp: new Date().toISOString(),
       connected,
-      publicKey: publicKey?.toString(),
+      userId: user?.id,
       selectedLeagueId
     });
 
-    if (!connected || !publicKey) {
-      console.log('DEBUG checkPaymentAndLoadTeam: Carteira não conectada');
+    if (!user || !isAuthenticated) {
+      console.log('DEBUG checkPaymentAndLoadTeam: Usuário não autenticado');
       setHasValidEntry(null);
       checkInProgressRef.current = false;
       return;
@@ -136,9 +138,11 @@ export function TeamsContent() {
       console.log('DEBUG checkPaymentAndLoadTeam: Verificando entrada na liga');
       const entryResponse = await fetch('/api/league/check-entry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
         body: JSON.stringify({ 
-          userWallet: publicKey.toString(),
           leagueId: selectedLeagueId === 'main' ? undefined : selectedLeagueId
         })
       });
@@ -155,7 +159,7 @@ export function TeamsContent() {
       // Depois, verificar se há time existente
       console.log('DEBUG checkPaymentAndLoadTeam: Buscando time existente');
       const teamResponse = await fetch(
-        `/api/team?userWallet=${publicKey.toString()}&leagueId=${selectedLeagueId === 'main' ? '' : selectedLeagueId}`
+        `/api/team?leagueId=${selectedLeagueId === 'main' ? '' : selectedLeagueId}`
       );
 
       console.log('DEBUG checkPaymentAndLoadTeam: Resposta da busca de time:', {
@@ -219,7 +223,7 @@ export function TeamsContent() {
       // 🛡️ SAFEGUARD 3: Release lock after completion
       checkInProgressRef.current = false;
     }
-  }, [connected, publicKey, selectedLeagueId]);
+  }, [user, isAuthenticated, selectedLeagueId]);
 
   // Atualizar liga quando parâmetros da URL mudarem
   useEffect(() => {
@@ -235,13 +239,13 @@ export function TeamsContent() {
     }
   }, [searchParams, selectedLeagueId]);
 
-  // Verificar pagamento quando conectar carteira ou mudar liga
+  // Verificar pagamento quando usuário estiver autenticado ou mudar liga
   useEffect(() => {
-    if (connected && publicKey) {
+    if (user && isAuthenticated) {
       checkPaymentAndLoadTeam();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected, publicKey, selectedLeagueId]);
+  }, [user, isAuthenticated, selectedLeagueId]);
 
   // Função para obter filtro fixo baseado no tipo de liga
   const getFixedFilter = (leagueType: string) => {
@@ -293,6 +297,53 @@ export function TeamsContent() {
     setPlayers(prev => prev.filter(p => p.position !== position));
   };
 
+  // Função para carregar logos do CoinGecko
+  const loadTokenLogos = async (tokens: string[]) => {
+    try {
+      console.log('🖼️ Carregando logos do CoinGecko para:', tokens);
+      
+      const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h,24h,7d,30d', {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'CryptoFantasy/1.0'
+        }
+      });
+
+      if (response.ok) {
+        const allTokens = await response.json();
+        
+        // Atualizar players com logos do CoinGecko
+        setPlayers(prevPlayers => {
+          return prevPlayers.map(player => {
+            const tokenData = allTokens.find((token: any) => 
+              token.symbol.toUpperCase() === player.token.toUpperCase()
+            );
+            
+            if (tokenData) {
+              return {
+                ...player,
+                image: tokenData.image,
+                name: tokenData.name,
+                price: tokenData.current_price,
+                change_24h: tokenData.price_change_percentage_24h,
+                change_7d: tokenData.price_change_percentage_7d_in_currency,
+                points: Math.round((tokenData.current_price || 0) * 0.1 + (tokenData.price_change_percentage_24h || 0) * 0.5) // Recalcular pontos
+              };
+            }
+            
+            return player;
+          });
+        });
+        
+        console.log('✅ Logos carregados com sucesso');
+      } else {
+        console.warn('⚠️ Erro ao carregar logos do CoinGecko');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar logos:', error);
+    }
+  };
+
   // Função para adicionar token ao campo
   const handleTokenAdd = (token: TokenMarketData, position: number) => {
     console.log('🎯 Adicionando token ao campo:', { token: token.symbol, position });
@@ -312,9 +363,10 @@ export function TeamsContent() {
       token: token.symbol,
       image: token.image,
       price: token.price || 0,
-      points: 0,
+      points: Math.round((token.price || 0) * 0.1 + (token.change_24h || 0) * 0.5), // Calcular pontos baseado no preço e performance
       rarity: 'common',
-      change_24h: token.change_24h
+      change_24h: token.change_24h,
+      change_7d: token.change_7d
     };
 
     setPlayers(prev => {
@@ -353,6 +405,12 @@ export function TeamsContent() {
     }
   };
 
+  // Verificar se está dentro do horário de edição
+  const isEditingAllowed = () => {
+    const currentHour = new Date().getHours();
+    return currentHour < 21; // Permitir edição apenas antes das 21:00
+  };
+
   // Função para salvar escalação
   const handleSaveTeam = async () => {
     console.log('🚀 handleSaveTeam: Iniciando salvamento...', {
@@ -362,6 +420,25 @@ export function TeamsContent() {
       teamName,
       user
     });
+
+    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição após 21:00
+    if (!isEditingAllowed()) {
+      console.log('🚫 handleSaveTeam: Edição bloqueada - fora do horário permitido');
+      setPaymentError('Edição de time bloqueada após 21:00. Aguarde a próxima rodada.');
+      return;
+    }
+
+    // 🔒 VERIFICAÇÃO DE SEGURANÇA: Bloquear se carteira incompatível
+    console.log('🔍 handleSaveTeam: Verificando segurança...', {
+      canExecute: canExecuteAction(),
+      isMismatched: !canExecuteAction()
+    });
+    
+    if (!canExecuteAction()) {
+      console.log('🚫 handleSaveTeam: Ação bloqueada - carteira incompatível');
+      setPaymentError('Carteira incompatível com o perfil. Use a carteira correta.');
+      return;
+    }
 
     if (!connected || !publicKey) {
       setPaymentError('Conecte sua carteira para salvar o time');
@@ -393,7 +470,6 @@ export function TeamsContent() {
       }
 
       const requestBody = {
-        userWallet: publicKey.toString(),
         leagueId: selectedLeagueId === 'main' ? undefined : selectedLeagueId,
         teamName: teamName,
         tokens: tokens
@@ -452,6 +528,14 @@ export function TeamsContent() {
         
         const successMsg = data.message || 'Time salvo com sucesso!';
         setSuccessMessage(successMsg);
+        
+        // 🔄 REVALIDAÇÃO: Recarregar dados do time após salvamento
+        console.log('🔄 handleSaveTeam: Revalidando dados do time...');
+        await checkPaymentAndLoadTeam();
+        
+        // 🖼️ CARREGAR LOGOS: Buscar logos do CoinGecko para os tokens
+        console.log('🖼️ handleSaveTeam: Carregando logos do CoinGecko...');
+        await loadTokenLogos(tokens);
         
         setTimeout(() => {
           setSuccessMessage(null);
@@ -704,10 +788,15 @@ export function TeamsContent() {
                     <Button
                       size="sm"
                       onClick={handleSaveTeam}
-                      disabled={!connected || isSavingTeam || players.length !== 10}
+                      disabled={!connected || isSavingTeam || players.length !== 10 || !isEditingAllowed()}
                       className="flex items-center gap-1"
                     >
-                      {isSavingTeam ? (
+                      {!isEditingAllowed() ? (
+                        <>
+                          <Clock className="w-4 h-4" />
+                          Edição Bloqueada (21:00)
+                        </>
+                      ) : isSavingTeam ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
                           Salvando...
@@ -744,10 +833,22 @@ export function TeamsContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{players.length}/10</div>
                     <div className="text-sm text-gray-600">Jogadores</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      ${players.reduce((sum, p) => sum + (p.price || 0), 0).toFixed(2)}
+                    </div>
+                    <div className="text-sm text-gray-600">Valor Total</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {players.length > 0 ? (players.reduce((sum, p) => sum + (p.points || 0), 0) / players.length).toFixed(1) : '0.0'}
+                    </div>
+                    <div className="text-sm text-gray-600">Pontos Médios</div>
                   </div>
                   <div className="text-center">
                     {(() => {

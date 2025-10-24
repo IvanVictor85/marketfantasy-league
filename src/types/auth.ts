@@ -9,7 +9,7 @@ export interface SendCodeResponse {
 export interface User {
   id: string;
   email?: string;
-  walletAddress?: string;
+  publicKey?: string;
   name?: string;
   avatar?: string;
   loginMethod: 'email' | 'wallet';

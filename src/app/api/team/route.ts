@@ -39,6 +39,16 @@ async function getUserFromRequest(request: NextRequest): Promise<string | null> 
 export async function POST(request: NextRequest) {
   console.log('🚀 API team POST: Iniciando salvamento de time...');
   try {
+    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição após 21:00
+    const currentHour = new Date().getHours();
+    if (currentHour >= 21) {
+      console.log('🚫 API team POST: Edição bloqueada - fora do horário permitido');
+      return NextResponse.json(
+        { error: 'Edição de time bloqueada após 21:00. Aguarde a próxima rodada.' },
+        { status: 403 }
+      );
+    }
+
     // 🔒 SEGURANÇA: Obter userId do usuário autenticado
     const userId = await getUserFromRequest(request);
 
@@ -123,19 +133,18 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ API team POST: Liga encontrada:', { id: league.id, name: league.name });
 
-    // Check if user has paid entry fee
+    // 🔒 SEGURANÇA: Verificar se usuário já tem entrada confirmada nesta liga
     console.log('💰 API team POST: Verificando entrada na liga...');
-    const leagueEntry = await prisma.leagueEntry.findUnique({
+    const leagueEntry = await prisma.leagueEntry.findFirst({
       where: {
-        leagueId_userWallet: {
-          leagueId: league.id,
-          userWallet: userWallet
-        }
+        userId: userId,
+        leagueId: league.id,
+        status: 'CONFIRMED'
       }
     })
 
-    if (!leagueEntry || leagueEntry.status !== 'CONFIRMED') {
-      console.log('❌ API team POST: Entrada não confirmada:', leagueEntry ? leagueEntry.status : 'não encontrada');
+    if (!leagueEntry) {
+      console.log('❌ API team POST: Entrada não confirmada');
       return NextResponse.json(
         { 
           error: 'Pagamento da taxa de entrada não confirmado',
@@ -188,50 +197,32 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Check if team already exists for this user and league
-    console.log('🔍 API team POST: Verificando time existente...');
-    const existingTeam = await prisma.team.findUnique({
+    // 🔒 SEGURANÇA: Usar upsert para criar ou atualizar time
+    console.log('💾 API team POST: Salvando time com upsert...');
+    const team = await prisma.team.upsert({
       where: {
-        leagueId_userWallet: {
-          leagueId: league.id,
-          userWallet: userWallet
+        userId_leagueId: {
+          userId: userId,
+          leagueId: league.id
         }
+      },
+      update: {
+        teamName: teamName,
+        tokens: JSON.stringify(tokens),
+        userWallet: userWallet,
+        hasValidEntry: true,
+        updatedAt: new Date()
+      },
+      create: {
+        userId: userId,
+        leagueId: league.id,
+        userWallet: userWallet,
+        teamName: teamName,
+        tokens: JSON.stringify(tokens),
+        hasValidEntry: true
       }
-    })
-
-    let team
-    if (existingTeam) {
-      // Update existing team
-      console.log('🔄 API team POST: Atualizando time existente:', existingTeam.id);
-      team = await prisma.team.update({
-        where: {
-          leagueId_userWallet: {
-            leagueId: league.id,
-            userWallet: userWallet
-          }
-        },
-        data: {
-          teamName: teamName,
-          tokens: JSON.stringify(tokens),
-          hasValidEntry: true,
-          updatedAt: new Date()
-        }
-      })
-      console.log('✅ API team POST: Time atualizado com sucesso');
-    } else {
-      // Create new team
-      console.log('➕ API team POST: Criando novo time...');
-      team = await prisma.team.create({
-        data: {
-          userWallet: userWallet,
-          leagueId: league.id,
-          teamName: teamName,
-          tokens: JSON.stringify(tokens),
-          hasValidEntry: true
-        }
-      })
-      console.log('✅ API team POST: Novo time criado com sucesso:', team.id);
-    }
+    });
+    console.log('✅ API team POST: Time salvo com sucesso:', team.id);
 
     // Calculate initial team value (placeholder - would need price data)
     const teamValue = 0; // TODO: Calculate based on actual token prices
@@ -241,16 +232,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: existingTeam ? 'Time atualizado com sucesso' : 'Time criado com sucesso',
+      message: team.createdAt.getTime() === team.updatedAt.getTime() ? 'Time criado com sucesso' : 'Time atualizado com sucesso',
       team: {
-        id: updatedTeam.id,
-        name: updatedTeam.teamName,
-        tokens: JSON.parse(updatedTeam.tokens),
+        id: team.id,
+        name: team.teamName,
+        tokens: JSON.parse(team.tokens),
         totalValue: teamValue,
-        performance: updatedTeam.totalScore || 0,
-        hasValidEntry: updatedTeam.hasValidEntry,
-        createdAt: updatedTeam.createdAt,
-        updatedAt: updatedTeam.updatedAt
+        performance: team.totalScore || 0,
+        hasValidEntry: team.hasValidEntry,
+        createdAt: team.createdAt,
+        updatedAt: team.updatedAt
       },
       tokenDetails: validTokens
     })
@@ -274,16 +265,37 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // 🔒 SEGURANÇA: Obter userId do usuário autenticado
+    const userId = await getUserFromRequest(request);
+
+    if (!userId) {
+      console.error('❌ [TEAM-GET] Usuário não autenticado');
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // 🔒 SEGURANÇA: Buscar a carteira do usuário no banco (fonte confiável)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { publicKey: true, email: true }
+    });
+
+    if (!user || !user.publicKey) {
+      console.error('❌ [TEAM-GET] Usuário sem carteira vinculada');
+      return NextResponse.json(
+        { error: 'Usuário sem carteira vinculada' },
+        { status: 400 }
+      );
+    }
+
+    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco!
+
     const { searchParams } = new URL(request.url)
-    const userWallet = searchParams.get('userWallet')
     const leagueId = searchParams.get('leagueId')
 
-    if (!userWallet) {
-      return NextResponse.json(
-        { error: 'Wallet do usuário é obrigatório' },
-        { status: 400 }
-      )
-    }
+    console.log('🔍 API team GET: Buscando time para:', { userId, userWallet, leagueId });
 
     // Get Main League if no specific league ID provided
     let league
@@ -308,12 +320,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's team for this league
-    const team = await prisma.team.findUnique({
+    const team = await prisma.team.findFirst({
       where: {
-        leagueId_userWallet: {
-          leagueId: league.id,
-          userWallet: userWallet
-        }
+        userId: userId,
+        leagueId: league.id
       }
     })
 
@@ -339,50 +349,67 @@ export async function GET(request: NextRequest) {
       teamTokens = [];
     }
 
-    // Get token details for the team from external API
+    // Get token details for the team from CoinGecko API
     let tokenDetails: any[] = [];
-    try {
-      // Buscar dados dos tokens da API CoinGecko
-      const tokensResponse = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h,24h,7d,30d', {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'CryptoFantasy/1.0'
-        }
-      });
-
-      if (tokensResponse.ok) {
-        const allTokens = await tokensResponse.json();
+    
+    if (teamTokens.length > 0) {
+      try {
+        console.log('🔄 API team GET: Buscando dados do CoinGecko para:', teamTokens);
         
-        // Filtrar apenas os tokens do time
-        tokenDetails = teamTokens.map(symbol => {
-          const tokenData = allTokens.find((token: any) => 
-            token.symbol.toUpperCase() === symbol.toUpperCase()
-          );
+        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h,24h,7d,30d', {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'CryptoFantasy/1.0'
+          }
+        });
+
+        if (response.ok) {
+          const allTokens = await response.json();
           
-          if (tokenData) {
+          // Enriquecer dados dos tokens do time com dados do CoinGecko
+          tokenDetails = teamTokens.map(symbol => {
+            const tokenData = allTokens.find((token: any) => 
+              token.symbol.toUpperCase() === symbol.toUpperCase()
+            );
+            
+            if (tokenData) {
+              return {
+                symbol: symbol,
+                name: tokenData.name,
+                logoUrl: tokenData.image,
+                currentPrice: tokenData.current_price,
+                priceChange24h: tokenData.price_change_percentage_24h,
+                priceChange7d: tokenData.price_change_percentage_7d_in_currency
+              };
+            }
+            
+            // Fallback para tokens não encontrados
             return {
               symbol: symbol,
-              name: tokenData.name,
-              logoUrl: tokenData.image,
-              currentPrice: tokenData.current_price,
-              priceChange24h: tokenData.price_change_percentage_24h,
-              priceChange7d: tokenData.price_change_percentage_7d_in_currency
+              name: symbol,
+              logoUrl: '',
+              currentPrice: 0,
+              priceChange24h: 0,
+              priceChange7d: 0
             };
-          }
-
-          // Fallback se não encontrar na API
-          return {
+          });
+          
+          console.log('✅ API team GET: Dados do CoinGecko carregados com sucesso');
+        } else {
+          console.warn('⚠️ API team GET: Erro ao carregar dados do CoinGecko');
+          // Fallback para erro na API
+          tokenDetails = teamTokens.map(symbol => ({
             symbol: symbol,
             name: symbol,
             logoUrl: '',
             currentPrice: 0,
             priceChange24h: 0,
             priceChange7d: 0
-          };
-        });
-      } else {
-        console.warn('Erro ao buscar dados dos tokens da API externa');
-        // Fallback: criar tokenDetails básicos
+          }));
+        }
+      } catch (error) {
+        console.error('❌ API team GET: Erro ao buscar dados do CoinGecko:', error);
+        // Fallback para erro na requisição
         tokenDetails = teamTokens.map(symbol => ({
           symbol: symbol,
           name: symbol,
@@ -392,17 +419,6 @@ export async function GET(request: NextRequest) {
           priceChange7d: 0
         }));
       }
-    } catch (error) {
-      console.error('Erro ao buscar tokenDetails da API externa:', error);
-      // Fallback: criar tokenDetails básicos
-      tokenDetails = teamTokens.map(symbol => ({
-        symbol: symbol,
-        name: symbol,
-        logoUrl: '',
-        currentPrice: 0,
-        priceChange24h: 0,
-        priceChange7d: 0
-      }));
     }
 
     return NextResponse.json({

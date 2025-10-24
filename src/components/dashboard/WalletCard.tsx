@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useConnection } from '@solana/wallet-adapter-react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useGuardedActionHook } from '@/hooks/useGuardedActionHook';
 import { LAMPORTS_PER_SOL, SystemProgram, Transaction, PublicKey } from '@solana/web3.js';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ const TREASURY_ADDRESS = '3GLFWDvTtxdmq6rSRFfeYExYVfpL5PTBR6LpfNq2eeFw';
 
 export function WalletCard() {
   const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction, canExecuteAction } = useGuardedActionHook();
   const [balance, setBalance] = useState<string>('0.0000');
   const [amount, setAmount] = useState<string>('');
 
@@ -73,6 +73,12 @@ export function WalletCard() {
   }, [publicKey, connection]);
 
   const handleDeposit = async () => {
+    // 🔒 TRAVA DE SEGURANÇA: Verificar compatibilidade de carteira
+    if (!canExecuteAction()) {
+      console.error('🚨 WalletCard: Ação bloqueada - carteira incompatível');
+      return;
+    }
+
     if (!publicKey) {
       toast.error('Conecte sua carteira para depositar.');
       return;

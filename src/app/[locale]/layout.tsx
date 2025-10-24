@@ -44,12 +44,13 @@ export default async function LocaleLayout({
   
   return (
     <>
-      <Script
+      {/* Temporarily disabled to fix React hydration issue */}
+      {/* <Script
         src="/suppress-metamask.js"
         id="suppress-metamask"
         strategy="beforeInteractive"
         data-nscript="beforeInteractive"
-      />
+      /> */}
       <ThemeProvider>
         <NextIntlClientProvider messages={messages}>
           <SessionProviderWrapper>
@@ -61,6 +62,8 @@ export default async function LocaleLayout({
                     {children}
                   </main>
                   <ToasterClient />
+                  {/* Portal container for dropdowns */}
+                  <div id="dropdown-portal" />
                 </div>
               </AuthProvider>
             </WalletContextProvider>
