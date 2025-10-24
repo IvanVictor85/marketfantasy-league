@@ -28,11 +28,30 @@ async function addMainLeagueEntry() {
     // Carteira do usuário atual (você pode alterar este valor)
     const userWallet = 'H2312uRYYfSFsKiJeMwSriv6F7iEBkWxtPQCV6ArRAjT' // Substitua pela carteira atual
 
+    // Buscar ou criar usuário para esta carteira
+    let user = await prisma.user.findFirst({
+      where: { publicKey: userWallet }
+    })
+
+    if (!user) {
+      console.log('👤 Usuário não encontrado, criando novo usuário...')
+      user = await prisma.user.create({
+        data: {
+          email: `user-${userWallet.slice(0, 8)}@example.com`,
+          name: `User ${userWallet.slice(0, 8)}`,
+          publicKey: userWallet
+        }
+      })
+      console.log('✅ Novo usuário criado:', { id: user.id, email: user.email })
+    } else {
+      console.log('✅ Usuário encontrado:', { id: user.id, email: user.email })
+    }
+
     // Verificar se já existe entrada
     const existingEntry = await prisma.leagueEntry.findFirst({
       where: {
         leagueId: mainLeague.id,
-        userWallet: userWallet
+        userId: user.id
       }
     })
 
@@ -60,6 +79,7 @@ async function addMainLeagueEntry() {
       const newEntry = await prisma.leagueEntry.create({
         data: {
           leagueId: mainLeague.id,
+          userId: user.id,
           userWallet: userWallet,
           status: 'CONFIRMED',
           transactionHash: 'manual-entry-' + Date.now(),
