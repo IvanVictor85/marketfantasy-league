@@ -29,12 +29,10 @@ async function addMainLeagueEntry() {
     const userWallet = 'H2312uRYYfSFsKiJeMwSriv6F7iEBkWxtPQCV6ArRAjT' // Substitua pela carteira atual
 
     // Verificar se já existe entrada
-    const existingEntry = await prisma.leagueEntry.findUnique({
+    const existingEntry = await prisma.leagueEntry.findFirst({
       where: {
-        leagueId_userWallet: {
-          leagueId: mainLeague.id,
-          userWallet: userWallet
-        }
+        leagueId: mainLeague.id,
+        userWallet: userWallet
       }
     })
 
@@ -49,10 +47,7 @@ async function addMainLeagueEntry() {
         // Atualizar status para CONFIRMED
         const updatedEntry = await prisma.leagueEntry.update({
           where: {
-            leagueId_userWallet: {
-              leagueId: mainLeague.id,
-              userWallet: userWallet
-            }
+            id: existingEntry.id
           },
           data: {
             status: 'CONFIRMED'
