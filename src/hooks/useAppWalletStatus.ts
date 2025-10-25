@@ -35,7 +35,7 @@ export function useAppWalletStatus(): AppWalletStatus {
 
   useEffect(() => {
     // Obter carteira do perfil (fonte confiável)
-    const profileWallet = isAuthenticated && user ? (user.publicKey || user.walletAddress) : null;
+    const profileWallet = isAuthenticated && user ? user.publicKey : null;
     
     // Obter carteira conectada na extensão
     const connectedWallet = connected && publicKey ? publicKey.toString() : null;
@@ -71,8 +71,7 @@ export function useAppWalletStatus(): AppWalletStatus {
       user: user ? { 
         id: user.id, 
         email: user.email, 
-        publicKey: user.publicKey,
-        walletAddress: user.walletAddress // Adicionando para debug
+        publicKey: user.publicKey // Adicionando para debug
       } : null,
       // Detalhes da lógica
       logic: {
@@ -102,7 +101,7 @@ export function useAppWalletStatus(): AppWalletStatus {
         isLoading
       });
     }
-  }, [user?.publicKey, user?.walletAddress, publicKey, connected, isAuthenticated, isLoading]);
+  }, [user?.publicKey, publicKey, connected, isAuthenticated, isLoading]);
 
   // 🔍 MODO DE DEPURAÇÃO - Log detalhado antes do return
   console.log(

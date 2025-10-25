@@ -92,7 +92,7 @@ export interface UserData {
   id: string;
   teamName: string;
   userName: string;
-  walletAddress?: string;
+  publicKey?: string;
   mascot: Mascot;
   mainTeam?: MainTeam; // Time Principal
   leagueTeams: LeagueTeam[]; // Times específicos por liga
