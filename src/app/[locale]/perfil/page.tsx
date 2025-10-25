@@ -114,7 +114,7 @@ export default function PerfilPage() {
     }
   }, [user]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     // 🔍 LOGS CRÍTICOS
@@ -282,7 +282,7 @@ export default function PerfilPage() {
       {activeTab === 'profile' && (
         <div className="space-y-6">
           {/* Exibição do Mascote Salvo */}
-          {savedMascot && (
+          {!isLoading && savedMascot && (
             <Card>
               <CardHeader>
                 <CardTitle>Seu Mascote da Sorte</CardTitle>
@@ -325,10 +325,11 @@ export default function PerfilPage() {
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome</Label>
-                  <Input 
-                    id="name" 
-                    value={name} 
-                    onChange={(e) => setName(e.target.value)} 
+                  <Input
+                    id="name"
+                    key={`name-${user?.id}`}
+                    defaultValue={user?.name || ''}
+                    onChange={(e) => setName(e.target.value)}
                     placeholder="Seu nome ou nome do time"
                     required
                   />
@@ -337,10 +338,11 @@ export default function PerfilPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="twitter">X (Twitter)</Label>
-                  <Input 
-                    id="twitter" 
-                    value={twitter} 
-                    onChange={(e) => setTwitter(e.target.value)} 
+                  <Input
+                    id="twitter"
+                    key={`twitter-${user?.id}`}
+                    defaultValue={user?.twitter || ''}
+                    onChange={(e) => setTwitter(e.target.value)}
                     placeholder="@seuusuario ou URL do perfil"
                   />
                   <p className="text-xs text-muted-foreground">Opcional. Ex.: @cryptofan ou https://x.com/cryptofan</p>
@@ -348,10 +350,11 @@ export default function PerfilPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="discord">Discord</Label>
-                  <Input 
-                    id="discord" 
-                    value={discord} 
-                    onChange={(e) => setDiscord(e.target.value)} 
+                  <Input
+                    id="discord"
+                    key={`discord-${user?.id}`}
+                    defaultValue={user?.discord || ''}
+                    onChange={(e) => setDiscord(e.target.value)}
                     placeholder="usuario#1234 ou nome do servidor"
                   />
                   <p className="text-xs text-muted-foreground">Opcional. Seu usuário ou link de servidor.</p>
@@ -361,7 +364,8 @@ export default function PerfilPage() {
                   <Label htmlFor="bio">Biografia</Label>
                   <textarea
                     id="bio"
-                    value={bio}
+                    key={`bio-${user?.id}`}
+                    defaultValue={user?.bio || ''}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Conte sobre você, seu time e sua jornada cripto..."
                     className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
@@ -372,12 +376,24 @@ export default function PerfilPage() {
 
               <div className="flex items-center gap-3">
                 <Button type="submit" className="bg-orange-600 hover:bg-orange-700">Salvar alterações</Button>
-                <Button type="button" variant="secondary" onClick={() => {
-                  setName(user?.name || '');
-                  setTwitter(user?.twitter || '');
-                  setDiscord(user?.discord || '');
-                  setBio(user?.bio || '');
-                }}>Cancelar</Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={(e) => {
+                    // Resetar formulário para valores padrão
+                    const form = e.currentTarget.closest('form');
+                    if (form) {
+                      form.reset();
+                    }
+                    // Resetar estados também
+                    setName(user?.name || '');
+                    setTwitter(user?.twitter || '');
+                    setDiscord(user?.discord || '');
+                    setBio(user?.bio || '');
+                  }}
+                >
+                  Cancelar
+                </Button>
               </div>
               </form>
             </CardContent>
