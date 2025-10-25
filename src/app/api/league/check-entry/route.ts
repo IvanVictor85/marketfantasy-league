@@ -13,7 +13,12 @@ async function getUserFromRequest(request: NextRequest): Promise<string | null> 
     const token = request.cookies.get('auth-token')?.value ||
                   request.headers.get('Authorization')?.replace('Bearer ', '');
 
+    console.log('🔑 [CHECK-ENTRY] Token recebido:', token ? 'Presente' : 'Ausente');
+    console.log('🔑 [CHECK-ENTRY] Headers Authorization:', request.headers.get('Authorization'));
+    console.log('🔑 [CHECK-ENTRY] Cookie auth-token:', request.cookies.get('auth-token')?.value);
+
     if (!token) {
+      console.log('❌ [CHECK-ENTRY] Nenhum token encontrado');
       return null;
     }
 
@@ -22,10 +27,18 @@ async function getUserFromRequest(request: NextRequest): Promise<string | null> 
       include: { user: true }
     });
 
+    console.log('🔍 [CHECK-ENTRY] AuthToken encontrado:', authToken ? 'SIM' : 'NÃO');
+    if (authToken) {
+      console.log('🔍 [CHECK-ENTRY] Token expira em:', authToken.expiresAt);
+      console.log('🔍 [CHECK-ENTRY] Token expirado:', authToken.expiresAt < new Date());
+    }
+
     if (!authToken || authToken.expiresAt < new Date()) {
+      console.log('❌ [CHECK-ENTRY] Token inválido ou expirado');
       return null;
     }
 
+    console.log('✅ [CHECK-ENTRY] Usuário autenticado:', authToken.userId);
     return authToken.userId;
   } catch (error) {
     console.error('❌ [AUTH] Erro ao obter usuário:', error);

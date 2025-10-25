@@ -408,8 +408,26 @@ export function TeamsContent() {
 
   // Verificar se está dentro do horário de edição
   const isEditingAllowed = () => {
-    const currentHour = new Date().getHours();
-    return currentHour < 21; // Permitir edição apenas antes das 21:00
+    const now = new Date();
+    const brazilTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+    
+    // Se não temos dados da competição, usar horário padrão (21:00)
+    if (!competitionData) {
+      return brazilTime.getHours() < 21;
+    }
+    
+    // Usar dados da competição se disponíveis
+    const startTime = new Date(competitionData.startTime);
+    const endTime = new Date(competitionData.endTime);
+    
+    console.log('🕐 Verificando horário de edição:', {
+      agora: brazilTime.toLocaleString('pt-BR'),
+      inicio: startTime.toLocaleString('pt-BR'),
+      fim: endTime.toLocaleString('pt-BR'),
+      permitido: brazilTime >= startTime && brazilTime <= endTime
+    });
+    
+    return brazilTime >= startTime && brazilTime <= endTime;
   };
 
   // Função para salvar escalação
@@ -422,10 +440,12 @@ export function TeamsContent() {
       user
     });
 
-    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição após 21:00
+    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição fora da janela
     if (!isEditingAllowed()) {
       console.log('🚫 handleSaveTeam: Edição bloqueada - fora do horário permitido');
-      setPaymentError('Edição de time bloqueada após 21:00. Aguarde a próxima rodada.');
+      const now = new Date();
+      const brazilTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+      setPaymentError(`Edição de time bloqueada. Horário atual: ${brazilTime.toLocaleString('pt-BR')}. Aguarde a próxima rodada.`);
       return;
     }
 
@@ -795,7 +815,7 @@ export function TeamsContent() {
                       {!isEditingAllowed() ? (
                         <>
                           <Clock className="w-4 h-4" />
-                          Edição Bloqueada (21:00)
+                          Edição Bloqueada
                         </>
                       ) : isSavingTeam ? (
                         <>
