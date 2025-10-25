@@ -805,7 +805,7 @@ export function TeamsContent() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 w-fit">
                       <Target className="w-5 h-5" />
                       Campo de Escalação
                     </CardTitle>
