@@ -34,6 +34,7 @@ interface MainLeagueData {
 
 interface EntryStatus {
   hasPaid: boolean;
+  error?: string;
   entry?: {
     transactionHash: string;
     amountPaid: number;
