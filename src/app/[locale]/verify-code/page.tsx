@@ -65,7 +65,7 @@ export default function VerifyCodePage() {
   };
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const value = e.target.value;
+    let value = e.target.value;
     console.log(`🔍 handleCodeChange: index=${index}, value="${value}"`);
     
     // Permitir apenas um dígito
