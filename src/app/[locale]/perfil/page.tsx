@@ -49,28 +49,66 @@ export default function PerfilPage() {
   }, [isAuthenticated, isLoading, push]);
 
   useEffect(() => {
+    // 🔍 LOGS DE DEBUG
+    console.log('🔍 [PERFIL] useEffect executado');
+    console.log('🔍 [PERFIL] User completo:', JSON.stringify(user, null, 2));
+    console.log('🔍 [PERFIL] user.twitter:', user?.twitter);
+    console.log('🔍 [PERFIL] user.discord:', user?.discord);
+    console.log('🔍 [PERFIL] user.bio:', user?.bio);
+    console.log('🔍 [PERFIL] user.avatar:', user?.avatar?.substring(0, 50) + '...');
+
     // Carregar dados do perfil se usuário autenticado
     if (user) {
       setName(user.name || '');
       setTwitter(user.twitter || '');
       setDiscord(user.discord || '');
       setBio(user.bio || '');
+
+      console.log('✅ [PERFIL] Estados setados:', {
+        name: user.name,
+        twitter: user.twitter,
+        discord: user.discord,
+        bio: user.bio
+      });
     }
-    
-    // Carregar mascote salvo do localStorage (funciona com ou sem usuário)
-    // Verificar se estamos no lado do cliente antes de acessar localStorage
+
+    // Carregar mascote - PRIORIDADE: user.avatar do banco > localStorage
     if (typeof window !== 'undefined') {
-      const userId = user?.id || 'user-1';
-      const key = `savedMascot_${userId}`;
-      
-      const savedMascotData = localStorage.getItem(key);
-      
-      if (savedMascotData) {
-        try {
-          const mascot = JSON.parse(savedMascotData);
-          setSavedMascot(mascot);
-        } catch (error) {
-          console.error('Erro ao carregar mascote salvo:', error);
+      // 1️⃣ PRIMEIRO: Verificar se existe avatar no banco de dados
+      if (user?.avatar) {
+        console.log('✅ [PERFIL] Avatar encontrado no banco de dados');
+
+        // Criar objeto de mascote baseado no avatar do banco
+        const mascotFromDatabase: GeneratedMascot = {
+          id: `db_${user.id}`,
+          imageUrl: user.avatar,
+          prompt: 'Mascote salvo no banco de dados',
+          character: 'Mascote Personalizado',
+          uniformStyle: 'Personalizado',
+          createdAt: new Date().toISOString()
+        };
+
+        setSavedMascot(mascotFromDatabase);
+        console.log('✅ [PERFIL] Mascote do banco carregado');
+      }
+      // 2️⃣ FALLBACK: Se não tem no banco, usar localStorage
+      else {
+        console.log('⚠️ [PERFIL] Avatar não encontrado no banco, tentando localStorage');
+        const userId = user?.id || 'user-1';
+        const key = `savedMascot_${userId}`;
+
+        const savedMascotData = localStorage.getItem(key);
+
+        if (savedMascotData) {
+          try {
+            const mascot = JSON.parse(savedMascotData);
+            setSavedMascot(mascot);
+            console.log('✅ [PERFIL] Mascote do localStorage carregado');
+          } catch (error) {
+            console.error('❌ [PERFIL] Erro ao carregar mascote do localStorage:', error);
+          }
+        } else {
+          console.log('⚠️ [PERFIL] Nenhum mascote encontrado (nem banco nem localStorage)');
         }
       }
     }
