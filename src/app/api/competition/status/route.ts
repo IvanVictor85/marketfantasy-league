@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
           }
         },
         include: {
-          competition: true
+          competitions: true
         }
       });
     } else {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
           id: competitionId
         },
         include: {
-          competition: true
+          competitions: true
         }
       });
     }
@@ -56,11 +56,17 @@ export async function GET(request: NextRequest) {
     console.log('✅ [COMPETITION-STATUS] Liga encontrada:', {
       id: league.id,
       name: league.name,
-      hasCompetition: !!league.competition
+      competitionsCount: league.competitions.length
     });
 
+    // Buscar competição ativa ou usar a primeira disponível
+    let activeCompetition = league.competitions.find(comp => comp.status === 'active');
+    if (!activeCompetition && league.competitions.length > 0) {
+      activeCompetition = league.competitions[0]; // Usar a primeira se não houver ativa
+    }
+
     // Se não há dados de competição, criar dados padrão
-    if (!league.competition) {
+    if (!activeCompetition) {
       const defaultCompetition = {
         id: `comp-${league.id}`,
         leagueId: league.id,
@@ -92,13 +98,13 @@ export async function GET(request: NextRequest) {
 
     const competitionData = {
       competition: {
-        id: league.competition.id,
-        leagueId: league.competition.leagueId,
-        startTime: league.competition.startTime,
-        endTime: league.competition.endTime,
-        status: league.competition.status,
-        prizePool: league.competition.prizePool,
-        distributed: league.competition.distributed
+        id: activeCompetition.id,
+        leagueId: activeCompetition.leagueId,
+        startTime: activeCompetition.startTime,
+        endTime: activeCompetition.endTime,
+        status: activeCompetition.status,
+        prizePool: activeCompetition.prizePool,
+        distributed: activeCompetition.distributed
       },
       rankings: [],
       winners: [],

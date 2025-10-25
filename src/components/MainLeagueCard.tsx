@@ -51,6 +51,7 @@ export function MainLeagueCard() {
   const [leagueData, setLeagueData] = useState<MainLeagueData | null>(null);
   const [entryStatus, setEntryStatus] = useState<EntryStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isCheckingEntry, setIsCheckingEntry] = useState(true);
   const [transactionLoading, setTransactionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -138,6 +139,7 @@ export function MainLeagueCard() {
     // 🔒 CORREÇÃO CRÍTICA: Usar carteira do perfil, não a carteira conectada
     if (!profileWallet || !leagueData) {
       console.log('🔍 MainLeagueCard: Não verificando entrada - sem carteira do perfil ou dados da liga');
+      setIsCheckingEntry(false);
       return;
     }
 
@@ -145,6 +147,7 @@ export function MainLeagueCard() {
     const checkKey = `${profileWallet}-${leagueData.id}`;
     if (checkInProgressRef.current || lastCheckRef.current === checkKey) {
       console.log('🛡️ SAFEGUARD: Chamada duplicada bloqueada (MainLeagueCard)', { checkKey, inProgress: checkInProgressRef.current });
+      setIsCheckingEntry(false);
       return;
     }
 
@@ -157,6 +160,7 @@ export function MainLeagueCard() {
     // 🛡️ SAFEGUARD 2: Mark as in progress
     checkInProgressRef.current = true;
     lastCheckRef.current = checkKey;
+    setIsCheckingEntry(true);
 
     try {
       // Obter token de autenticação
@@ -229,6 +233,7 @@ export function MainLeagueCard() {
     } finally {
       // 🛡️ SAFEGUARD 3: Release lock after completion
       checkInProgressRef.current = false;
+      setIsCheckingEntry(false);
     }
   }, [profileWallet, leagueData, setEntryStatus, setLeagueData]);
 
@@ -591,6 +596,13 @@ export function MainLeagueCard() {
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Conectar Carteira
+          </Button>
+        ) : isCheckingEntry ? (
+          <Button 
+            disabled
+            className="w-full bg-gray-500 text-white cursor-not-allowed"
+          >
+            Verificando...
           </Button>
         ) : entryStatus?.hasPaid && !isMismatched ? (
           <Button 
