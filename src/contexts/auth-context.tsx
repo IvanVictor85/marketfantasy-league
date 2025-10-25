@@ -175,7 +175,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: result.user.name || name || email.split('@')[0],
         loginMethod: 'email',
         avatar: result.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-        publicKey: result.user.publicKey
+        publicKey: result.user.publicKey,
+        twitter: result.user.twitter,
+        discord: result.user.discord,
+        bio: result.user.bio
       };
 
       console.log('✅ [VERIFY-CODE] Usuário criado/encontrado:', userData);
@@ -262,7 +265,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           publicKey: result.user.publicKey,
           name: result.user.name || `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`,
           loginMethod: 'wallet',
-          avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`
+          avatar: result.user.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`,
+          twitter: result.user.twitter,
+          discord: result.user.discord,
+          bio: result.user.bio
         };
         
         setUser(userData);

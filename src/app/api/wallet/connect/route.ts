@@ -26,12 +26,17 @@ export async function POST(request: NextRequest) {
       
       if (existingUser) {
         console.log('✅ [CONNECT-WALLET] Carteira já conectada:', existingUser.email);
-        return NextResponse.json({ 
-          success: true, 
+        return NextResponse.json({
+          success: true,
           user: {
             id: existingUser.id,
             email: existingUser.email,
-            publicKey: existingUser.publicKey
+            publicKey: existingUser.publicKey,
+            name: existingUser.name,
+            avatar: existingUser.avatar,
+            twitter: existingUser.twitter,
+            discord: existingUser.discord,
+            bio: existingUser.bio
           }
         });
       }
@@ -92,12 +97,17 @@ export async function POST(request: NextRequest) {
       publicKey: updated.publicKey
     });
     
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       user: {
         id: updated.id,
         email: updated.email,
-        publicKey: updated.publicKey
+        publicKey: updated.publicKey,
+        name: updated.name,
+        avatar: updated.avatar,
+        twitter: updated.twitter,
+        discord: updated.discord,
+        bio: updated.bio
       }
     });
     
