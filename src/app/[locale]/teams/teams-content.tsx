@@ -803,12 +803,18 @@ export function TeamsContent() {
           <div>
             <Card>
               <CardHeader>
+                {/* DIV PAI - GARANTA justify-between e w-full */}
                 <div className="flex items-center justify-between w-full">
+                  
+                  {/* GRUPO ESQUERDA - GARANTA flex-none */}
                   <div className="flex items-center gap-3 flex-none">
-                    <CardTitle className="flex items-center gap-2 w-fit">
-                      <Target className="w-5 h-5" />
+                    
+                    {/* TÍTULO - GARANTA w-fit */}
+                    <div className="leading-none font-semibold flex items-center gap-2 w-fit">
+                      <Target className="w-5 h-5 flex-shrink-0" />
                       Campo de Escalação
-                    </CardTitle>
+                    </div>
+
                     {competitionData && competitionData.endTime && (
                       <CountdownTimer 
                         endTime={new Date(competitionData.endTime)}
@@ -816,6 +822,8 @@ export function TeamsContent() {
                       />
                     )}
                   </div>
+
+                  {/* GRUPO DIREITA - GARANTA gap-2 */}
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
