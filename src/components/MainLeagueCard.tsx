@@ -159,17 +159,29 @@ export function MainLeagueCard() {
     lastCheckRef.current = checkKey;
 
     try {
+      // Obter token de autenticação
+      const token = localStorage.getItem('auth-token');
+      console.log('🔑 MainLeagueCard: Token obtido:', token ? 'Presente' : 'Ausente');
+      
+      if (!token) {
+        console.error('❌ MainLeagueCard: Token de autenticação não encontrado');
+        setEntryStatus({ hasPaid: false, error: 'Token de autenticação não encontrado' });
+        return;
+      }
+
       const response = await fetch('/api/league/check-entry', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ 
           leagueId: leagueData.id 
         })
       });
 
+      console.log('📡 MainLeagueCard: Resposta da API:', response.status, response.statusText);
+      
       if (response.ok) {
         const data = await response.json();
         console.log('✅ MainLeagueCard: Status de entrada recebido:', data);
@@ -182,6 +194,9 @@ export function MainLeagueCard() {
         }
       } else {
         console.error('❌ MainLeagueCard: Erro na resposta da API:', response.status, response.statusText);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ MainLeagueCard: Detalhes do erro:', errorData);
+        setEntryStatus({ hasPaid: false, error: `Erro ${response.status}: ${response.statusText}` });
       }
     } catch (err) {
       console.error('❌ MainLeagueCard: Erro ao verificar status de entrada:', err);
