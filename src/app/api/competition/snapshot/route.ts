@@ -97,10 +97,10 @@ export async function POST(request: NextRequest) {
         console.log(`   ${index + 1}. ${tokenSymbol}: $${initialPrice.toFixed(2)} → $${finalPrice.toFixed(2)} (${percentChange.toFixed(2)}%)`);
       });
       
-      // Pontuação final = média das variações percentuais
-      const totalScore = totalTeamPoints / teamTokens.length;
-      
-      console.log(`   📊 Total: ${totalTeamPoints.toFixed(2)} pontos / ${teamTokens.length} tokens = ${totalScore.toFixed(2)} pts`);
+      // Pontuação final = soma direta dos percentuais (Opção 2a)
+      const totalScore = totalTeamPoints;
+
+      console.log(`   📊 Total: ${totalTeamPoints.toFixed(2)} pontos (soma direta)`);
       
       return {
         ...team,
