@@ -231,11 +231,12 @@ async function main() {
     for (let i = 0; i < teamsToCreate.length; i++) {
       const { teamName, userWallet, tokens, totalScore } = teamsToCreate[i];
       const rank = i + 1;
+      const userId = 'demo-user-' + (i + 1);
 
       const team = await prisma.team.create({
         data: {
           leagueId: mainLeague.id,
-          userId: 'demo-user-' + (i + 1), // Usuário demo
+          userId: userId,
           userWallet,
           teamName,
           tokens: JSON.stringify(tokens),
@@ -244,6 +245,19 @@ async function main() {
           selectedMascotUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${teamName}`,
           hasValidEntry: true,
         },
+      });
+
+      // TAREFA 1: Criar entrada na liga para cada time demo
+      await prisma.leagueEntry.create({
+        data: {
+          leagueId: mainLeague.id,
+          userId: userId,
+          userWallet: userWallet,
+          transactionHash: `DEMO_${Date.now()}_${i}`,
+          amountPaid: mainLeague.entryFee,
+          status: 'CONFIRMED',
+          blockHeight: 987654321 + i
+        }
       });
 
       teams.push(team);
