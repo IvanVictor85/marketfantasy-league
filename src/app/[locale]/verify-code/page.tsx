@@ -29,7 +29,7 @@ export default function VerifyCodePage() {
   const email = searchParams?.get('email') || '';
   const redirectTo = searchParams?.get('redirect') || `/${locale}/dashboard`;
   
-  const inputRefs = useRef<(HTMLInputElement | null)[]>(new Array(6).fill(null));
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   // Traduções
   const tAuth = useAuthTranslations();
@@ -66,53 +66,66 @@ export default function VerifyCodePage() {
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     let value = e.target.value;
-    console.log(`🔍 handleCodeChange: index=${index}, value="${value}"`);
-    
-    // Permitir apenas um dígito
+    console.log(`🔍 onChange chamado - index: ${index}, value original: "${value}"`);
+
+    // Permitir apenas dígitos numéricos
+    value = value.replace(/\D/g, '');
+    console.log(`🔢 Após limpeza: "${value}"`);
+
+    // Permitir apenas um dígito (pegar o último digitado se houver múltiplos)
     if (value.length > 1) {
-      // Se o usuário colou múltiplos dígitos, pegar apenas o primeiro
-      value = value.charAt(0);
+      value = value.slice(-1);
+      console.log(`✂️ Cortado para: "${value}"`);
     }
-    
+
     // Atualizar o código
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
-    
-    console.log(`📝 Código atualizado:`, newCode);
-    
-    // Avançar para o próximo campo se um dígito foi inserido
-    if (value && index < 5) {
-      console.log(`➡️ Tentando focar no próximo campo: ${index + 1}`);
-      // Mova o foco para o PRÓXIMO input
-      inputRefs.current[index + 1]?.focus();
-    }
-    
-    // Se o usuário apagou o campo, voltar para o anterior
-    if (!value && index > 0) {
-      console.log(`⬅️ Voltando para o campo anterior: ${index - 1}`);
-      inputRefs.current[index - 1]?.focus();
+    console.log(`💾 Estado atualizado:`, newCode);
+
+    // Auto-avanço: mover para o próximo campo se um dígito foi inserido
+    if (value.length === 1 && index < 5) {
+      console.log(`➡️ Tentando focar no campo ${index + 1}`);
+      console.log(`📌 Ref atual:`, inputRefs.current[index + 1]);
+      setTimeout(() => {
+        const nextInput = inputRefs.current[index + 1];
+        console.log(`🎯 Focando em:`, nextInput);
+        nextInput?.focus();
+      }, 0);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    // Backspace: focar no input anterior se o atual estiver vazio
-    if (e.key === 'Backspace' && e.currentTarget.value === '' && index > 0) {
-      e.preventDefault();
-      inputRefs.current[index - 1]?.focus();
+    const currentValue = e.currentTarget.value;
+
+    // Backspace: limpar campo atual e voltar para o anterior
+    if (e.key === 'Backspace') {
+      if (currentValue === '' && index > 0) {
+        // Campo vazio: voltar para o campo anterior
+        e.preventDefault();
+        inputRefs.current[index - 1]?.focus();
+      } else if (currentValue !== '') {
+        // Campo com valor: limpar e permanecer no campo atual
+        // O comportamento padrão do input já vai limpar, então não precisamos fazer nada
+        // Mas vamos garantir que o valor seja limpo no estado
+        const newCode = [...code];
+        newCode[index] = '';
+        setCode(newCode);
+      }
     }
-    
+
     // Arrow keys: navegar entre os campos
     if (e.key === 'ArrowLeft' && index > 0) {
       e.preventDefault();
       inputRefs.current[index - 1]?.focus();
     }
-    
+
     if (e.key === 'ArrowRight' && index < 5) {
       e.preventDefault();
       inputRefs.current[index + 1]?.focus();
     }
-    
+
     // Enter: submeter o formulário se todos os campos estiverem preenchidos
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -247,7 +260,7 @@ export default function VerifyCodePage() {
                 {code.map((digit, index) => (
                   <Input
                     key={index}
-                    ref={inputRefs.current[index]}
+                    ref={(el) => { inputRefs.current[index] = el; }}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"

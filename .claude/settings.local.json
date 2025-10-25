@@ -4,7 +4,11 @@
       "Bash(git pull --rebase origin master)",
       "Bash(git stash)",
       "Bash(git stash pop)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm run build:check:*)",
+      "Bash(timeout 10 bash:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []
