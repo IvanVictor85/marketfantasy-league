@@ -5,9 +5,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { leagueId } = body;
-    
+
     console.log('📸 Iniciando snapshot da competição...', { leagueId });
-    
+
     // Buscar liga (principal se não especificada)
     let mainLeague;
     if (leagueId) {
@@ -22,14 +22,14 @@ export async function POST(request: NextRequest) {
         }
       });
     }
-    
+
     if (!mainLeague) {
       return NextResponse.json(
         { error: 'Liga principal não encontrada' },
         { status: 404 }
       );
     }
-    
+
     // Buscar todos os times da liga
     const teams = await prisma.team.findMany({
       where: {
@@ -45,20 +45,58 @@ export async function POST(request: NextRequest) {
         }
       }
     });
-    
+
     console.log(`📊 Encontrados ${teams.length} times para pontuação`);
-    
+
     if (teams.length === 0) {
       return NextResponse.json(
         { error: 'Nenhum time encontrado na liga' },
         { status: 404 }
       );
     }
-    
-    // Calcular pontuações baseadas na variação percentual dos tokens
+
+    // ============================================================
+    // BUSCAR DADOS REAIS DO COINGECKO (change_7d)
+    // ============================================================
+    console.log('🌐 Buscando dados do mercado do CoinGecko...');
+
+    const COINGECKO_URL = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&price_change_percentage=7d';
+
+    let tokenChangeMap = new Map<string, number>(); // symbol -> change_7d
+
+    try {
+      const response = await fetch(COINGECKO_URL, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'CryptoFantasy-League/1.0',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Preencher o mapa com os dados reais
+        data.forEach((token: any) => {
+          const symbol = token.symbol.toUpperCase();
+          const change7d = token.price_change_percentage_7d_in_currency || 0;
+          tokenChangeMap.set(symbol, change7d);
+        });
+
+        console.log(`✅ Dados do CoinGecko carregados: ${tokenChangeMap.size} tokens`);
+      } else {
+        console.warn(`⚠️ CoinGecko API não disponível (status ${response.status}). Usando valores padrão 0.`);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar dados do CoinGecko:', error);
+      console.log('⚠️ Continuando com valores padrão 0 para todos os tokens.');
+    }
+
+    // ============================================================
+    // CALCULAR PONTUAÇÕES DOS TIMES (SOMA DOS change_7d)
+    // ============================================================
     const teamsWithScores = teams.map(team => {
       console.log(`\n🎯 Calculando pontuação para: ${team.teamName}`);
-      
+
       // Parse dos tokens do time
       let teamTokens: string[] = [];
       try {
@@ -67,7 +105,7 @@ export async function POST(request: NextRequest) {
         console.error(`❌ Erro ao parsear tokens do time ${team.teamName}:`, error);
         teamTokens = [];
       }
-      
+
       if (teamTokens.length === 0) {
         console.log(`⚠️ Time ${team.teamName} sem tokens válidos`);
         return {
@@ -75,33 +113,22 @@ export async function POST(request: NextRequest) {
           totalScore: 0
         };
       }
-      
+
       let totalTeamPoints = 0;
-      
-      // Calcular pontos para cada token do time
+
+      // Calcular pontos para cada token do time (usando change_7d real)
       teamTokens.forEach((tokenSymbol, index) => {
-        // Simular preço de início da rodada
-        const initialPrice = Math.random() * 100 + 10; // Entre $10 e $110
-        
-        // Simular preço de fim da rodada (variação de -20% a +20%)
-        const variation = (Math.random() - 0.5) * 0.4; // -0.2 a +0.2
-        const finalPrice = initialPrice * (1 + variation);
-        
-        // Calcular variação percentual
-        const percentChange = ((finalPrice - initialPrice) / initialPrice) * 100;
-        
-        // Pontos do token = variação percentual
-        const tokenPoints = percentChange;
-        totalTeamPoints += tokenPoints;
-        
-        console.log(`   ${index + 1}. ${tokenSymbol}: $${initialPrice.toFixed(2)} → $${finalPrice.toFixed(2)} (${percentChange.toFixed(2)}%)`);
+        const change7d = tokenChangeMap.get(tokenSymbol.toUpperCase()) || 0;
+        totalTeamPoints += change7d;
+
+        console.log(`   ${index + 1}. ${tokenSymbol}: ${change7d > 0 ? '+' : ''}${change7d.toFixed(2)}%`);
       });
-      
+
       // Pontuação final = soma direta dos percentuais (Opção 2a)
       const totalScore = totalTeamPoints;
 
-      console.log(`   📊 Total: ${totalTeamPoints.toFixed(2)} pontos (soma direta)`);
-      
+      console.log(`   📊 Total: ${totalScore.toFixed(2)} pontos (soma dos change_7d)`);
+
       return {
         ...team,
         totalScore: Math.round(totalScore * 100) / 100 // Arredondar para 2 casas decimais
