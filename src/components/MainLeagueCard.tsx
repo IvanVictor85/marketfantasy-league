@@ -169,6 +169,13 @@ export function MainLeagueCard() {
         return;
       }
 
+      // Verificar se o usuário está autenticado
+      if (!isAuthenticated || !user) {
+        console.error('❌ MainLeagueCard: Usuário não autenticado');
+        setEntryStatus({ hasPaid: false, error: 'Usuário não autenticado' });
+        return;
+      }
+
       const response = await fetch('/api/league/check-entry', {
         method: 'POST',
         headers: { 

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useGuardedActionHook } from '@/hooks/useGuardedActionHook';
+import { useCompetitionStatus } from '@/hooks/useCompetitionStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,12 @@ export function TeamsContent() {
   const { publicKey, connected } = useWallet();
   const { user, isAuthenticated } = useAuth();
   const { canExecuteAction } = useGuardedActionHook();
+  
+  // Buscar dados da competição para a liga selecionada
+  const { competition: competitionData, loading: isCompetitionLoading } = useCompetitionStatus({
+    competitionId: selectedLeagueId === 'main' ? 'main-league' : selectedLeagueId,
+    enabled: !!selectedLeagueId
+  });
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -407,27 +414,31 @@ export function TeamsContent() {
   };
 
   // Verificar se está dentro do horário de edição
-  const isEditingAllowed = () => {
-    const now = new Date();
-    const brazilTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
-    
-    // Se não temos dados da competição, usar horário padrão (21:00)
-    if (!competitionData) {
-      return brazilTime.getHours() < 21;
+  const isEditingAllowed = (): boolean => {
+    // Se estivermos carregando os dados da competição, não permita a edição
+    if (isCompetitionLoading) {
+      console.log('🕐 Verificando horário de edição: Carregando dados da competição');
+      return false;
     }
-    
-    // Usar dados da competição se disponíveis
-    const startTime = new Date(competitionData.startTime);
-    const endTime = new Date(competitionData.endTime);
-    
+
+    // Se não houver dados da competição ou não houver data de fim, permita a edição (lógica de fallback)
+    if (!competitionData || !competitionData.endTime) {
+      console.log('🕐 Verificando horário de edição: Sem dados da competição, permitindo edição');
+      return true; 
+    }
+
+    // A lógica de tempo correta
+    const now = new Date();
+    const endDate = new Date(competitionData.endTime);
+
     console.log('🕐 Verificando horário de edição:', {
-      agora: brazilTime.toLocaleString('pt-BR'),
-      inicio: startTime.toLocaleString('pt-BR'),
-      fim: endTime.toLocaleString('pt-BR'),
-      permitido: brazilTime >= startTime && brazilTime <= endTime
+      agora: now.toLocaleString('pt-BR'),
+      fim: endDate.toLocaleString('pt-BR'),
+      permitido: now < endDate
     });
-    
-    return brazilTime >= startTime && brazilTime <= endTime;
+
+    // Retorna 'true' (permitido) se a data/hora atual for ANTES da data de fim
+    return now < endDate;
   };
 
   // Função para salvar escalação
