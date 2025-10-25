@@ -35,7 +35,7 @@ export function useAppWalletStatus(): AppWalletStatus {
 
   useEffect(() => {
     // Obter carteira do perfil (fonte confiável)
-    const profileWallet = isAuthenticated && user ? user.publicKey : null;
+    const profileWallet = isAuthenticated && user ? (user.publicKey ?? null) : null;
     
     // Obter carteira conectada na extensão
     const connectedWallet = connected && publicKey ? publicKey.toString() : null;
