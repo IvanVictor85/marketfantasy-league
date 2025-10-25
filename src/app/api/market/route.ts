@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCachedMarketTokens, getCacheStats } from '@/lib/cache/coingecko-cache';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/market
  *

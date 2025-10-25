@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { mockTokens } from '@/lib/mock-data/tokens';
+
+export const dynamic = 'force-dynamic';
 import { 
   getCachedCoinGeckoPrices, 
   cacheCoinGeckoPrices,

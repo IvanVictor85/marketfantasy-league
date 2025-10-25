@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCachedMarketTokens } from '@/lib/cache/coingecko-cache';
 
+export const dynamic = 'force-dynamic';
+
 // ============================================
 // GET /api/competition/status
 // ============================================
