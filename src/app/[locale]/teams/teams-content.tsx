@@ -17,6 +17,7 @@ import { type TokenMarketData } from '@/data/expanded-tokens';
 import { type Player } from '@/types/teams';
 import { validateTokens } from '@/lib/valid-tokens';
 import { LocalizedLink } from '@/components/ui/localized-link';
+import { CountdownTimer } from '@/components/ui/countdown-timer';
 
 import { 
   Users, 
@@ -803,10 +804,18 @@ export function TeamsContent() {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    Campo de Escalação
-                  </CardTitle>
+                  <div className="flex items-center gap-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="w-5 h-5" />
+                      Campo de Escalação
+                    </CardTitle>
+                    {competitionData && competitionData.endTime && (
+                      <CountdownTimer 
+                        endTime={new Date(competitionData.endTime)}
+                        className="text-sm"
+                      />
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
