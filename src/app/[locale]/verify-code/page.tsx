@@ -247,9 +247,7 @@ export default function VerifyCodePage() {
                 {code.map((digit, index) => (
                   <Input
                     key={index}
-                    ref={(el) => {
-                      if (el) inputRefs.current[index] = el;
-                    }}
+                    ref={inputRefs.current[index]}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
