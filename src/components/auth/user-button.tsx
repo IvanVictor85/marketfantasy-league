@@ -77,8 +77,8 @@ export function UserButton({ className }: UserButtonProps) {
   const getDisplayName = () => {
     if (user.name) return user.name;
     if (user.email) return user.email.split('@')[0];
-    if (user.walletAddress) {
-      return `${user.walletAddress.slice(0, 4)}...${user.walletAddress.slice(-4)}`;
+    if (user.publicKey) {
+      return `${user.publicKey.slice(0, 4)}...${user.publicKey.slice(-4)}`;
     }
     return 'Usuário';
   };
@@ -125,7 +125,7 @@ export function UserButton({ className }: UserButtonProps) {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{getDisplayName()}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email || user.walletAddress}
+              {user.email || user.publicKey}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -151,7 +151,7 @@ export function UserButton({ className }: UserButtonProps) {
           <span>Configurações</span>
         </DropdownMenuItem>
         
-        {user.loginMethod === 'wallet' && user.walletAddress && (
+        {user.loginMethod === 'wallet' && user.publicKey && (
           <DropdownMenuItem>
             <Wallet className="mr-2 h-4 w-4" />
             <span>Carteira</span>
