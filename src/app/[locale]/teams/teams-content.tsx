@@ -50,12 +50,6 @@ export function TeamsContent() {
   const { publicKey, connected } = useWallet();
   const { user, isAuthenticated } = useAuth();
   const { canExecuteAction } = useGuardedActionHook();
-  
-  // Buscar dados da competição para a liga selecionada
-  const { competition: competitionData, loading: isCompetitionLoading } = useCompetitionStatus({
-    competitionId: selectedLeagueId === 'main' ? 'main-league' : selectedLeagueId,
-    enabled: !!selectedLeagueId
-  });
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -89,6 +83,12 @@ export function TeamsContent() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState<string>(getInitialLeagueId());
   const [isEditingMainTeam, setIsEditingMainTeam] = useState(getInitialLeagueId() === 'main');
+  
+  // Buscar dados da competição para a liga selecionada
+  const { competition: competitionData, loading: isCompetitionLoading } = useCompetitionStatus({
+    competitionId: selectedLeagueId === 'main' ? 'main-league' : selectedLeagueId,
+    enabled: !!selectedLeagueId
+  });
   
   // Estados para verificação de pagamento e carregamento
   const [hasValidEntry, setHasValidEntry] = useState<boolean | null>(null);

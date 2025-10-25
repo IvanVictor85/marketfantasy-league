@@ -176,6 +176,13 @@ export function MainLeagueCard() {
         return;
       }
 
+      console.log('🔍 MainLeagueCard: Dados do usuário:', {
+        isAuthenticated,
+        userId: user?.id,
+        userEmail: user?.email,
+        userPublicKey: user?.publicKey
+      });
+
       const response = await fetch('/api/league/check-entry', {
         method: 'POST',
         headers: { 
