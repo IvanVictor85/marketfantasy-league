@@ -803,11 +803,11 @@ export function TeamsContent() {
           <div>
             <Card>
               <CardHeader>
-                {/* DIV PAI - GARANTA justify-between e w-full */}
-                <div className="flex items-center justify-between w-full">
+                {/* DIV PAI - Removemos justify-between */}
+                <div className="flex items-center w-full">
                   
-                  {/* GRUPO ESQUERDA - GARANTA flex-none */}
-                  <div className="flex items-center gap-3 flex-none">
+                  {/* GRUPO ESQUERDA - Removemos flex-none */}
+                  <div className="flex items-center gap-3">
                     
                     {/* TÍTULO - GARANTA w-fit */}
                     <div className="leading-none font-semibold flex items-center gap-2 w-fit">
@@ -823,8 +823,8 @@ export function TeamsContent() {
                     )}
                   </div>
 
-                  {/* GRUPO DIREITA - GARANTA gap-2 */}
-                  <div className="flex items-center gap-2">
+                  {/* GRUPO DIREITA - ADICIONA ml-auto AQUI */}
+                  <div className="flex items-center gap-2 ml-auto">
                     <Button
                       variant="outline"
                       size="sm"
