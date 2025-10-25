@@ -177,10 +177,11 @@ const mockUserData: UserData = {
 };
 
 // Dashboard Sidebar Component
-const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: { 
-  userData: UserData, 
+const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }: {
+  userData: UserData,
   selectedTeamData: { league: League | null, team: LeagueTeam | MainTeam | null, isMainTeam: boolean },
-  savedMascot: SavedMascot | null
+  savedMascot: SavedMascot | null,
+  isLoading: boolean
 }) => {
   const wallet = useGuardedActionHook();
   const { publicKey, connected, canExecuteAction } = wallet;
@@ -575,11 +576,11 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot }: {
       <Card>
         <CardContent className="p-6 flex flex-col items-center">
           <div className="w-32 h-32 relative mb-4">
-            {savedMascot ? (
-              <Image 
-                src={savedMascot.imageUrl} 
-                alt="Seu Mascote da Sorte" 
-                fill 
+            {!isLoading && savedMascot ? (
+              <Image
+                src={savedMascot.imageUrl}
+                alt="Seu Mascote da Sorte"
+                fill
                 className="object-contain rounded-lg"
               />
             ) : (
@@ -1082,7 +1083,7 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
 };
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string>("main");
   const [savedMascot, setSavedMascot] = useState<SavedMascot | null>(null);
   
@@ -1133,18 +1134,37 @@ export default function Dashboard() {
     return mockUserData; // Fallback para dados mock se não houver usuário
   }, [user, mainTeamData]);
 
-  // Carregar mascote salvo do localStorage
+  // Carregar mascote - PRIORIDADE: user.avatar do banco > localStorage
   useEffect(() => {
     // Verificar se estamos no lado do cliente antes de acessar localStorage
     if (typeof window !== 'undefined') {
-      if (user) {
+      // 1️⃣ PRIMEIRO: Verificar se existe avatar no banco de dados
+      if (user?.avatar) {
+        console.log('✅ [DASHBOARD] Avatar encontrado no banco de dados');
+
+        // Criar objeto de mascote baseado no avatar do banco
+        const mascotFromDatabase: SavedMascot = {
+          id: `db_${user.id}`,
+          imageUrl: user.avatar,
+          character: 'Mascote Personalizado',
+          uniformStyle: 'Personalizado',
+          createdAt: new Date().toISOString()
+        };
+
+        setSavedMascot(mascotFromDatabase);
+        console.log('✅ [DASHBOARD] Mascote do banco carregado');
+      }
+      // 2️⃣ FALLBACK: Se não tem no banco, usar localStorage
+      else if (user) {
+        console.log('⚠️ [DASHBOARD] Avatar não encontrado no banco, tentando localStorage');
         try {
           const key = `savedMascot_${user.id}`;
           const savedMascotData = localStorage.getItem(key);
-          
+
           if (savedMascotData) {
             const mascot = JSON.parse(savedMascotData);
             setSavedMascot(mascot);
+            console.log('✅ [DASHBOARD] Mascote do localStorage carregado');
           } else {
             // Fallback: tentar carregar com chave do mockUserData para compatibilidade
             const fallbackKey = `savedMascot_${mockUserData.id}`;
@@ -1152,10 +1172,13 @@ export default function Dashboard() {
             if (fallbackData) {
               const mascot = JSON.parse(fallbackData);
               setSavedMascot(mascot);
+              console.log('✅ [DASHBOARD] Mascote do localStorage (fallback) carregado');
+            } else {
+              console.log('⚠️ [DASHBOARD] Nenhum mascote encontrado');
             }
           }
         } catch (error) {
-          console.error('Erro ao carregar mascote salvo:', error);
+          console.error('❌ [DASHBOARD] Erro ao carregar mascote salvo:', error);
         }
       } else {
         // Se não há usuário autenticado, tentar carregar com dados mock
@@ -1178,7 +1201,7 @@ export default function Dashboard() {
             setSavedMascot(exampleMascot);
           }
         } catch (error) {
-          console.error('Erro ao carregar mascote mock:', error);
+          console.error('❌ [DASHBOARD] Erro ao carregar mascote mock:', error);
         }
       }
     }
@@ -1236,10 +1259,11 @@ export default function Dashboard() {
   return (
     <main className="container mx-auto py-6 px-4">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
-        <DashboardSidebar 
-          userData={userData} 
-          selectedTeamData={selectedTeamData} 
+        <DashboardSidebar
+          userData={userData}
+          selectedTeamData={selectedTeamData}
           savedMascot={savedMascot}
+          isLoading={isLoading}
         />
         <DashboardContent 
           userData={userData} 
