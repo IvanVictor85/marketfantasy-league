@@ -183,6 +183,18 @@ export function MainLeagueCard() {
         userPublicKey: user?.publicKey
       });
 
+      console.log('📡 MainLeagueCard: Enviando requisição para check-entry:', {
+        url: '/api/league/check-entry',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token ? token.substring(0, 20) + '...' : 'null'}`
+        },
+        body: {
+          leagueId: leagueData.id
+        }
+      });
+
       const response = await fetch('/api/league/check-entry', {
         method: 'POST',
         headers: { 
