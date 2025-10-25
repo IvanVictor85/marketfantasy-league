@@ -804,15 +804,15 @@ export function TeamsContent() {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="w-5 h-5" />
-                      Campo de Escalação
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <CardTitle className="flex items-center gap-2 text-lg leading-tight">
+                      <Target className="w-5 h-5 flex-shrink-0" />
+                      <span className="whitespace-nowrap">Campo de Escalação</span>
                     </CardTitle>
                     {competitionData && competitionData.endTime && (
                       <CountdownTimer 
                         endTime={new Date(competitionData.endTime)}
-                        className="text-sm"
+                        className="text-sm flex-shrink-0"
                       />
                     )}
                   </div>
