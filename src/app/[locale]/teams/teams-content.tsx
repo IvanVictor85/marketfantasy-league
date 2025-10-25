@@ -803,28 +803,28 @@ export function TeamsContent() {
           <div>
             <Card>
               <CardHeader>
-                {/* DIV PAI - Removemos justify-between */}
-                <div className="flex items-center w-full">
-                  
-                  {/* GRUPO ESQUERDA - Removemos flex-none */}
-                  <div className="flex items-center gap-3">
-                    
-                    {/* TÍTULO - GARANTA w-fit */}
+                {/* DIV PAI - Layout Responsivo: vertical no mobile, horizontal no desktop */}
+                <div className="flex flex-col items-stretch gap-3 md:flex-row md:items-center md:justify-between">
+
+                  {/* GRUPO ESQUERDA - Título + Contador */}
+                  <div className="flex items-center gap-3 flex-wrap">
+
+                    {/* TÍTULO */}
                     <div className="leading-none font-semibold flex items-center gap-2 w-fit">
                       <Target className="w-5 h-5 flex-shrink-0" />
                       Campo de Escalação
                     </div>
 
                     {competitionData && competitionData.endTime && (
-                      <CountdownTimer 
+                      <CountdownTimer
                         endTime={new Date(competitionData.endTime)}
-                        className="text-sm"
+                        className="text-xs md:text-sm"
                       />
                     )}
                   </div>
 
-                  {/* GRUPO DIREITA - ADICIONA ml-auto AQUI */}
-                  <div className="flex items-center gap-2 ml-auto">
+                  {/* GRUPO DIREITA - Botões (alinhados à direita no mobile) */}
+                  <div className="flex items-center gap-2 self-end md:self-auto">
                     <Button
                       variant="outline"
                       size="sm"
