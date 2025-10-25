@@ -20,12 +20,13 @@ interface Team {
 interface RankingTableProps {
   teams: Team[];
   currentUserId?: string;
+  currentUserEmail?: string;
 }
 
-export function RankingTable({ teams, currentUserId }: RankingTableProps) {
+export function RankingTable({ teams, currentUserId, currentUserEmail }: RankingTableProps) {
   const getRankIcon = (rank: number | null) => {
     if (!rank) return <Users className="h-4 w-4" />;
-    
+
     switch (rank) {
       case 1:
         return <Trophy className="h-4 w-4 text-yellow-500" />;
@@ -40,7 +41,7 @@ export function RankingTable({ teams, currentUserId }: RankingTableProps) {
 
   const getRankBadgeVariant = (rank: number | null) => {
     if (!rank) return 'secondary';
-    
+
     switch (rank) {
       case 1:
         return 'default';
@@ -64,7 +65,8 @@ export function RankingTable({ teams, currentUserId }: RankingTableProps) {
       <CardContent>
         <div className="space-y-2">
           {teams.map((team, index) => {
-            const isCurrentUser = currentUserId && team.user.email.includes('@');
+            // CORREÇÃO: Comparar email do time com email do usuário logado
+            const isCurrentUser = currentUserEmail && team.user.email === currentUserEmail;
             const hasScore = team.totalScore !== null;
             
             return (

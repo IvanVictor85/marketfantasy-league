@@ -340,9 +340,10 @@ export default function RankingPage() {
             </div>
           </div>
 
-          <RankingTable 
-            teams={teams} 
+          <RankingTable
+            teams={teams}
             currentUserId={user?.id}
+            currentUserEmail={user?.email}
           />
         </div>
       </div>
