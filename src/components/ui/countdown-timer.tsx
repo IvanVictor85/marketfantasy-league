@@ -88,7 +88,6 @@ export function CountdownTimer({ endTime, className = '' }: CountdownTimerProps)
           {timeLeft.seconds.toString().padStart(2, '0')}
         </span>
       </div>
-      <span className="text-xs text-gray-500">(DD:HH:MM:SS)</span>
     </div>
   );
 }
