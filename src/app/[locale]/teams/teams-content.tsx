@@ -883,22 +883,79 @@ export function TeamsContent() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {/* Pontuação Total (atual do time no banco) */}
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{players.length}/10</div>
-                    <div className="text-sm text-gray-600">Jogadores</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      ${players.reduce((sum, p) => sum + (p.price || 0), 0).toFixed(2)}
+                    <div className="text-2xl font-bold text-orange-600">
+                      {existingTeam?.totalScore?.toFixed(1) || 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600">Valor Total</div>
+                    <div className="text-sm text-gray-600">Pontuação Total</div>
                   </div>
+
+                  {/* Ranking na Liga (atual do time no banco) */}
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {players.length > 0 ? (players.reduce((sum, p) => sum + (p.points || 0), 0) / players.length).toFixed(1) : '0.0'}
+                    <div className="text-2xl font-bold text-blue-600">
+                      {existingTeam?.rank ? `#${existingTeam.rank}` : 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600">Pontos Médios</div>
+                    <div className="text-sm text-gray-600">Ranking na Liga</div>
                   </div>
+
+                  {/* Melhor Ativo (baseado em change_7d) */}
+                  <div className="text-center">
+                    {(() => {
+                      if (players.length === 0) {
+                        return (
+                          <>
+                            <div className="text-2xl font-bold text-gray-400">N/A</div>
+                            <div className="text-sm text-gray-600">Melhor Ativo</div>
+                          </>
+                        );
+                      }
+                      const best = players.reduce((prev, current) =>
+                        (current.change_7d || 0) > (prev.change_7d || 0) ? current : prev
+                      );
+                      return (
+                        <>
+                          <div className="text-lg font-bold text-green-600">
+                            {best.token}
+                          </div>
+                          <div className="text-xs text-green-600">
+                            +{(best.change_7d || 0).toFixed(1)}%
+                          </div>
+                          <div className="text-sm text-gray-600">Melhor Ativo</div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Pior Ativo (baseado em change_7d) */}
+                  <div className="text-center">
+                    {(() => {
+                      if (players.length === 0) {
+                        return (
+                          <>
+                            <div className="text-2xl font-bold text-gray-400">N/A</div>
+                            <div className="text-sm text-gray-600">Pior Ativo</div>
+                          </>
+                        );
+                      }
+                      const worst = players.reduce((prev, current) =>
+                        (current.change_7d || 0) < (prev.change_7d || 0) ? current : prev
+                      );
+                      return (
+                        <>
+                          <div className="text-lg font-bold text-red-600">
+                            {worst.token}
+                          </div>
+                          <div className="text-xs text-red-600">
+                            {(worst.change_7d || 0).toFixed(1)}%
+                          </div>
+                          <div className="text-sm text-gray-600">Pior Ativo</div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Performance 7d (mantido) */}
                   <div className="text-center">
                     {(() => {
                       const performance7d = players.length > 0
@@ -919,33 +976,6 @@ export function TeamsContent() {
                         </>
                       );
                     })()}
-                  </div>
-                  <div className="text-center">
-                    {(() => {
-                      const performance24h = players.length > 0
-                        ? (players.reduce((sum, p) => sum + (p.change_24h || 0), 0) / players.length)
-                        : 0;
-                      const getPerformanceColor = (value: number) => {
-                        if (value > 5) return 'text-green-600';
-                        if (value > 0) return 'text-green-500';
-                        if (value < -5) return 'text-red-600';
-                        return 'text-red-500';
-                      };
-                      return (
-                        <>
-                          <div className={`text-2xl font-bold ${getPerformanceColor(performance24h)}`}>
-                            {performance24h > 0 ? '+' : ''}{performance24h.toFixed(1)}%
-                          </div>
-                          <div className="text-sm text-gray-600">Performance 24h</div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {players.reduce((sum, p) => sum + p.points, 0)}
-                    </div>
-                    <div className="text-sm text-gray-600">Pontos Totais</div>
                   </div>
                 </div>
               </CardContent>
