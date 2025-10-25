@@ -64,7 +64,8 @@ export default function VerifyCodePage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleCodeChange = (index: number, value: string) => {
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const value = e.target.value;
     console.log(`🔍 handleCodeChange: index=${index}, value="${value}"`);
     
     // Permitir apenas um dígito
@@ -83,34 +84,20 @@ export default function VerifyCodePage() {
     // Avançar para o próximo campo se um dígito foi inserido
     if (value && index < 5) {
       console.log(`➡️ Tentando focar no próximo campo: ${index + 1}`);
-      // Usar requestAnimationFrame para garantir que o DOM foi atualizado
-      requestAnimationFrame(() => {
-        const nextInput = inputRefs.current[index + 1];
-        console.log(`🎯 Próximo input encontrado:`, !!nextInput);
-        if (nextInput) {
-          nextInput.focus();
-          nextInput.select();
-          console.log(`✅ Foco aplicado no campo ${index + 1}`);
-        }
-      });
+      // Mova o foco para o PRÓXIMO input
+      inputRefs.current[index + 1]?.focus();
     }
     
     // Se o usuário apagou o campo, voltar para o anterior
     if (!value && index > 0) {
       console.log(`⬅️ Voltando para o campo anterior: ${index - 1}`);
-      requestAnimationFrame(() => {
-        const prevInput = inputRefs.current[index - 1];
-        if (prevInput) {
-          prevInput.focus();
-          prevInput.select();
-        }
-      });
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     // Backspace: focar no input anterior se o atual estiver vazio
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
+    if (e.key === 'Backspace' && e.currentTarget.value === '' && index > 0) {
       e.preventDefault();
       inputRefs.current[index - 1]?.focus();
     }
@@ -268,8 +255,8 @@ export default function VerifyCodePage() {
                     pattern="[0-9]*"
                     maxLength={1}
                     value={digit}
-                    onChange={(e) => handleCodeChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    onChange={(e) => handleCodeChange(e, index)}
+                    onKeyDown={(e) => handleKeyDown(e, index)}
                     onPaste={index === 0 ? handlePaste : undefined}
                     aria-label={`Dígito ${index + 1}`}
                     autoFocus={index === 0}
