@@ -1,9 +1,9 @@
 /**
- * Verifica se a rodada está EM ANDAMENTO (entre 21:00 e 15:00 BRT).
+ * Verifica se a rodada está EM ANDAMENTO (entre 21:00 e 09:00 BRT).
  *
  * LÓGICA CORRETA:
- * - Rodada EM ANDAMENTO (BLOQUEADA): 21:00 (9 PM) até 14:59 do dia seguinte (antes de 15:00)
- * - Rodada ABERTA (EDIÇÃO PERMITIDA): Qualquer horário fora da janela acima (15:00-20:59)
+ * - Rodada EM ANDAMENTO (BLOQUEADA): 21:00 (9 PM) até 08:59 do dia seguinte (antes de 09:00 AM)
+ * - Rodada ABERTA (EDIÇÃO PERMITIDA): 09:00 AM até 20:59 PM (aprox. 12 horas de edição)
  *
  * IMPORTANTE:
  * - Usa Intl.DateTimeFormat para obter hora no fuso correto
@@ -27,11 +27,14 @@ export function isRodadaEmAndamento(): boolean {
 
   // Define os horários de início e fim da janela de BLOQUEIO
   const HORA_INICIO_LOCK = 21;  // 21:00 (9 PM)
-  const HORA_FIM_LOCK = 15;     // 15:00 (3 PM)
+  const HORA_FIM_LOCK = 9;      // 09:00 AM (Manhã seguinte)
 
   // Retorna TRUE se a rodada estiver "em andamento" (bloqueada/travada)
-  // Como a rodada atravessa a meia-noite (21:00 até 15:00 do dia seguinte),
-  // precisamos verificar: hora >= 21 OU hora < 15
+  // A lógica correta que atravessa a meia-noite:
+  // Retorna TRUE (bloqueado) se:
+  // - horaAtual for 21, 22, ou 23 (>= HORA_INICIO_LOCK)
+  // OU
+  // - horaAtual for 0, 1, 2... até 8 (< HORA_FIM_LOCK)
   return horaAtual >= HORA_INICIO_LOCK || horaAtual < HORA_FIM_LOCK;
 }
 
@@ -59,18 +62,18 @@ export function getRodadaInfo(): {
   const horaAtual = parseInt(horaAtualStr);
 
   const HORA_INICIO_LOCK = 21;
-  const HORA_FIM_LOCK = 15;
+  const HORA_FIM_LOCK = 9;
 
   const isEmAndamento = horaAtual >= HORA_INICIO_LOCK || horaAtual < HORA_FIM_LOCK;
   const isEditavel = !isEmAndamento;
 
   let message = '';
   if (isEmAndamento) {
-    message = `Rodada em Andamento (bloqueada até às ${HORA_FIM_LOCK}:00 - Horário de Brasília)`;
+    message = `Rodada em Andamento (bloqueada até às 09:00 - Horário de Brasília)`;
   } else if (horaAtual >= HORA_FIM_LOCK && horaAtual < HORA_INICIO_LOCK) {
-    message = `Rodada Aberta (edição permitida). Bloqueio inicia às ${HORA_INICIO_LOCK}:00 (Horário de Brasília)`;
+    message = `Rodada Aberta (edição permitida). Bloqueio inicia às 21:00 (Horário de Brasília)`;
   } else {
-    message = `Rodada Aberta (edição permitida). Próximo bloqueio às ${HORA_INICIO_LOCK}:00 (Horário de Brasília)`;
+    message = `Rodada Aberta (edição permitida). Próximo bloqueio às 21:00 (Horário de Brasília)`;
   }
 
   return {
