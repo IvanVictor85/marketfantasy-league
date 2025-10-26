@@ -50,18 +50,21 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
 
   const wallets = useMemo<Adapter[]>(
     () => {
-      // Create wallet adapters explicitly - only Solana wallets
+      // Create wallet adapters explicitly with proper configuration for mobile deep linking
+      // Phantom MUST be first for proper mobile deep linking detection
       const adapters: Adapter[] = [
+        // PhantomWalletAdapter with no config for best mobile compatibility
         new PhantomWalletAdapter(),
+        // Other wallets
         new SolflareWalletAdapter(),
         new TorusWalletAdapter(),
         new LedgerWalletAdapter(),
       ];
 
-      console.log('✅ Registered Solana wallets:', adapters.map(w => w.name));
+      console.log('✅ Registered Solana wallets for mobile/desktop:', adapters.map(w => w.name));
       return adapters;
     },
-    [] // Empty array - only create once
+    [] // Empty array - only create once on mount
   );
 
   const onError = useCallback((error: WalletError) => {

@@ -132,26 +132,36 @@ export function WalletConnectButton() {
   );
 }
 
-// Enhanced Phantom-focused wallet button
+// Enhanced Phantom-focused wallet button with mobile deep linking support
 export function PhantomWalletButton() {
   const { select, wallets, publicKey, disconnect, connected, wallet } = useWallet();
   const [isPhantomInstalled, setIsPhantomInstalled] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Check if Phantom is installed
+    // Detect if we're on mobile
+    const checkMobile = () => {
+      const userAgent = typeof window !== 'undefined' ? navigator.userAgent : '';
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      setIsMobile(mobile);
+    };
+
+    // Check if Phantom is installed (desktop)
     const checkPhantom = () => {
-      const isInstalled = typeof window !== 'undefined' && 
-        window.solana && 
+      const isInstalled = typeof window !== 'undefined' &&
+        window.solana &&
         window.solana.isPhantom === true;
       setIsPhantomInstalled(!!isInstalled);
     };
-    
+
+    checkMobile();
     checkPhantom();
   }, []);
 
   const connectPhantom = () => {
     const phantom = wallets.find(wallet => wallet.adapter.name === 'Phantom');
     if (phantom) {
+      // On mobile, this will trigger deep linking automatically
       select(phantom.adapter.name);
     } else {
       // Fallback to any available wallet
@@ -166,8 +176,8 @@ export function PhantomWalletButton() {
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg">
           {wallet?.adapter.icon && (
-            <Image 
-              src={wallet.adapter.icon} 
+            <Image
+              src={wallet.adapter.icon}
               alt={wallet.adapter.name}
               width={20}
               height={20}
@@ -190,7 +200,9 @@ export function PhantomWalletButton() {
     );
   }
 
-  if (!isPhantomInstalled) {
+  // On mobile, always show connect button (deep linking will work)
+  // On desktop, show install button if Phantom is not detected
+  if (!isMobile && !isPhantomInstalled) {
     return (
       <Button
         onClick={() => window.open('https://phantom.app/', '_blank')}
@@ -202,6 +214,7 @@ export function PhantomWalletButton() {
     );
   }
 
+  // Show connect button on mobile OR if Phantom is installed on desktop
   return (
     <Button
       onClick={connectPhantom}
