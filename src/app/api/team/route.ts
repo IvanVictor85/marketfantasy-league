@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { validateTokens } from '@/lib/valid-tokens'
-import { isRodadaAberta } from '@/lib/utils/timeCheck'
+import { isRodadaEmAndamento } from '@/lib/utils/timeCheck'
 
 // 🔒 SEGURANÇA: Schema NÃO aceita mais userWallet do cliente
 const teamSchema = z.object({
@@ -40,11 +40,11 @@ async function getUserFromRequest(request: NextRequest): Promise<string | null> 
 export async function POST(request: NextRequest) {
   console.log('🚀 API team POST: Iniciando salvamento de time...');
   try {
-    // 🔒 VERIFICAÇÃO DE HORÁRIO: Rodada aberta apenas entre 03:00 e 15:00 BRT
-    if (!isRodadaAberta()) {
-      console.log('🚫 API team POST: Rodada Encerrada - edição bloqueada fora do horário (03:00-15:00 BRT)');
+    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição quando rodada está em andamento (03:00-15:00 BRT)
+    if (isRodadaEmAndamento()) {
+      console.log('🚫 API team POST: Rodada em Andamento - edição bloqueada entre 03:00-15:00 BRT');
       return NextResponse.json(
-        { error: 'Rodada Encerrada. A edição de times é permitida apenas entre 03:00 e 15:00 (Horário de Brasília).' },
+        { error: 'Rodada em Andamento. A edição está bloqueada entre 03:00 e 15:00 (Horário de Brasília).' },
         { status: 403 }
       );
     }

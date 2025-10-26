@@ -19,7 +19,7 @@ import { type Player } from '@/types/teams';
 import { validateTokens } from '@/lib/valid-tokens';
 import { LocalizedLink } from '@/components/ui/localized-link';
 import { CountdownTimer } from '@/components/ui/countdown-timer';
-import { isRodadaAberta } from '@/lib/utils/timeCheck';
+import { isRodadaEmAndamento } from '@/lib/utils/timeCheck';
 
 import { 
   Users, 
@@ -417,7 +417,7 @@ export function TeamsContent() {
     }
   };
 
-  // Verificar se está dentro do horário de edição (03:00-15:00 BRT)
+  // Verificar se a edição está permitida (FORA da janela 03:00-15:00 BRT)
   const isEditingAllowed = (): boolean => {
     // Se estivermos carregando os dados da competição, não permita a edição
     if (isCompetitionLoading) {
@@ -425,15 +425,18 @@ export function TeamsContent() {
       return false;
     }
 
-    // 🔒 NOVA LÓGICA: Verificar horário da rodada (03:00-15:00 BRT)
-    const rodadaAberta = isRodadaAberta();
+    // 🔒 LÓGICA CORRETA: Retorna TRUE se a rodada NÃO estiver em andamento
+    // isRodadaEmAndamento() retorna TRUE entre 03:00-15:00 (bloqueado)
+    // Então invertemos (!): edição permitida FORA dessa janela
+    const editingAllowed = !isRodadaEmAndamento();
 
     console.log('🕐 Verificando horário de edição:', {
-      rodadaAberta,
-      horarioPermitido: '03:00-15:00 BRT'
+      rodadaEmAndamento: isRodadaEmAndamento(),
+      editingAllowed,
+      horarioBloqueado: '03:00-15:00 BRT'
     });
 
-    return rodadaAberta;
+    return editingAllowed;
   };
 
   // Função para salvar escalação
@@ -455,10 +458,10 @@ export function TeamsContent() {
       return;
     }
 
-    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição fora da janela (03:00-15:00 BRT)
+    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição dentro da janela (03:00-15:00 BRT)
     if (!isEditingAllowed()) {
-      console.log('🚫 handleSaveTeam: Rodada Encerrada - edição bloqueada fora do horário (03:00-15:00 BRT)');
-      setPaymentError('Rodada Encerrada. A edição de times é permitida apenas entre 03:00 e 15:00 (Horário de Brasília).');
+      console.log('🚫 handleSaveTeam: Rodada em Andamento - edição bloqueada entre 03:00-15:00 BRT');
+      setPaymentError('Rodada em Andamento. A edição está bloqueada entre 03:00 e 15:00 (Horário de Brasília).');
       return;
     }
 
@@ -682,7 +685,7 @@ export function TeamsContent() {
               }`}
             >
               <Clock className="w-3 h-3" />
-              {isEditingAllowed() ? 'Rodada Aberta' : 'Rodada Encerrada'}
+              {isEditingAllowed() ? 'Rodada Aberta' : 'Rodada em Andamento'}
             </Badge>
           </div>
         </div>
