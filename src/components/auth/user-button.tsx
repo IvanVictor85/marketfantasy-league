@@ -14,16 +14,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { 
-  User, 
-  LogOut, 
-  Settings, 
-  Wallet, 
+import {
+  User,
+  LogOut,
+  Settings,
+  Wallet,
   Mail,
   ChevronDown,
   Loader2,
   BarChart3
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface UserButtonProps {
   className?: string;
@@ -32,6 +33,7 @@ interface UserButtonProps {
 export function UserButton({ className }: UserButtonProps) {
   const { user, isAuthenticated, logout, isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const t = useTranslations('UserMenu');
 
   useEffect(() => {
     setMounted(true);
@@ -52,7 +54,7 @@ export function UserButton({ className }: UserButtonProps) {
           className={`bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md ${className || ''}`}
         >
           <User className="w-4 h-4 mr-2" />
-          Entrar
+          {t('login')}
         </Button>
       </LocalizedLink>
     );
@@ -80,7 +82,7 @@ export function UserButton({ className }: UserButtonProps) {
     if (user.publicKey) {
       return `${user.publicKey.slice(0, 4)}...${user.publicKey.slice(-4)}`;
     }
-    return 'Usuário';
+    return t('user');
   };
 
   return (
@@ -111,7 +113,7 @@ export function UserButton({ className }: UserButtonProps) {
                 ) : (
                   <Wallet className="w-2 h-2 mr-1" />
                 )}
-                {user.loginMethod === 'email' ? 'Email' : 'Carteira'}
+                {user.loginMethod === 'email' ? t('email') : t('wallet')}
               </Badge>
             </div>
           </div>
@@ -135,37 +137,37 @@ export function UserButton({ className }: UserButtonProps) {
         <DropdownMenuItem asChild>
           <LocalizedLink href="/dashboard" className="flex items-center">
             <BarChart3 className="mr-2 h-4 w-4" />
-            <span>Dashboard</span>
+            <span>{t('dashboard')}</span>
           </LocalizedLink>
         </DropdownMenuItem>
-        
+
         <DropdownMenuItem asChild>
           <LocalizedLink href="/perfil" className="flex items-center">
             <User className="mr-2 h-4 w-4" />
-            <span>Perfil</span>
+            <span>{t('profile')}</span>
           </LocalizedLink>
         </DropdownMenuItem>
-        
+
         <DropdownMenuItem>
           <Settings className="mr-2 h-4 w-4" />
-          <span>Configurações</span>
+          <span>{t('settings')}</span>
         </DropdownMenuItem>
-        
+
         {user.loginMethod === 'wallet' && user.publicKey && (
           <DropdownMenuItem>
             <Wallet className="mr-2 h-4 w-4" />
-            <span>Carteira</span>
+            <span>{t('wallet')}</span>
           </DropdownMenuItem>
         )}
-        
+
         <DropdownMenuSeparator />
-        
-        <DropdownMenuItem 
+
+        <DropdownMenuItem
           onClick={handleLogout}
           className="text-red-600 focus:text-red-600"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
+          <span>{t('logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

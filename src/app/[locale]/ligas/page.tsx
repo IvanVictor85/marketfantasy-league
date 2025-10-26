@@ -6,6 +6,7 @@ import { LigaCard } from '@/components/LigaCard';
 import { MainLeagueCard } from '@/components/MainLeagueCard';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslations } from 'next-intl';
 
 // Mock data para as ligas (removendo a Liga Principal do mock)
 const leaguesData = [
@@ -156,6 +157,7 @@ const leaguesData = [
 ];
 
 export default function LigasPage() {
+  const t = useTranslations('LeaguesPage');
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = React.useState('');
   const highlightLeagueId = searchParams?.get('highlight');
@@ -185,10 +187,10 @@ export default function LigasPage() {
       <header className="py-12 bg-card border-b border-border">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
-            Encontre Sua Competição
+            {t('title')}
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Participe das ligas oficiais ou junte-se à sua comunidade para competir por prêmios incríveis.
+            {t('subtitle')}
           </p>
         </div>
       </header>
@@ -197,7 +199,7 @@ export default function LigasPage() {
       <section className="py-12">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-foreground">
-            Liga Oficial
+            {t('officialLeague')}
           </h2>
           
           <div className="max-w-2xl mx-auto">
@@ -208,7 +210,7 @@ export default function LigasPage() {
           {principalLeagues.length > 0 && (
             <div className="mt-8">
               <h3 className="text-xl font-semibold mb-6 text-foreground">
-                Outras Ligas Oficiais
+                {t('otherLeagues')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {principalLeagues.map(league => (
@@ -239,14 +241,14 @@ export default function LigasPage() {
       <section className="py-12 bg-card border-t border-border">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-card-foreground">
-            Ligas da Comunidade
+            {t('communityLeagues')}
           </h2>
           
           {/* Barra de Ferramentas */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div className="w-full md:w-1/2">
-              <Input 
-                placeholder="Buscar pelo nome da liga..." 
+              <Input
+                placeholder={t('searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
@@ -255,12 +257,12 @@ export default function LigasPage() {
             <div className="w-full md:w-1/4">
               <Select defaultValue="recentes">
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Ordenar por" />
+                  <SelectValue placeholder={t('sortBy')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recentes">Mais Recentes</SelectItem>
-                  <SelectItem value="populares">Mais Populares</SelectItem>
-                  <SelectItem value="premios">Maiores Prêmios</SelectItem>
+                  <SelectItem value="recentes">{t('mostRecent')}</SelectItem>
+                  <SelectItem value="populares">{t('mostPopular')}</SelectItem>
+                  <SelectItem value="premios">{t('biggestPrizes')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -290,7 +292,7 @@ export default function LigasPage() {
           
           {communityLeagues.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhuma liga encontrada com esse nome.</p>
+              <p className="text-muted-foreground">{t('noLeaguesFound')}</p>
             </div>
           )}
         </div>

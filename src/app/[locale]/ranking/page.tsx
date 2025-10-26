@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Trophy, Users, Coins, Target, Award, Clock, RotateCcw } from 'lucide-react';
 import { RankingTable } from '@/components/dashboard/ranking-table';
 import { LocalizedLink } from '@/components/ui/localized-link';
+import { useTranslations } from 'next-intl';
 
 interface Team {
   id: string;
@@ -39,6 +40,7 @@ interface League {
 
 export default function RankingPage() {
   const { user, isAuthenticated } = useAuth();
+  const t = useTranslations('RankingPage');
   const [teams, setTeams] = useState<Team[]>([]);
   const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -162,12 +164,12 @@ export default function RankingPage() {
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Acesso Restrito</h2>
+            <h2 className="text-2xl font-bold mb-4">{t('restrictedAccess')}</h2>
             <p className="text-muted-foreground mb-4">
-              Faça login para acessar o ranking
+              {t('loginRequired')}
             </p>
             <LocalizedLink href="/login">
-              <Button>Fazer Login</Button>
+              <Button>{t('loginButton')}</Button>
             </LocalizedLink>
           </CardContent>
         </Card>
@@ -180,7 +182,7 @@ export default function RankingPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Carregando dados da competição...</p>
+          <p>{t('loading')}</p>
         </div>
       </div>
     );
@@ -191,7 +193,7 @@ export default function RankingPage() {
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4 text-red-600">Erro</h2>
+            <h2 className="text-2xl font-bold mb-4 text-red-600">{t('error')}</h2>
             <p className="text-muted-foreground">{error}</p>
           </CardContent>
         </Card>
@@ -208,37 +210,37 @@ export default function RankingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                Estatísticas Rápidas
+                {t('quickStatsTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {currentUserTeam ? (
                 <>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">RANK NA LIGA</span>
+                    <span className="text-sm text-muted-foreground">{t('rankLabel')}</span>
                     <Badge variant={currentUserTeam.rank === 1 ? 'default' : 'secondary'}>
                       {currentUserTeam.rank ? `#${currentUserTeam.rank}` : 'N/A'}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">PONTUAÇÃO</span>
+                    <span className="text-sm text-muted-foreground">{t('scoreLabel')}</span>
                     <span className="font-bold">
                       {currentUserTeam.totalScore ? `${currentUserTeam.totalScore.toFixed(2)} pts` : 'N/A'}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">TIME</span>
+                    <span className="text-sm text-muted-foreground">{t('teamLabel')}</span>
                     <span className="font-medium">{currentUserTeam.teamName}</span>
                   </div>
                 </>
               ) : (
                 <div className="text-center text-muted-foreground">
-                  <p>Nenhum time encontrado</p>
+                  <p>{t('noTeamFound')}</p>
                   <LocalizedLink href="/teams">
                     <Button size="sm" className="mt-2">
-                      Criar Time
+                      {t('createTeam')}
                     </Button>
                   </LocalizedLink>
                 </div>
@@ -250,24 +252,24 @@ export default function RankingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Coins className="h-5 w-5 text-green-500" />
-                Liga Selecionada
+                {t('selectedLeagueTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {leagueData && (
                 <>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">PARTICIPANTES</span>
+                    <span className="text-sm text-muted-foreground">{t('participantsLabel')}</span>
                     <span className="font-bold">{leagueData.participantCount}</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">PRÊMIO TOTAL</span>
+                    <span className="text-sm text-muted-foreground">{t('totalPrizeLabel')}</span>
                     <span className="font-bold">{leagueData.totalPrizePool} SOL</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">TAXA DE ENTRADA</span>
+                    <span className="text-sm text-muted-foreground">{t('entryFeeLabel')}</span>
                     <span className="font-bold">{leagueData.entryFee} SOL</span>
                   </div>
                 </>
@@ -279,32 +281,32 @@ export default function RankingPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-blue-500" />
-                Ações
+                {t('actionsTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button 
+              <Button
                 onClick={handleSnapshot}
                 className="w-full"
                 variant="outline"
               >
                 <Trophy className="h-4 w-4 mr-2" />
-                Executar Snapshot
+                {t('execSnapshotButton')}
               </Button>
-              
-              <Button 
+
+              <Button
                 onClick={handleReset}
                 className="w-full"
                 variant="outline"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Resetar Rodada
+                {t('resetRoundButton')}
               </Button>
-              
+
               <LocalizedLink href="/teams" className="block">
                 <Button variant="outline" className="w-full">
                   <Award className="h-4 w-4 mr-2" />
-                  Gerenciar Time
+                  {t('manageTeamButton')}
                 </Button>
               </LocalizedLink>
             </CardContent>
@@ -316,17 +318,17 @@ export default function RankingPage() {
           <div className="mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold mb-2">Ranking da Competição</h1>
+                <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
                 <p className="text-muted-foreground">
-                  Acompanhe o ranking e estatísticas da liga
+                  {t('subtitle')}
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Liga:</label>
+                <label className="text-sm font-medium">{t('leagueLabel')}</label>
                 <Select value={selectedLeagueId} onValueChange={setSelectedLeagueId}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Selecionar liga" />
+                    <SelectValue placeholder={t('selectLeague')} />
                   </SelectTrigger>
                   <SelectContent>
                     {leagues.map((league) => (

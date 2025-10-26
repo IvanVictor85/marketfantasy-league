@@ -13,6 +13,7 @@ import { MascotCustomizationForm, MascotFormData } from '@/components/mascot/mas
 import { LocalizedLink } from '@/components/ui/localized-link';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 // Interface para o mascote gerado via API
 interface GeneratedMascot {
@@ -29,6 +30,7 @@ interface GeneratedMascot {
 export default function PerfilPage() {
   const { user, updateUserProfile, isAuthenticated, isLoading } = useAuth();
   const { push } = useLocaleNavigation();
+  const t = useTranslations('ProfilePage');
 
   const [name, setName] = useState<string>('');
   const [twitter, setTwitter] = useState<string>('');
@@ -230,7 +232,7 @@ export default function PerfilPage() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Carregando...</p>
+            <p className="text-muted-foreground">{t('loading')}</p>
           </div>
         </div>
       </div>
@@ -245,15 +247,15 @@ export default function PerfilPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Editar Perfil</h1>
-        <LocalizedLink href="/dashboard" prefetch={false} className="text-sm text-orange-700 hover:underline">Voltar ao Dashboard</LocalizedLink>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
+        <LocalizedLink href="/dashboard" prefetch={false} className="text-sm text-orange-700 hover:underline">{t('backToDashboard')}</LocalizedLink>
       </div>
 
       {saved && (
         <Alert className="mb-6">
-          <AlertTitle>Perfil atualizado</AlertTitle>
+          <AlertTitle>{t('profileUpdated')}</AlertTitle>
           <AlertDescription>
-            Suas informações foram salvas com sucesso.
+            {t('profileUpdatedDesc')}
           </AlertDescription>
         </Alert>
       )}
@@ -266,14 +268,14 @@ export default function PerfilPage() {
             size="sm"
             onClick={() => setActiveTab('profile')}
           >
-            📝 Informações
+            📝 {t('infoTab')}
           </Button>
           <Button
             variant={activeTab === 'mascot' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('mascot')}
           >
-            🎨 Personalizar Mascote
+            🎨 {t('mascotTab')}
           </Button>
         </div>
       </div>
@@ -285,14 +287,14 @@ export default function PerfilPage() {
           {!isLoading && savedMascot && (
             <Card>
               <CardHeader>
-                <CardTitle>Seu Mascote da Sorte</CardTitle>
+                <CardTitle>{t('yourMascot')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center space-y-4">
                   <div className="w-64 h-64 relative">
                     <Image
                       src={savedMascot.imageUrl}
-                      alt="Seu Mascote da Sorte"
+                      alt={t('yourMascot')}
                       fill
                       className="object-cover rounded-lg border-2 border-orange-200"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -300,14 +302,14 @@ export default function PerfilPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-sm text-muted-foreground">
-                      <strong>Personagem:</strong> {savedMascot.character}
+                      <strong>{t('character')}:</strong> {savedMascot.character}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      <strong>Uniforme:</strong> {savedMascot.uniformStyle}
+                      <strong>{t('uniform')}:</strong> {savedMascot.uniformStyle}
                     </p>
                     {savedMascot.accessory && (
                       <p className="text-sm text-muted-foreground">
-                        <strong>Acessório:</strong> {savedMascot.accessory}
+                        <strong>{t('accessory')}:</strong> {savedMascot.accessory}
                       </p>
                     )}
                   </div>
@@ -318,13 +320,13 @@ export default function PerfilPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Informações Públicas</CardTitle>
+              <CardTitle>{t('publicInfoTitle')}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
+                  <Label htmlFor="name">{t('nameLabel')}</Label>
                   <Input
                     id="name"
                     key={`name-${user?.id}`}
@@ -333,11 +335,11 @@ export default function PerfilPage() {
                     placeholder="Seu nome ou nome do time"
                     required
                   />
-                  <p className="text-xs text-muted-foreground">Este nome será usado como nome do seu time.</p>
+                  <p className="text-xs text-muted-foreground">{t('nameHelp')}</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="twitter">X (Twitter)</Label>
+                  <Label htmlFor="twitter">{t('twitterLabel')}</Label>
                   <Input
                     id="twitter"
                     key={`twitter-${user?.id}`}
@@ -345,11 +347,11 @@ export default function PerfilPage() {
                     onChange={(e) => setTwitter(e.target.value)}
                     placeholder="@seuusuario ou URL do perfil"
                   />
-                  <p className="text-xs text-muted-foreground">Opcional. Ex.: @cryptofan ou https://x.com/cryptofan</p>
+                  <p className="text-xs text-muted-foreground">{t('twitterHelp')}</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="discord">Discord</Label>
+                  <Label htmlFor="discord">{t('discordLabel')}</Label>
                   <Input
                     id="discord"
                     key={`discord-${user?.id}`}
@@ -357,11 +359,11 @@ export default function PerfilPage() {
                     onChange={(e) => setDiscord(e.target.value)}
                     placeholder="usuario#1234 ou nome do servidor"
                   />
-                  <p className="text-xs text-muted-foreground">Opcional. Seu usuário ou link de servidor.</p>
+                  <p className="text-xs text-muted-foreground">{t('discordHelp')}</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="bio">Biografia</Label>
+                  <Label htmlFor="bio">{t('bioLabel')}</Label>
                   <textarea
                     id="bio"
                     key={`bio-${user?.id}`}
@@ -370,12 +372,12 @@ export default function PerfilPage() {
                     placeholder="Conte sobre você, seu time e sua jornada cripto..."
                     className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
                   />
-                  <p className="text-xs text-muted-foreground">Máximo recomendado: 300 caracteres.</p>
+                  <p className="text-xs text-muted-foreground">{t('bioHelp')}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <Button type="submit" className="bg-orange-600 hover:bg-orange-700">Salvar alterações</Button>
+                <Button type="submit" className="bg-orange-600 hover:bg-orange-700">{t('saveChanges')}</Button>
                 <Button
                   type="button"
                   variant="secondary"
@@ -392,7 +394,7 @@ export default function PerfilPage() {
                     setBio(user?.bio || '');
                   }}
                 >
-                  Cancelar
+                  {t('cancel')}
                 </Button>
               </div>
               </form>
@@ -407,20 +409,20 @@ export default function PerfilPage() {
           <Card>
             <CardHeader>
               <CardTitle>
-                <h2 className="text-2xl font-bold">Personalize seu Mascote da Sorte</h2>
+                <h2 className="text-2xl font-bold">{t('mascotTitle')}</h2>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
               {/* Layout de Coluna Única */}
-              
+
               {/* Exibição de Erro */}
               {mascotError && (
                 <Alert variant="destructive">
-                  <AlertTitle>Erro na Geração do Mascote</AlertTitle>
+                  <AlertTitle>{t('errorGenerating')}</AlertTitle>
                   <AlertDescription>{mascotError}</AlertDescription>
                 </Alert>
               )}
-              
+
               {/* Pré-visualização da Imagem no Topo */}
               <div className="flex justify-center">
                 <MascotImagePreview
@@ -442,11 +444,11 @@ export default function PerfilPage() {
               {/* Botão Salvar Alterações */}
               {generatedMascot && !isGeneratingMascot && (
                 <div className="flex justify-center pt-4">
-                  <Button 
+                  <Button
                     onClick={handleSaveMascot}
                     className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-2"
                   >
-                    ✨ Salvar Alterações
+                    ✨ {t('saveMascot')}
                   </Button>
                 </div>
               )}

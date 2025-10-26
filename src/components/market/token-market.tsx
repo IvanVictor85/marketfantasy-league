@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
-  Search, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  Search,
+  TrendingUp,
+  TrendingDown,
   Filter,
   Star,
   BarChart3,
@@ -21,6 +21,7 @@ import { type TokenMarketData } from '@/data/expanded-tokens';
 import { useXstocksTokens, type UseXstocksTokensReturn } from '@/hooks/useXstocksTokens';
 import { formatTokenPrice, formatPercentage } from '@/lib/utils';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 // Time periods for filtering
 const timePeriods = [
@@ -87,6 +88,9 @@ interface TokenMarketProps {
 }
 
 export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, onTokenSelect, usedTokens = [], fixedFilter, onAutoPosition }: TokenMarketProps) {
+  const tCommon = useTranslations('common');
+  const t = useTranslations('market');
+
   // Use different hooks based on filter type
   const isXStocks = fixedFilter?.type === 'xstocks';
   
@@ -337,22 +341,22 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
           </div>
           
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="flex items-center gap-1"
               onClick={() => refetch()}
             >
               <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">Atualizar</span>
+              <span className="hidden sm:inline">{tCommon('update')}</span>
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="flex items-center gap-1"
             >
               <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline">Filtros</span>
+              <span className="hidden sm:inline">{tCommon('filters')}</span>
             </Button>
           </div>
         </div>
@@ -360,7 +364,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
         <div className="mt-4 relative px-2 md:px-0">
           <Search className="absolute left-5 md:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            placeholder="Buscar token..."
+            placeholder={t('searchPlaceholder')}
             className="pl-11 md:pl-9 w-full mx-2 md:mx-0"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -378,7 +382,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
           >
             {timePeriods.map((period) => (
               <option key={period.value} value={period.value}>
-                Período: {period.label}
+                {t('period')}: {period.label}
               </option>
             ))}
           </select>
@@ -410,11 +414,11 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
               </span>
             )}
           </div>
-          <div 
+          <div
             className="col-span-2 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1"
             onClick={() => handleSort('price')}
           >
-            PREÇO
+            {t('priceHeader')}
             {sortBy === 'price' && (
               <span className="text-xs">
                 {sortOrder === 'asc' ? '↑' : '↓'}

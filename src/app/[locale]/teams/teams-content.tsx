@@ -634,12 +634,12 @@ export function TeamsContent() {
               {t('pageTitle')}
             </h1>
             <p className="text-gray-600">
-              Monte sua escalação estratégica para {currentLeague?.name || 'Liga Selecionada'}
+              {t('pageSubtitle')}
             </p>
             {existingTeam && (
               <div className="flex items-center gap-2 mt-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-green-600">Time salvo: {existingTeam.name}</span>
+                <span className="text-sm text-green-600">{t('teamSaved')}: {existingTeam.name}</span>
               </div>
             )}
           </div>
@@ -675,7 +675,7 @@ export function TeamsContent() {
             {isEditingMainTeam && (
               <Badge variant="default" className="bg-yellow-500 text-white flex items-center gap-1">
                 <Crown className="w-3 h-3" />
-                Time Principal
+                {t('mainTeamLabel')}
               </Badge>
             )}
 
@@ -709,7 +709,7 @@ export function TeamsContent() {
           <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Conecte sua carteira Solana para criar ou editar seu time.
+              {t('connectWalletBanner')}
             </AlertDescription>
           </Alert>
         )}
@@ -757,19 +757,19 @@ export function TeamsContent() {
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-muted-foreground mb-1">
-                    Nome do Time
+                    {t('teamNameLabel')}
                   </label>
                   <div className="w-full px-3 py-2 border border-border rounded-md bg-muted text-muted-foreground">
                     {teamName}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    O nome do time é baseado no seu nome de usuário. Você pode alterá-lo na página de perfil.
+                    {t('teamNameHelp')}
                   </p>
                 </div>
                 {hasValidEntry && (
                   <div className="flex items-center gap-2 text-green-600">
                     <CheckCircle className="w-4 h-4" />
-                    <span className="text-sm">Pagamento confirmado</span>
+                    <span className="text-sm">{t('paymentConfirmed')}</span>
                   </div>
                 )}
               </div>
@@ -933,7 +933,7 @@ export function TeamsContent() {
                         return (
                           <>
                             <div className="text-2xl font-bold text-gray-400">N/A</div>
-                            <div className="text-sm text-gray-600">Melhor Ativo</div>
+                            <div className="text-sm text-gray-600">{t('bestAsset')}</div>
                           </>
                         );
                       }
@@ -948,7 +948,7 @@ export function TeamsContent() {
                           <div className="text-xs text-green-600">
                             +{(best.change_7d || 0).toFixed(1)}%
                           </div>
-                          <div className="text-sm text-gray-600">Melhor Ativo</div>
+                          <div className="text-sm text-gray-600">{t('bestAsset')}</div>
                         </>
                       );
                     })()}
@@ -961,7 +961,7 @@ export function TeamsContent() {
                         return (
                           <>
                             <div className="text-2xl font-bold text-gray-400">N/A</div>
-                            <div className="text-sm text-gray-600">Pior Ativo</div>
+                            <div className="text-sm text-gray-600">{t('worstAsset')}</div>
                           </>
                         );
                       }
@@ -976,13 +976,13 @@ export function TeamsContent() {
                           <div className="text-xs text-red-600">
                             {(worst.change_7d || 0).toFixed(1)}%
                           </div>
-                          <div className="text-sm text-gray-600">Pior Ativo</div>
+                          <div className="text-sm text-gray-600">{t('worstAsset')}</div>
                         </>
                       );
                     })()}
                   </div>
 
-                  {/* Performance 7d (mantido) */}
+                  {/* Performance 7d */}
                   <div className="text-center">
                     {(() => {
                       const performance7d = players.length > 0
@@ -999,7 +999,7 @@ export function TeamsContent() {
                           <div className={`text-2xl font-bold ${getPerformanceColor(performance7d)}`}>
                             {performance7d > 0 ? '+' : ''}{performance7d.toFixed(1)}%
                           </div>
-                          <div className="text-sm text-gray-600">Performance 7d</div>
+                          <div className="text-sm text-gray-600">{t('performance7d')}</div>
                         </>
                       );
                     })()}

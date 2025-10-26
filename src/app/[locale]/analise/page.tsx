@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Signal, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Signal,
   Send,
   Bot,
   Sparkles,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { getMarketAnalysisData, formatPercentageChange, type MarketToken } from '@/lib/market-analysis'
 import { formatTokenPrice } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 // Dados mock para social e trend (mantidos por enquanto)
 // Os dados de gainers e losers agora vêm da API real
@@ -86,9 +87,10 @@ interface InsightCardProps {
   icon: React.ReactNode
   items: any[]
   type: 'gainers' | 'losers' | 'social' | 'trend'
+  t: any
 }
 
-function InsightCard({ title, icon, items, type }: InsightCardProps) {
+function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
   const renderItem = (item: any, index: number) => {
     switch (type) {
       case 'gainers':
@@ -155,7 +157,7 @@ function InsightCard({ title, icon, items, type }: InsightCardProps) {
             </div>
             <div className="text-right">
               <p className="text-sm font-medium text-slate-900">{item.sentiment}</p>
-              <p className="text-xs text-slate-500">{item.mentions} menções</p>
+              <p className="text-xs text-slate-500">{item.mentions} {t('mentions')}</p>
             </div>
           </div>
         )
@@ -188,7 +190,7 @@ function InsightCard({ title, icon, items, type }: InsightCardProps) {
             </div>
             <div className="text-right">
               <p className="text-sm font-medium text-slate-900">{item.trend}</p>
-              <p className="text-xs text-slate-500">Confiança: {item.confidence}</p>
+              <p className="text-xs text-slate-500">{t('confidence')}: {item.confidence}</p>
             </div>
           </div>
         )
@@ -215,9 +217,15 @@ function InsightCard({ title, icon, items, type }: InsightCardProps) {
 
 export default function AnalisePage() {
   console.log('🎯 Componente AnalisePage renderizado');
-  
+  const t = useTranslations('AiAnalysisPage');
+
   const [chatInput, setChatInput] = useState('')
-  const [messages, setMessages] = useState(chatMessages)
+  const [messages, setMessages] = useState([
+    {
+      type: 'ai',
+      content: t('oracleGreeting')
+    }
+  ])
   const [topGainers, setTopGainers] = useState<MarketToken[]>([])
   const [topLosers, setTopLosers] = useState<MarketToken[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -241,7 +249,7 @@ export default function AnalisePage() {
         setTopLosers(data.topLosers)
       } catch (err) {
         console.error('❌ Componente: Erro ao carregar dados do mercado:', err)
-        setError('Erro ao carregar dados do mercado. Usando dados de exemplo.')
+        setError(t('errorLoading'))
         // Fallback para dados de exemplo em caso de erro
         setTopGainers([])
         setTopLosers([])
@@ -277,6 +285,12 @@ export default function AnalisePage() {
     setChatInput(prompt)
   }
 
+  const suggestedPrompts = [
+    t('suggestion1'),
+    t('suggestion2'),
+    t('suggestion3')
+  ]
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -285,19 +299,19 @@ export default function AnalisePage() {
           <div className="flex items-center justify-center space-x-3 mb-4">
             <Sparkles className="w-10 h-10 text-[#F4A261]" />
             <h1 className="text-4xl md:text-5xl font-bold text-slate-900">
-              Central de Análise IA
+              {t('title')}
             </h1>
             <Sparkles className="w-10 h-10 text-[#E9C46A]" />
           </div>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-            Use os dados e a inteligência artificial a seu favor para montar o time perfeito.
+            {t('subtitle')}
           </p>
         </div>
 
         {/* Seção 1: Dashboard "Pulso do Mercado" */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-slate-900 mb-8 text-center">
-            📊 Pulso do Mercado
+            📊 {t('marketPulse')}
           </h2>
           
           {error && (
@@ -309,36 +323,40 @@ export default function AnalisePage() {
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-[#2A9D8F]" />
-              <span className="ml-2 text-slate-600">Carregando dados do mercado...</span>
+              <span className="ml-2 text-slate-600">{t('loadingMarket')}</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <InsightCard
-                title="Foguetes da Semana"
+                title={t('rocketsTitle')}
                 icon={<TrendingUp className="w-6 h-6 text-[#2A9D8F]" />}
                 items={topGainers}
                 type="gainers"
+                t={t}
               />
-              
+
               <InsightCard
-                title="Alerta de Queda"
+                title={t('alertTitle')}
                 icon={<TrendingDown className="w-6 h-6 text-[#E76F51]" />}
                 items={topLosers}
                 type="losers"
+                t={t}
               />
-              
+
               <InsightCard
-                title="Radar Social"
+                title={t('socialRadarTitle')}
                 icon={<Users className="w-6 h-6 text-[#F4A261]" />}
                 items={socialBuzz}
                 type="social"
+                t={t}
               />
-              
+
               <InsightCard
-                title="Radar de Tendência"
+                title={t('trendRadarTitle')}
                 icon={<Signal className="w-6 h-6 text-[#E9C46A]" />}
                 items={trendAnalysis}
                 type="trend"
+                t={t}
               />
             </div>
           )}
@@ -350,11 +368,11 @@ export default function AnalisePage() {
             <div className="flex items-center justify-center space-x-3 mb-4">
               <Bot className="w-8 h-8 text-[#2A9D8F]" />
               <h2 className="text-3xl font-bold text-slate-900">
-                Pergunte ao Oráculo
+                {t('oracleTitle')}
               </h2>
             </div>
             <p className="text-lg text-slate-600">
-              Converse com nossa IA especialista em análise de mercado
+              {t('oracleSubtitle')}
             </p>
           </div>
 
@@ -377,7 +395,7 @@ export default function AnalisePage() {
                       {message.type === 'ai' && (
                         <div className="flex items-center space-x-2 mb-2">
                           <Bot className="w-4 h-4 text-[#2A9D8F]" />
-                          <span className="text-sm font-medium text-[#2A9D8F]">Oráculo IA</span>
+                          <span className="text-sm font-medium text-[#2A9D8F]">{t('oracleRole')}</span>
                         </div>
                       )}
                       <p className="text-sm leading-relaxed">{message.content}</p>
@@ -391,7 +409,7 @@ export default function AnalisePage() {
                 <Input
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Digite sua pergunta sobre um token ou ecossistema..."
+                  placeholder={t('chatPlaceholder')}
                   className="flex-1"
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 />
@@ -400,14 +418,14 @@ export default function AnalisePage() {
                   className="bg-[#2A9D8F] hover:bg-[#238A7A] text-white px-6"
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  Analisar
+                  {t('chatButton')}
                 </Button>
               </div>
             </div>
 
             {/* Sugestões de Prompt */}
             <div className="text-center">
-              <p className="text-sm text-slate-600 mb-4">💡 Sugestões de perguntas:</p>
+              <p className="text-sm text-slate-600 mb-4">💡 {t('suggestionsTitle')}</p>
               <div className="flex flex-wrap justify-center gap-3">
                 {suggestedPrompts.map((prompt, index) => (
                   <Button

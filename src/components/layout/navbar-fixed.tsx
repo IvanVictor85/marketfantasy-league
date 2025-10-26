@@ -22,7 +22,7 @@ export function NavbarFixed() {
     { name: t('leagues'), href: '/ligas', icon: Trophy },
     { name: t('myTeam'), href: '/teams', icon: Shirt },
     { name: t('dashboard'), href: '/dashboard', icon: Target },
-    { name: 'Análise IA', href: '/analise', icon: Brain },
+    { name: t('analysis'), href: '/analise', icon: Brain },
   ];
 
   return (

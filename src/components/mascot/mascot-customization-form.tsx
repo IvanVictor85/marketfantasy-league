@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
 
 export interface MascotFormData {
   character: string;
@@ -25,20 +26,22 @@ interface MascotCustomizationFormProps {
   initialData?: Partial<MascotFormData>;
 }
 
-const UNIFORM_STYLES = [
-  { value: 'classic-cfl', label: 'Clássico CFL (Laranja & Roxo)' },
-  { value: 'vibrant-solana', label: 'Vibrante Solana (Roxo & Verde)' },
-  { value: 'elegant-ethereum', label: 'Elegante Ethereum (Preto & Roxo)' },
-  { value: 'golden-bitcoin', label: 'Dourado Bitcoin (Ouro & Preto)' },
-  { value: 'neon-polygon', label: 'Neon Polygon (Roxo & Rosa)' },
-  { value: 'cosmic-cardano', label: 'Cósmico Cardano (Azul & Prata)' },
-];
-
-export function MascotCustomizationForm({ 
-  onGenerate, 
-  isGenerating, 
-  initialData = {} 
+export function MascotCustomizationForm({
+  onGenerate,
+  isGenerating,
+  initialData = {}
 }: MascotCustomizationFormProps) {
+  const t = useTranslations('ProfilePage');
+
+  const UNIFORM_STYLES = [
+    { value: 'classic-cfl', label: t('uniformCFL') },
+    { value: 'vibrant-solana', label: t('uniformSolana') },
+    { value: 'elegant-ethereum', label: t('uniformEth') },
+    { value: 'golden-bitcoin', label: t('uniformBtc') },
+    { value: 'neon-polygon', label: t('uniformPolygon') },
+    { value: 'cosmic-cardano', label: t('uniformCardano') },
+  ];
+
   const [formData, setFormData] = useState<MascotFormData>({
     character: initialData.character || '',
     uniformStyle: initialData.uniformStyle || '',
@@ -47,15 +50,15 @@ export function MascotCustomizationForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validação básica
     if (!formData.character.trim()) {
-      alert('Por favor, descreva seu personagem principal.');
+      alert(t('characterRequired'));
       return;
     }
-    
+
     if (!formData.uniformStyle) {
-      alert('Por favor, escolha um estilo de uniforme.');
+      alert(t('uniformRequired'));
       return;
     }
 
@@ -78,26 +81,26 @@ export function MascotCustomizationForm({
           {/* Campo 1: Personagem Principal */}
           <div className="space-y-2">
             <Label htmlFor="character" className="text-sm font-medium">
-              Qual é o seu personagem?
+              {t('characterLabel')}
             </Label>
             <Input
               id="character"
               type="text"
-              placeholder="Ex: Cachorro Shiba Inu, Unicórnio, Leão, Astronauta..."
+              placeholder={t('characterPlaceholder')}
               value={formData.character}
               onChange={(e) => handleInputChange('character', e.target.value)}
               disabled={isGenerating}
               className="w-full"
             />
             <p className="text-xs text-muted-foreground">
-              Descreva o personagem principal do seu mascote
+              {t('characterHelp')}
             </p>
           </div>
 
           {/* Campo 2: Estilo do Uniforme */}
           <div className="space-y-2">
             <Label htmlFor="uniform-style" className="text-sm font-medium">
-              Escolha o Uniforme
+              {t('uniformLabel')}
             </Label>
             <Select
               value={formData.uniformStyle}
@@ -105,7 +108,7 @@ export function MascotCustomizationForm({
               disabled={isGenerating}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecione um estilo de uniforme..." />
+                <SelectValue placeholder={t('uniformPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {UNIFORM_STYLES.map((style) => (
@@ -116,26 +119,26 @@ export function MascotCustomizationForm({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              O uniforme define as cores principais do seu mascote
+              {t('uniformHelp')}
             </p>
           </div>
 
           {/* Campo 3: Acessório Especial */}
           <div className="space-y-2">
             <Label htmlFor="accessory" className="text-sm font-medium">
-              Adicione um Acessório Único (Opcional)
+              {t('accessoryLabel')}
             </Label>
             <Input
               id="accessory"
               type="text"
-              placeholder="Ex: Óculos de sol futuristas, Touca de crochê rosa..."
+              placeholder={t('accessoryPlaceholder')}
               value={formData.accessory}
               onChange={(e) => handleInputChange('accessory', e.target.value)}
               disabled={isGenerating}
               className="w-full"
             />
             <p className="text-xs text-muted-foreground">
-              Adicione um toque especial ao seu mascote (opcional)
+              {t('accessoryHelp')}
             </p>
           </div>
 
@@ -149,10 +152,10 @@ export function MascotCustomizationForm({
               {isGenerating ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Gerando Mascote...</span>
+                  <span>{t('generating')}</span>
                 </div>
               ) : (
-                'Atualizar Mascote'
+                t('generateButton')
               )}
             </Button>
           </div>
@@ -162,13 +165,13 @@ export function MascotCustomizationForm({
             <div className="flex items-start space-x-2">
               <div className="w-4 h-4 rounded-full bg-blue-500 mt-0.5 flex-shrink-0"></div>
               <p className="text-xs text-muted-foreground">
-                <strong>Dica:</strong> Seja criativo! Quanto mais detalhes você fornecer, mais único será seu mascote.
+                {t('tip')}
               </p>
             </div>
             <div className="flex items-start space-x-2">
               <div className="w-4 h-4 rounded-full bg-orange-500 mt-0.5 flex-shrink-0"></div>
               <p className="text-xs text-muted-foreground">
-                <strong>Lembre-se:</strong> O mascote só será salvo permanentemente quando você clicar em &quot;Salvar Alterações&quot;.
+                {t('reminder')}
               </p>
             </div>
           </div>

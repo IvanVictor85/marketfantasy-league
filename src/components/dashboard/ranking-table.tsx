@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, Users } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface Team {
   id: string;
@@ -24,6 +25,8 @@ interface RankingTableProps {
 }
 
 export function RankingTable({ teams, currentUserId, currentUserEmail }: RankingTableProps) {
+  const t = useTranslations('RankingPage');
+
   const getRankIcon = (rank: number | null) => {
     if (!rank) return <Users className="h-4 w-4" />;
 
@@ -59,7 +62,7 @@ export function RankingTable({ teams, currentUserId, currentUserEmail }: Ranking
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-5 w-5 text-yellow-500" />
-          Classificação da Liga
+          {t('standingsTitle')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -88,7 +91,7 @@ export function RankingTable({ teams, currentUserId, currentUserEmail }: Ranking
                       <h3 className="font-semibold">{team.teamName}</h3>
                       {isCurrentUser && (
                         <Badge variant="default" className="text-xs">
-                          Seu Time
+                          {t('yourTeamBadge')}
                         </Badge>
                       )}
                     </div>
@@ -122,7 +125,7 @@ export function RankingTable({ teams, currentUserId, currentUserEmail }: Ranking
         {teams.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum time encontrado na liga</p>
+            <p>{t('noTeamsInLeague')}</p>
           </div>
         )}
       </CardContent>
