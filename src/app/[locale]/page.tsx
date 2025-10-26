@@ -25,51 +25,44 @@ import {
 
 // Seção Herói com tema Touro vs. Urso
 const HeroSection = () => (
-  <section className="relative py-16 md:py-20 lg:py-28 overflow-hidden h-[500px] md:h-[600px] lg:h-[700px]">
-    {/* Background com overlay */}
-    <div className="absolute inset-0 bg-black/50">
-      <div 
-        className="absolute inset-0 opacity-90 scale-110 md:scale-105 lg:scale-100"
-        style={{
-          backgroundImage: 'url(/mascots/bull-bear-arena.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center center',
-          backgroundRepeat: 'no-repeat',
-          width: '100%',
-          height: '100%',
-        }}
-      >
-      </div>
-    </div>
-    
-    {/* Gradiente para melhor contraste */}
-    <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/70" />
-    
-    <div className="container relative mx-auto px-4 py-12 md:py-20 text-center">
-      
-      <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 md:mb-8 drop-shadow-lg tracking-tight leading-tight">
+  <section
+    className="relative py-16 md:py-20 lg:py-28 overflow-hidden h-[500px] md:h-[600px] lg:h-[700px]"
+    style={{
+      backgroundImage: 'url(/mascots/bull-bear-arena.png)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center center',
+      backgroundRepeat: 'no-repeat',
+    }}
+  >
+    {/* CAMADA 2: Overlay preto semi-transparente */}
+    <div className="absolute inset-0 bg-black/60 z-10" />
+
+    {/* CAMADA 3: Conteúdo */}
+    <div className="container relative z-20 mx-auto px-4 py-12 md:py-20 text-center">
+
+      <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 md:mb-8 drop-shadow-2xl tracking-tight leading-tight">
         O Fantasy Game do <span className="text-accent">Universo Cripto</span>.
       </h1>
 
-      <p className="text-accent-foreground text-xl md:text-2xl lg:text-3xl max-w-4xl mx-auto mb-8 md:mb-10 drop-shadow-md font-medium">
+      <p className="text-white text-xl md:text-2xl lg:text-3xl max-w-4xl mx-auto mb-8 md:mb-10 drop-shadow-2xl font-medium">
         Monte seu time de criptoativos, teste suas estratégias em ligas 100% on-chain e transforme sua análise de mercado em prêmios reais. Tudo com a velocidade e transparência da Solana.
       </p>
-      
+
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
         <LocalizedLink href="/ligas" prefetch={false}>
-          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg md:text-xl px-8 md:px-10 py-6 md:py-7 rounded-xl shadow-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl z-10 relative font-bold">
+          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg md:text-xl px-8 md:px-10 py-6 md:py-7 rounded-xl shadow-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl font-bold">
             Começar a Jogar
             <ArrowRight className="ml-2 h-6 w-6" />
           </Button>
         </LocalizedLink>
-        
+
         <LocalizedLink href="/dashboard" prefetch={false}>
-          <Button variant="outline" className="bg-transparent border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10 text-lg md:text-xl px-8 md:px-10 py-6 md:py-7 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 z-10 relative font-medium">
+          <Button variant="outline" className="bg-white/10 backdrop-blur-sm border-2 border-white text-white hover:bg-white/20 text-lg md:text-xl px-8 md:px-10 py-6 md:py-7 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 font-medium">
             Ver Dashboard
           </Button>
         </LocalizedLink>
       </div>
-      
+
     </div>
   </section>
 );
