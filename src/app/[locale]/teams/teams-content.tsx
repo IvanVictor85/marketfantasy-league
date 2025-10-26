@@ -426,14 +426,14 @@ export function TeamsContent() {
     }
 
     // 🔒 LÓGICA CORRETA: Retorna TRUE se a rodada NÃO estiver em andamento
-    // isRodadaEmAndamento() retorna TRUE entre 03:00-15:00 (bloqueado)
+    // isRodadaEmAndamento() retorna TRUE entre 21:00-15:00 (bloqueado)
     // Então invertemos (!): edição permitida FORA dessa janela
     const editingAllowed = !isRodadaEmAndamento();
 
     console.log('🕐 Verificando horário de edição:', {
       rodadaEmAndamento: isRodadaEmAndamento(),
       editingAllowed,
-      horarioBloqueado: '03:00-15:00 BRT'
+      horarioBloqueado: '21:00-15:00 BRT'
     });
 
     return editingAllowed;
@@ -458,10 +458,10 @@ export function TeamsContent() {
       return;
     }
 
-    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição dentro da janela (03:00-15:00 BRT)
+    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição dentro da janela (21:00-15:00 BRT)
     if (!isEditingAllowed()) {
-      console.log('🚫 handleSaveTeam: Rodada em Andamento - edição bloqueada entre 03:00-15:00 BRT');
-      setPaymentError('Rodada em Andamento. A edição está bloqueada entre 03:00 e 15:00 (Horário de Brasília).');
+      console.log('🚫 handleSaveTeam: Rodada em Andamento - edição bloqueada entre 21:00-15:00 BRT');
+      setPaymentError('Rodada em Andamento. A edição está bloqueada entre 21:00 e 15:00 (Horário de Brasília).');
       return;
     }
 
