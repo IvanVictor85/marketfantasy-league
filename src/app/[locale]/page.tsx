@@ -86,7 +86,7 @@ const HowItWorksSection = () => (
             </div>
             <h3 className="text-xl font-bold text-center text-card-foreground mb-2">1. Monte seu Time</h3>
             <p className="text-muted-foreground text-center">
-              Selecione os 10 criptoativos que você acredita que terão a melhor performance. Monte o seu 'Top 10' baseado nas suas análises e estratégias.
+              Selecione os 10 criptoativos que você acredita que terão a melhor performance. Monte o seu &apos;Top 10&apos; baseado nas suas análises e estratégias.
             </p>
           </CardContent>
         </Card>
