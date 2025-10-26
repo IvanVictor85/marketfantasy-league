@@ -19,6 +19,7 @@ import { type Player } from '@/types/teams';
 import { validateTokens } from '@/lib/valid-tokens';
 import { LocalizedLink } from '@/components/ui/localized-link';
 import { CountdownTimer } from '@/components/ui/countdown-timer';
+import { isRodadaAberta } from '@/lib/utils/timeCheck';
 
 import { 
   Users, 
@@ -416,7 +417,7 @@ export function TeamsContent() {
     }
   };
 
-  // Verificar se está dentro do horário de edição
+  // Verificar se está dentro do horário de edição (03:00-15:00 BRT)
   const isEditingAllowed = (): boolean => {
     // Se estivermos carregando os dados da competição, não permita a edição
     if (isCompetitionLoading) {
@@ -424,24 +425,15 @@ export function TeamsContent() {
       return false;
     }
 
-    // Se não houver dados da competição ou não houver data de fim, permita a edição (lógica de fallback)
-    if (!competitionData || !competitionData.endTime) {
-      console.log('🕐 Verificando horário de edição: Sem dados da competição, permitindo edição');
-      return true; 
-    }
-
-    // A lógica de tempo correta
-    const now = new Date();
-    const endDate = new Date(competitionData.endTime);
+    // 🔒 NOVA LÓGICA: Verificar horário da rodada (03:00-15:00 BRT)
+    const rodadaAberta = isRodadaAberta();
 
     console.log('🕐 Verificando horário de edição:', {
-      agora: now.toLocaleString('pt-BR'),
-      fim: endDate.toLocaleString('pt-BR'),
-      permitido: now < endDate
+      rodadaAberta,
+      horarioPermitido: '03:00-15:00 BRT'
     });
 
-    // Retorna 'true' (permitido) se a data/hora atual for ANTES da data de fim
-    return now < endDate;
+    return rodadaAberta;
   };
 
   // Função para salvar escalação
@@ -463,12 +455,10 @@ export function TeamsContent() {
       return;
     }
 
-    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição fora da janela
+    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição fora da janela (03:00-15:00 BRT)
     if (!isEditingAllowed()) {
-      console.log('🚫 handleSaveTeam: Edição bloqueada - fora do horário permitido');
-      const now = new Date();
-      const brazilTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
-      setPaymentError(`Edição de time bloqueada. Horário atual: ${brazilTime.toLocaleString('pt-BR')}. Aguarde a próxima rodada.`);
+      console.log('🚫 handleSaveTeam: Rodada Encerrada - edição bloqueada fora do horário (03:00-15:00 BRT)');
+      setPaymentError('Rodada Encerrada. A edição de times é permitida apenas entre 03:00 e 15:00 (Horário de Brasília).');
       return;
     }
 
@@ -681,6 +671,19 @@ export function TeamsContent() {
                 Time Principal
               </Badge>
             )}
+
+            {/* Indicador de Status da Rodada */}
+            <Badge
+              variant="default"
+              className={`flex items-center gap-1 ${
+                isEditingAllowed()
+                  ? 'bg-green-600 text-white'
+                  : 'bg-red-600 text-white'
+              }`}
+            >
+              <Clock className="w-3 h-3" />
+              {isEditingAllowed() ? 'Rodada Aberta' : 'Rodada Encerrada'}
+            </Badge>
           </div>
         </div>
 

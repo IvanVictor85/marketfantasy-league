@@ -342,28 +342,6 @@ export function MainLeagueCard() {
   };
 
   const handleEnterLeague = async () => {
-    // --- INÍCIO DO BLOCO DE DEBUG ---
-    const debugState = {
-      hook: 'useGuardedActionHook',
-      mismatched: isMismatched, // vindo do useGuardedActionHook
-      canExecute: canExecuteAction(), // vindo do useGuardedActionHook
-      profile: profileWallet, // vindo do useAppWalletStatus
-      connected: publicKey?.toString(), // vindo do useGuardedActionHook
-    };
-
-    console.error(
-      '🚨🚨🚨 AÇÃO DE TRANSAÇÃO DISPARADA! 🚨🚨🚨',
-      debugState
-    );
-
-    alert(
-      '🚨 AÇÃO INTERCEPTADA 🚨\n\n' +
-      'Uma transação está prestes a começar.\n' +
-      'Verifique o console (F12) para ver o "debugState".\n\n' +
-      `IS MISMATCHED: ${debugState.mismatched}`
-    );
-    // --- FIM DO BLOCO DE DEBUG ---
-
     // Verificar se pode executar a ação
     if (!canExecuteAction()) {
       return;
