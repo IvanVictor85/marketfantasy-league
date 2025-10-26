@@ -282,18 +282,49 @@ export async function GET(request: NextRequest) {
       select: { publicKey: true, email: true }
     });
 
-    if (!user || !user.publicKey) {
-      console.error('❌ [TEAM-GET] Usuário sem carteira vinculada');
+    if (!user) {
+      console.error('❌ [TEAM-GET] Usuário não encontrado');
       return NextResponse.json(
-        { error: 'Usuário sem carteira vinculada' },
-        { status: 400 }
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
       );
     }
 
-    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco!
-
     const { searchParams } = new URL(request.url)
     const leagueId = searchParams.get('leagueId')
+
+    // 🔓 PERMITIR ACESSO SEM CARTEIRA: Usuários podem ver a página mesmo sem carteira
+    if (!user.publicKey) {
+      console.log('⚠️ [TEAM-GET] Usuário sem carteira vinculada - retornando estado vazio');
+
+      // Buscar liga para retornar informações básicas
+      let league;
+      if (leagueId) {
+        league = await prisma.league.findUnique({
+          where: { id: leagueId }
+        });
+      } else {
+        league = await prisma.league.findFirst({
+          where: {
+            leagueType: 'MAIN',
+            isActive: true
+          }
+        });
+      }
+
+      return NextResponse.json({
+        hasTeam: false,
+        needsWallet: true,
+        message: 'Conecte uma carteira para criar seu time',
+        league: league ? {
+          id: league.id,
+          name: league.name,
+          entryFee: league.entryFee
+        } : null
+      });
+    }
+
+    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco!
 
     console.log('🔍 API team GET: Buscando time para:', { userId, userWallet, leagueId });
 

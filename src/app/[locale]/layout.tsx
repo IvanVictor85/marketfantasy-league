@@ -5,8 +5,10 @@ import '../globals.css';
 import { WalletContextProvider } from '@/components/providers/wallet-provider';
 import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-context';
+import { WalletModalProvider } from '@/contexts/wallet-modal-context';
 import { NavbarFixed } from '@/components/layout/navbar-fixed';
 import ToasterClient from '@/components/ui/toaster-client';
+import { WalletConnectModalGlobal } from '@/components/wallet/wallet-connect-modal-global';
 import { SessionProviderWrapper } from '@/components/providers/session-provider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -56,15 +58,18 @@ export default async function LocaleLayout({
           <SessionProviderWrapper>
             <WalletContextProvider>
               <AuthProvider>
-                <div className="min-h-screen bg-background">
-                  <NavbarFixed />
-                  <main className="flex-1">
-                    {children}
-                  </main>
-                  <ToasterClient />
-                  {/* Portal container for dropdowns */}
-                  <div id="dropdown-portal" />
-                </div>
+                <WalletModalProvider>
+                  <div className="min-h-screen bg-background">
+                    <NavbarFixed />
+                    <main className="flex-1">
+                      {children}
+                    </main>
+                    <ToasterClient />
+                    <WalletConnectModalGlobal />
+                    {/* Portal container for dropdowns */}
+                    <div id="dropdown-portal" />
+                  </div>
+                </WalletModalProvider>
               </AuthProvider>
             </WalletContextProvider>
           </SessionProviderWrapper>

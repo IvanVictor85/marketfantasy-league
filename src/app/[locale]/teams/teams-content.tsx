@@ -6,6 +6,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useGuardedActionHook } from '@/hooks/useGuardedActionHook';
 import { useCompetitionStatus } from '@/hooks/useCompetitionStatus';
+import { useWalletModal } from '@/contexts/wallet-modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,7 @@ export function TeamsContent() {
   const { publicKey, connected } = useWallet();
   const { user, isAuthenticated } = useAuth();
   const { canExecuteAction } = useGuardedActionHook();
+  const { openModal: openWalletModal } = useWalletModal();
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -449,8 +451,17 @@ export function TeamsContent() {
       publicKey: publicKey?.toString(),
       playersLength: players.length,
       teamName,
-      user
+      user,
+      userHasWallet: !!user?.publicKey
     });
+
+    // 🔒 VERIFICAÇÃO DE CARTEIRA NO BANCO: Se usuário não tem carteira vinculada, abrir modal
+    if (!user?.publicKey) {
+      console.log('⚠️ handleSaveTeam: Usuário sem carteira vinculada - abrindo modal');
+      setPaymentError('Você precisa conectar uma carteira para criar seu time');
+      openWalletModal();
+      return;
+    }
 
     // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição fora da janela
     if (!isEditingAllowed()) {
@@ -466,7 +477,7 @@ export function TeamsContent() {
       canExecute: canExecuteAction(),
       isMismatched: !canExecuteAction()
     });
-    
+
     if (!canExecuteAction()) {
       console.log('🚫 handleSaveTeam: Ação bloqueada - carteira incompatível');
       setPaymentError('Carteira incompatível com o perfil. Use a carteira correta.');
