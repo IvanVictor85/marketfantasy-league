@@ -83,7 +83,22 @@
     "selectToken": "Select Token",
     "tokenSelected": "Token selected",
     "removeToken": "Remove Token",
-    "maxPlayersReached": "Maximum number of players reached"
+    "maxPlayersReached": "Maximum number of players reached",
+    "pageTitle": "Team Lineup",
+    "pageSubtitle": "Build your strategic lineup for the Main Team",
+    "mainTeam": "Main Team",
+    "roundOpen": "Round Open",
+    "roundInProgress": "Round In Progress",
+    "teamSetup": "Lineup Field",
+    "editingBlocked": "Editing Blocked",
+    "saving": "Saving...",
+    "tokenMarket": "Token Market",
+    "teamStats": "Lineup Statistics",
+    "totalScore": "Total Score",
+    "leagueRank": "League Rank",
+    "bestAsset": "Best Asset",
+    "worstAsset": "Worst Asset",
+    "avgPerformance": "Average Performance"
   },
   "market": {
     "title": "Token Market",

@@ -11,15 +11,17 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { LanguageSelector } from '@/components/ui/language-selector';
 import { WalletConnectButton } from '@/components/layout/WalletConnectButton';
 import { UserButton } from '@/components/auth/user-button';
+import { useTranslations } from 'next-intl';
 
 export function NavbarFixed() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const t = useTranslations('navigation');
 
   const navigation = [
-    { name: 'Ligas', href: '/ligas', icon: Trophy },
-    { name: 'Meu Time', href: '/teams', icon: Shirt },
-    { name: 'Dashboard', href: '/dashboard', icon: Target },
+    { name: t('leagues'), href: '/ligas', icon: Trophy },
+    { name: t('myTeam'), href: '/teams', icon: Shirt },
+    { name: t('dashboard'), href: '/dashboard', icon: Target },
     { name: 'Análise IA', href: '/analise', icon: Brain },
   ];
 

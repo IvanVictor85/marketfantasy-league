@@ -83,7 +83,22 @@
     "selectToken": "Selecionar Token",
     "tokenSelected": "Token selecionado",
     "removeToken": "Remover Token",
-    "maxPlayersReached": "Número máximo de jogadores atingido"
+    "maxPlayersReached": "Número máximo de jogadores atingido",
+    "pageTitle": "Escalação de Times",
+    "pageSubtitle": "Monte sua escalação estratégica para o Time Principal",
+    "mainTeam": "Time Principal",
+    "roundOpen": "Rodada Aberta",
+    "roundInProgress": "Rodada em Andamento",
+    "teamSetup": "Campo de Escalação",
+    "editingBlocked": "Edição Bloqueada",
+    "saving": "Salvando...",
+    "tokenMarket": "Mercado de Tokens",
+    "teamStats": "Estatísticas da Escalação",
+    "totalScore": "Pontuação Total",
+    "leagueRank": "Ranking na Liga",
+    "bestAsset": "Melhor Ativo",
+    "worstAsset": "Pior Ativo",
+    "avgPerformance": "Performance Média"
   },
   "market": {
     "title": "Mercado de Tokens",

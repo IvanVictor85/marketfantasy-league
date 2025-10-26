@@ -20,6 +20,7 @@ import { validateTokens } from '@/lib/valid-tokens';
 import { LocalizedLink } from '@/components/ui/localized-link';
 import { CountdownTimer } from '@/components/ui/countdown-timer';
 import { isRodadaEmAndamento } from '@/lib/utils/timeCheck';
+import { useTranslations } from 'next-intl';
 
 import { 
   Users, 
@@ -48,6 +49,8 @@ const mockLeagues = [
 ];
 
 export function TeamsContent() {
+  const t = useTranslations('teams');
+  const tCommon = useTranslations('common');
   const searchParams = useSearchParams();
   const router = useRouter();
   const { publicKey, connected } = useWallet();
@@ -628,7 +631,7 @@ export function TeamsContent() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Escalação de Times
+              {t('pageTitle')}
             </h1>
             <p className="text-gray-600">
               Monte sua escalação estratégica para {currentLeague?.name || 'Liga Selecionada'}
@@ -686,7 +689,7 @@ export function TeamsContent() {
               }`}
             >
               <Clock className="w-3 h-3" />
-              {isEditingAllowed() ? 'Rodada Aberta' : 'Rodada em Andamento'}
+              {isEditingAllowed() ? t('roundOpen') : t('roundInProgress')}
             </Badge>
           </div>
         </div>
@@ -830,19 +833,19 @@ export function TeamsContent() {
                     {/* TÍTULO */}
                     <div className="leading-none font-semibold flex items-center gap-2 w-fit">
                       <Target className="w-5 h-5 flex-shrink-0" />
-                      Campo de Escalação
+                      {t('teamSetup')}
                     </div>
 
                     {/* Indicador de Status da Rodada (consistente com Badge do topo) */}
                     {isEditingAllowed() ? (
                       <span className="text-green-600 font-medium flex items-center gap-1 text-xs md:text-sm">
                         <Clock className="w-3 h-3" />
-                        Rodada Aberta
+                        {t('roundOpen')}
                       </span>
                     ) : (
                       <span className="text-red-600 font-medium flex items-center gap-1 text-xs md:text-sm">
                         <Clock className="w-3 h-3" />
-                        Rodada em Andamento
+                        {t('roundInProgress')}
                       </span>
                     )}
                   </div>
@@ -856,7 +859,7 @@ export function TeamsContent() {
                       className="flex items-center gap-1"
                     >
                       <RotateCcw className="w-4 h-4" />
-                      Resetar
+                      {tCommon('reset')}
                     </Button>
                     <Button
                       size="sm"
@@ -867,17 +870,17 @@ export function TeamsContent() {
                       {!isEditingAllowed() ? (
                         <>
                           <Clock className="w-4 h-4" />
-                          Edição Bloqueada
+                          {t('editingBlocked')}
                         </>
                       ) : isSavingTeam ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Salvando...
+                          {t('saving')}
                         </>
                       ) : (
                         <>
                           <Save className="w-4 h-4" />
-                          Salvar
+                          {tCommon('save')}
                         </>
                       )}
                     </Button>
@@ -902,7 +905,7 @@ export function TeamsContent() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="w-5 h-5" />
-                  Estatísticas da Escalação
+                  {t('teamStats')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -912,7 +915,7 @@ export function TeamsContent() {
                     <div className="text-2xl font-bold text-orange-600">
                       {existingTeam?.totalScore?.toFixed(1) || 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600">Pontuação Total</div>
+                    <div className="text-sm text-gray-600">{t('totalScore')}</div>
                   </div>
 
                   {/* Ranking na Liga (atual do time no banco) */}
@@ -920,7 +923,7 @@ export function TeamsContent() {
                     <div className="text-2xl font-bold text-blue-600">
                       {existingTeam?.rank ? `#${existingTeam.rank}` : 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600">Ranking na Liga</div>
+                    <div className="text-sm text-gray-600">{t('leagueRank')}</div>
                   </div>
 
                   {/* Melhor Ativo (baseado em change_7d) */}
