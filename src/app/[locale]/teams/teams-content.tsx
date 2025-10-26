@@ -832,11 +832,17 @@ export function TeamsContent() {
                       Campo de Escalação
                     </div>
 
-                    {competitionData && competitionData.endTime && (
-                      <CountdownTimer
-                        endTime={new Date(competitionData.endTime)}
-                        className="text-xs md:text-sm"
-                      />
+                    {/* Indicador de Status da Rodada (consistente com Badge do topo) */}
+                    {isEditingAllowed() ? (
+                      <span className="text-green-600 font-medium flex items-center gap-1 text-xs md:text-sm">
+                        <Clock className="w-3 h-3" />
+                        Rodada Aberta
+                      </span>
+                    ) : (
+                      <span className="text-red-600 font-medium flex items-center gap-1 text-xs md:text-sm">
+                        <Clock className="w-3 h-3" />
+                        Rodada em Andamento
+                      </span>
                     )}
                   </div>
 
