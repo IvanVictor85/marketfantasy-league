@@ -27,7 +27,7 @@ import {
 const HeroSection = () => (
   <section className="relative py-16 md:py-20 lg:py-28 overflow-hidden h-[500px] md:h-[600px] lg:h-[700px]">
     {/* Background com overlay */}
-    <div className="absolute inset-0 bg-primary/30">
+    <div className="absolute inset-0 bg-black/50">
       <div 
         className="absolute inset-0 opacity-90 scale-110 md:scale-105 lg:scale-100"
         style={{
@@ -43,7 +43,7 @@ const HeroSection = () => (
     </div>
     
     {/* Gradiente para melhor contraste */}
-    <div className="absolute inset-0 bg-gradient-to-b from-primary/30 to-primary/60" />
+    <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/70" />
     
     <div className="container relative mx-auto px-4 py-12 md:py-20 text-center">
       
