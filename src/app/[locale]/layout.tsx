@@ -35,48 +35,58 @@ export const metadata: Metadata = {
 export default async function LocaleLayout({
   children,
   params
-}: Readonly<{ 
+}: Readonly<{
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }>) {
   const { locale } = await params;
   const isProd = process.env.NODE_ENV === 'production';
-  
+
   // Carregar mensagens para o locale atual
-  const messages = await getMessages();
-  
+  let messages;
+  try {
+    messages = await getMessages();
+  } catch (error) {
+    console.error('❌ [i18n] Erro ao carregar mensagens:', error);
+    // Fallback para objeto vazio se houver erro
+    messages = {};
+  }
+
   return (
-    <>
-      {/* Temporarily disabled to fix React hydration issue */}
-      {/* <Script
-        src="/suppress-metamask.js"
-        id="suppress-metamask"
-        strategy="beforeInteractive"
-        data-nscript="beforeInteractive"
-      /> */}
-      <ThemeProvider>
-        <NextIntlClientProvider messages={messages}>
-          <SessionProviderWrapper>
-            <WalletContextProvider>
-              <AuthProvider>
-                <WalletModalProvider>
-                  <WalletSessionLinker />
-                  <div className="min-h-screen bg-background">
-                    <NavbarFixed />
-                    <main className="flex-1">
-                      {children}
-                    </main>
-                    <ToasterClient />
-                    <WalletConnectModalGlobal />
-                    {/* Portal container for dropdowns */}
-                    <div id="dropdown-portal" />
-                  </div>
-                </WalletModalProvider>
-              </AuthProvider>
-            </WalletContextProvider>
-          </SessionProviderWrapper>
-        </NextIntlClientProvider>
-      </ThemeProvider>
-    </>
+    <html lang={locale} className={inter.variable}>
+      <body>
+        {/* Temporarily disabled to fix React hydration issue */}
+        {/* <Script
+          src="/suppress-metamask.js"
+          id="suppress-metamask"
+          strategy="beforeInteractive"
+          data-nscript="beforeInteractive"
+        /> */}
+        <ThemeProvider>
+          {/* ✅ CRÍTICO: NextIntlClientProvider DEVE receber locale e messages */}
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <SessionProviderWrapper>
+              <WalletContextProvider>
+                <AuthProvider>
+                  <WalletModalProvider>
+                    <WalletSessionLinker />
+                    <div className="min-h-screen bg-background">
+                      <NavbarFixed />
+                      <main className="flex-1">
+                        {children}
+                      </main>
+                      <ToasterClient />
+                      <WalletConnectModalGlobal />
+                      {/* Portal container for dropdowns */}
+                      <div id="dropdown-portal" />
+                    </div>
+                  </WalletModalProvider>
+                </AuthProvider>
+              </WalletContextProvider>
+            </SessionProviderWrapper>
+          </NextIntlClientProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
