@@ -45,15 +45,16 @@ interface EntryStatus {
 export function MainLeagueCard() {
   const { publicKey, connected, sendTransaction, isMismatched, canExecuteAction } = useGuardedActionHook();
   const { profileWallet, isProfileLoading } = useAppWalletStatus();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, connectWalletToUser } = useAuth();
   const { setVisible } = useWalletModal();
   const { push } = useLocaleNavigation();
-  
+
   const [leagueData, setLeagueData] = useState<MainLeagueData | null>(null);
   const [entryStatus, setEntryStatus] = useState<EntryStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCheckingEntry, setIsCheckingEntry] = useState(true);
   const [transactionLoading, setTransactionLoading] = useState(false);
+  const [isLinking, setIsLinking] = useState(false); // NOVO: Estado para vinculação manual
   const [error, setError] = useState<string | null>(null);
 
   // 🛡️ SAFEGUARD: Prevent duplicate calls
@@ -263,6 +264,81 @@ export function MainLeagueCard() {
 
   const handleConnectWallet = () => {
     setVisible(true);
+  };
+
+  // NOVO: Função para vincular carteira manualmente (Plano B)
+  const handleLinkWallet = async () => {
+    if (!connected || !publicKey) {
+      console.error('❌ [LINK-WALLET] Carteira não conectada');
+      setError('Carteira não conectada. Tente novamente.');
+      return;
+    }
+
+    setIsLinking(true);
+    setError(null);
+
+    try {
+      console.log('🔗 [LINK-WALLET] Iniciando vinculação manual:', publicKey.toString());
+
+      // 1. Chamar API de vinculação manualmente
+      const response = await fetch('/api/user/link-wallet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
+        body: JSON.stringify({ publicKey: publicKey.toString() })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao vincular carteira');
+      }
+
+      console.log('✅ [LINK-WALLET] Carteira vinculada com sucesso');
+
+      // 2. Atualizar o contexto de autenticação
+      await connectWalletToUser(publicKey.toString());
+
+      // 3. Revalidar status de entrada
+      if (leagueData) {
+        await checkEntryStatus();
+      }
+
+      console.log('🎉 [LINK-WALLET] Vinculação completa! Pronto para entrar na liga.');
+
+    } catch (err) {
+      console.error('❌ [LINK-WALLET] Erro ao vincular carteira:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao vincular carteira';
+      setError(errorMessage);
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  // Função principal de ação do botão (lógica de 3 estados)
+  const handleActionClick = async () => {
+    // ESTADO 1: VINCULADO (Sessão OK)
+    // A carteira está no banco. Pode entrar na liga.
+    if (profileWallet) {
+      handleEnterLeague();
+      return;
+    }
+
+    // ESTADO 2: NÃO VINCULADO e NÃO CONECTADO
+    // Apenas abre o modal de conexão
+    if (!connected) {
+      setVisible(true);
+      return;
+    }
+
+    // ESTADO 3: NÃO VINCULADO, mas CONECTADO
+    // O Plano A falhou ou está lento. Vamos forçar a vinculação AGORA.
+    if (connected && publicKey && !profileWallet) {
+      handleLinkWallet();
+      return;
+    }
   };
 
   const handleEnterLeague = async () => {
@@ -595,24 +671,21 @@ export function MainLeagueCard() {
           </Alert>
         )}
       </CardContent>
-      
+
       <CardFooter>
-        {!connected ? (
-          <Button 
-            onClick={handleConnectWallet}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            Conectar Carteira
-          </Button>
-        ) : isCheckingEntry ? (
-          <Button 
+        {/* Loading inicial da verificação de entrada */}
+        {isCheckingEntry ? (
+          <Button
             disabled
             className="w-full bg-gray-500 text-white cursor-not-allowed"
           >
             Verificando...
           </Button>
-        ) : entryStatus?.hasPaid && !isMismatched ? (
-          <Button 
+        )
+
+        /* Usuário já pagou e está na liga */
+        : entryStatus?.hasPaid && profileWallet && !isMismatched ? (
+          <Button
             asChild
             className="w-full bg-green-600 hover:bg-green-700 text-white"
           >
@@ -620,16 +693,24 @@ export function MainLeagueCard() {
               Ver Meu Time
             </LocalizedLink>
           </Button>
-        ) : isMismatched ? (
-          <Button 
+        )
+
+        /* Carteira incompatível (mismatch) */
+        : isMismatched ? (
+          <Button
             disabled
             className="w-full bg-red-600 text-white cursor-not-allowed"
           >
             Carteira Incompatível
           </Button>
-        ) : (
-          <Button 
-            onClick={handleEnterLeague}
+        )
+
+        /* LÓGICA DE 3 ESTADOS */
+
+        /* ESTADO 1: VINCULADO (profileWallet existe) */
+        : profileWallet ? (
+          <Button
+            onClick={handleActionClick}
             disabled={transactionLoading || !leagueData.round.isActive}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
           >
@@ -643,6 +724,44 @@ export function MainLeagueCard() {
             ) : (
               `Entrar na Liga (${leagueData.entryFee} SOL)`
             )}
+          </Button>
+        )
+
+        /* ESTADO 2: NÃO VINCULADO e NÃO CONECTADO */
+        : !connected ? (
+          <Button
+            onClick={handleActionClick}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            Conectar Carteira
+          </Button>
+        )
+
+        /* ESTADO 3: NÃO VINCULADO, mas CONECTADO */
+        : connected && !profileWallet ? (
+          <Button
+            onClick={handleActionClick}
+            disabled={isLinking}
+            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50"
+          >
+            {isLinking ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Vinculando...
+              </>
+            ) : (
+              'Vincular Carteira'
+            )}
+          </Button>
+        )
+
+        /* Fallback */
+        : (
+          <Button
+            onClick={() => setVisible(true)}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            Conectar Carteira
           </Button>
         )}
       </CardFooter>
