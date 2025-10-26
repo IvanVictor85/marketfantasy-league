@@ -50,9 +50,9 @@ const HeroSection = () => (
       <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 md:mb-8 drop-shadow-lg tracking-tight leading-tight">
         O Fantasy Game do <span className="text-accent">Universo Cripto</span>.
       </h1>
-      
+
       <p className="text-accent-foreground text-xl md:text-2xl lg:text-3xl max-w-4xl mx-auto mb-8 md:mb-10 drop-shadow-md font-medium">
-        Desafie seus amigos e sua comunidade favorita. Monte seu time de cripto e conquiste prêmios reais em ligas seguras e 100% on-chain.
+        Monte seu time de criptoativos, teste suas estratégias em ligas 100% on-chain e transforme sua análise de mercado em prêmios reais. Tudo com a velocidade e transparência da Solana.
       </p>
       
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
@@ -132,76 +132,16 @@ const HowItWorksSection = () => (
   </section>
 );
 
-// Seção de Proposta de Valor
+// Seção A Vantagem MFL
 const ValuePropositionSection = () => (
   <section className="py-20 bg-primary">
     <div className="container mx-auto px-4">
       <h2 className="text-3xl md:text-4xl font-bold text-center text-primary-foreground mb-12">
-        Por Que Market Fantasy League?
+        A Vantagem MFL
       </h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {/* Card 1 */}
-        <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">100% Seguro</h3>
-            <p className="text-muted-foreground text-center">
-              Contratos inteligentes auditados e transparentes garantem a segurança dos seus fundos.
-            </p>
-          </CardContent>
-        </Card>
-        
-        {/* Card 2 */}
-        <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <Users className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Comunidade Vibrante</h3>
-            <p className="text-muted-foreground text-center">
-              Participe de ligas com amigos ou entre em competições globais com milhares de jogadores.
-            </p>
-          </CardContent>
-        </Card>
-        
-        {/* Card 3 */}
-        <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <Coins className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Prêmios Reais</h3>
-            <p className="text-muted-foreground text-center">
-              Ganhe criptomoedas reais baseadas no desempenho do seu time nas ligas competitivas.
-            </p>
-          </CardContent>
-        </Card>
-        
-        {/* Card 4 */}
-        <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <TrendingUp className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Dados em Tempo Real</h3>
-            <p className="text-muted-foreground text-center">
-              Acompanhe o desempenho do seu time com dados de mercado atualizados em tempo real.
-            </p>
-          </CardContent>
-        </Card>
-        
-        {/* Card 5 */}
+        {/* Card 1 - Construído na Solana */}
         <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex justify-center mb-4">
@@ -209,24 +149,84 @@ const ValuePropositionSection = () => (
                 <Zap className="h-8 w-8 text-primary" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Experiência Gamificada</h3>
+            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Construído na Solana</h3>
             <p className="text-muted-foreground text-center">
-              Aprenda sobre criptomoedas enquanto se diverte com uma experiência totalmente gamificada.
+              Toda a lógica do jogo e gerenciamento de ligas rodam on-chain. Graças à Solana, suas ações são processadas em tempo real e com taxas mínimas.
             </p>
           </CardContent>
         </Card>
-        
-        {/* Card 6 */}
+
+        {/* Card 2 - Fair Play Transparente */}
         <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex justify-center mb-4">
               <div className="p-3 rounded-full bg-primary/10">
-                <Lock className="h-8 w-8 text-primary" />
+                <Shield className="h-8 w-8 text-primary" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Multi-Chain</h3>
+            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Fair Play Transparente</h3>
             <p className="text-muted-foreground text-center">
-              Plataforma agnóstica de blockchain, suportando múltiplas redes para máxima flexibilidade.
+              Sem caixas-pretas. Nossos contratos inteligentes são abertos e garantem que o cálculo de pontos e a distribuição de prêmios sejam 100% auditáveis.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 3 - Prêmios em Cripto e NFTs */}
+        <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-primary/10">
+                <Coins className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Prêmios em Cripto e NFTs</h3>
+            <p className="text-muted-foreground text-center">
+              Vá além dos pontos. Ganhe prêmios reais em cripto (SOL, USDC) ou NFTs colecionáveis. Imagine participar de uma liga patrocinada valendo um NFT da sua comunidade favorita!
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 4 - Dados de Mercado em Tempo Real */}
+        <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-primary/10">
+                <TrendingUp className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Dados de Mercado em Tempo Real</h3>
+            <p className="text-muted-foreground text-center">
+              O desempenho do seu time é baseado em oráculos de preço confiáveis. O mercado muda, seus pontos mudam. Simples assim.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 5 - Ligas Globais */}
+        <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-primary/10">
+                <Users className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Ligas Globais</h3>
+            <p className="text-muted-foreground text-center">
+              Participe de ligas públicas globais, teste suas estratégias contra outros analistas e concorra a prêmios exclusivos patrocinados pela comunidade.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 6 - Você no Controle */}
+        <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
+          <CardContent className="p-6">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-primary/10">
+                <Key className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Você no Controle</h3>
+            <p className="text-muted-foreground text-center">
+              Seus times, seus prêmios. No MFL, você é realmente dono dos seus ativos e conquistas dentro do jogo.
             </p>
           </CardContent>
         </Card>
@@ -243,7 +243,7 @@ const FinalCTASection = () => (
         Pronto para montar seu time dos sonhos?
       </h2>
       <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-        Junte-se a milhares de jogadores e comece sua jornada no maior fantasy game de criptomoedas.
+        Junte-se aos pioneiros do fantasy game on-chain e comece sua jornada na Market Fantasy League.
       </p>
       <LocalizedLink href="/ligas">
         <Button className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg px-8 py-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105">
