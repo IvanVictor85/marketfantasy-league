@@ -245,7 +245,13 @@ export function MainLeagueCard() {
 
   // Check entry status when profile wallet changes (with debounce)
   useEffect(() => {
-    if (profileWallet && leagueData && !isProfileLoading) {
+    // 🔒 GUARD CLAUSE: Se não houver carteira ou perfil está carregando, setar isCheckingEntry = false
+    if (!profileWallet || isProfileLoading) {
+      setIsCheckingEntry(false);
+      return;
+    }
+
+    if (leagueData) {
       const timeoutId = setTimeout(() => {
         checkEntryStatus();
       }, 500); // 500ms debounce

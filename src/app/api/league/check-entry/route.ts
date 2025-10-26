@@ -49,6 +49,10 @@ async function getUserFromRequest(request: NextRequest): Promise<string | null> 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   try {
+    // Ler o body primeiro
+    const body = await request.json()
+    const { leagueId } = checkEntrySchema.parse(body)
+
     // 🔒 SEGURANÇA: Obter userId do usuário autenticado
     const userId = await getUserFromRequest(request);
 
@@ -66,18 +70,49 @@ export async function POST(request: NextRequest) {
       select: { publicKey: true, email: true }
     });
 
-    if (!user || !user.publicKey) {
-      console.error('❌ [CHECK-ENTRY] Usuário sem carteira vinculada');
+    if (!user) {
+      console.error('❌ [CHECK-ENTRY] Usuário não encontrado');
       return NextResponse.json(
-        { error: 'Você precisa conectar uma carteira antes de verificar entrada' },
-        { status: 400 }
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
       );
     }
 
-    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco, não do cliente!
+    // 🔓 PERMITIR ACESSO SEM CARTEIRA: Retornar estado indicando necessidade de carteira
+    if (!user.publicKey) {
+      console.log('⚠️ [CHECK-ENTRY] Usuário sem carteira vinculada - retornando estado sem entrada');
 
-    const body = await request.json()
-    const { leagueId } = checkEntrySchema.parse(body)
+      // Buscar informações da liga para retornar ao cliente
+      let league;
+      if (leagueId) {
+        league = await prisma.league.findUnique({
+          where: { id: leagueId }
+        });
+      } else {
+        league = await prisma.league.findFirst({
+          where: {
+            leagueType: 'MAIN',
+            isActive: true
+          }
+        });
+      }
+
+      return NextResponse.json({
+        hasPaid: false,
+        needsWallet: true,
+        message: 'Conecte uma carteira para entrar na liga',
+        league: league ? {
+          id: league.id,
+          name: league.name,
+          entryFee: league.entryFee,
+          totalPrizePool: league.totalPrizePool,
+          participantCount: league.participantCount,
+          isActive: league.isActive
+        } : null
+      });
+    }
+
+    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco, não do cliente!
     
     console.log('🔍 API check-entry: Verificando entrada para:', userWallet, 'Liga:', leagueId || 'MAIN');
 

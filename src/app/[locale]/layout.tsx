@@ -9,6 +9,7 @@ import { WalletModalProvider } from '@/contexts/wallet-modal-context';
 import { NavbarFixed } from '@/components/layout/navbar-fixed';
 import ToasterClient from '@/components/ui/toaster-client';
 import { WalletConnectModalGlobal } from '@/components/wallet/wallet-connect-modal-global';
+import { WalletSessionLinker } from '@/components/wallet/wallet-session-linker';
 import { SessionProviderWrapper } from '@/components/providers/session-provider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -59,6 +60,7 @@ export default async function LocaleLayout({
             <WalletContextProvider>
               <AuthProvider>
                 <WalletModalProvider>
+                  <WalletSessionLinker />
                   <div className="min-h-screen bg-background">
                     <NavbarFixed />
                     <main className="flex-1">
