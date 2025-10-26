@@ -93,7 +93,7 @@ const HowItWorksSection = () => (
             </div>
             <h3 className="text-xl font-bold text-center text-card-foreground mb-2">1. Monte seu Time</h3>
             <p className="text-muted-foreground text-center">
-              Selecione até 5 criptomoedas para formar seu time dos sonhos baseado nas suas análises e estratégias.
+              Selecione os 10 criptoativos que você acredita que terão a melhor performance. Monte o seu 'Top 10' baseado nas suas análises e estratégias.
             </p>
           </CardContent>
         </Card>
@@ -108,7 +108,7 @@ const HowItWorksSection = () => (
             </div>
             <h3 className="text-xl font-bold text-center text-card-foreground mb-2">2. Entre em uma Liga</h3>
             <p className="text-muted-foreground text-center">
-              Escolha entre ligas gratuitas ou pagas e compita contra outros jogadores por prêmios reais em cripto.
+              Escolha entre ligas gratuitas ou pagas e participe contra outros jogadores por prêmios reais em cripto.
             </p>
           </CardContent>
         </Card>
@@ -123,7 +123,7 @@ const HowItWorksSection = () => (
             </div>
             <h3 className="text-xl font-bold text-center text-card-foreground mb-2">3. Ganhe Prêmios</h3>
             <p className="text-muted-foreground text-center">
-              Acompanhe o desempenho do seu time e ganhe prêmios baseados na performance das criptomoedas escolhidas.
+              Acompanhe o desempenho do seu time e ganhe prêmios baseados na performance dos criptoativos escolhidos.
             </p>
           </CardContent>
         </Card>
@@ -201,7 +201,7 @@ const ValuePropositionSection = () => (
           </CardContent>
         </Card>
 
-        {/* Card 5 - Ligas Globais */}
+        {/* Card 5 - Ligas de Comunidade */}
         <Card className="bg-card rounded-xl shadow-lg hover:transform hover:scale-105 transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex justify-center mb-4">
@@ -209,9 +209,9 @@ const ValuePropositionSection = () => (
                 <Users className="h-8 w-8 text-primary" />
               </div>
             </div>
-            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Ligas Globais</h3>
+            <h3 className="text-xl font-bold text-center text-card-foreground mb-2">Ligas de Comunidade</h3>
             <p className="text-muted-foreground text-center">
-              Participe de ligas públicas globais, teste suas estratégias contra outros analistas e concorra a prêmios exclusivos patrocinados pela comunidade.
+              Participe de ligas exclusivas criadas em parceria com as maiores comunidades Web3. Jogue por prêmios temáticos (como NFTs da própria coleção) e mostre seu apoio!
             </p>
           </CardContent>
         </Card>
