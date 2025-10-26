@@ -45,7 +45,8 @@ export default async function LocaleLayout({
   // Carregar mensagens para o locale atual
   let messages;
   try {
-    messages = await getMessages();
+    // 🔧 CRÍTICO: Passar {locale} para carregar o arquivo correto (en.json ou pt.json)
+    messages = await getMessages({ locale });
   } catch (error) {
     console.error('❌ [i18n] Erro ao carregar mensagens:', error);
     // Fallback para objeto vazio se houver erro
