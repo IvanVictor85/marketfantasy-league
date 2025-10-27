@@ -167,17 +167,16 @@ export async function POST(request: NextRequest) {
                               process.env.EMAIL_PASSWORD &&
                               process.env.EMAIL_PASSWORD !== 'your_app_password_here';
 
-    // 🐛 DEBUG MODE: Mostrar código para email específico APENAS EM DESENVOLVIMENTO
+    // 🐛 DEBUG MODE: Mostrar código para email específico (learts@gmail.com)
     const isDebugEmail = email.toLowerCase() === 'learts@gmail.com';
-    const isDevelopment = process.env.NODE_ENV === 'development';
 
-    if (!emailSent || !isEmailConfigured || (isDebugEmail && isDevelopment)) {
+    if (!emailSent || !isEmailConfigured || isDebugEmail) {
       response.developmentCode = code;
-      response.note = (isDebugEmail && isDevelopment)
+      response.note = isDebugEmail
         ? '🐛 Modo Debug: O código será exibido na tela'
         : 'Verifique os logs do servidor para ver o código';
 
-      if (isDebugEmail && isDevelopment) {
+      if (isDebugEmail) {
         console.log(`🐛 [DEBUG MODE] Código para ${email}: ${code}`);
       }
     }
