@@ -13,6 +13,7 @@ import { WalletSessionLinker } from '@/components/wallet/wallet-session-linker';
 import { SessionProviderWrapper } from '@/components/providers/session-provider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { QueryClientProvider } from '@/components/providers/query-client-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -64,28 +65,31 @@ export default async function LocaleLayout({
           data-nscript="beforeInteractive"
         /> */}
         <ThemeProvider>
-          {/* ✅ CRÍTICO: NextIntlClientProvider DEVE receber locale e messages */}
-          <NextIntlClientProvider locale={locale} messages={messages}>
-            <SessionProviderWrapper>
-              <WalletContextProvider>
-                <AuthProvider>
-                  <WalletModalProvider>
-                    <WalletSessionLinker />
-                    <div className="min-h-screen bg-background">
-                      <NavbarFixed />
-                      <main className="flex-1">
-                        {children}
-                      </main>
-                      <ToasterClient />
-                      <WalletConnectModalGlobal />
-                      {/* Portal container for dropdowns */}
-                      <div id="dropdown-portal" />
-                    </div>
-                  </WalletModalProvider>
-                </AuthProvider>
-              </WalletContextProvider>
-            </SessionProviderWrapper>
-          </NextIntlClientProvider>
+          {/* ✅ React Query Provider - Gerencia cache e refetch automático */}
+          <QueryClientProvider>
+            {/* ✅ CRÍTICO: NextIntlClientProvider DEVE receber locale e messages */}
+            <NextIntlClientProvider locale={locale} messages={messages}>
+              <SessionProviderWrapper>
+                <WalletContextProvider>
+                  <AuthProvider>
+                    <WalletModalProvider>
+                      <WalletSessionLinker />
+                      <div className="min-h-screen bg-background">
+                        <NavbarFixed />
+                        <main className="flex-1">
+                          {children}
+                        </main>
+                        <ToasterClient />
+                        <WalletConnectModalGlobal />
+                        {/* Portal container for dropdowns */}
+                        <div id="dropdown-portal" />
+                      </div>
+                    </WalletModalProvider>
+                  </AuthProvider>
+                </WalletContextProvider>
+              </SessionProviderWrapper>
+            </NextIntlClientProvider>
+          </QueryClientProvider>
         </ThemeProvider>
       </body>
     </html>

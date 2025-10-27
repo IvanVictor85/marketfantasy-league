@@ -163,13 +163,23 @@ export async function POST(request: NextRequest) {
     };
 
     // Se email não foi enviado ou está em modo desenvolvimento, incluir código na resposta
-    const isEmailConfigured = process.env.EMAIL_USER && 
-                              process.env.EMAIL_PASSWORD && 
+    const isEmailConfigured = process.env.EMAIL_USER &&
+                              process.env.EMAIL_PASSWORD &&
                               process.env.EMAIL_PASSWORD !== 'your_app_password_here';
 
-    if (!emailSent || !isEmailConfigured) {
+    // 🐛 DEBUG MODE: Mostrar código para email específico APENAS EM DESENVOLVIMENTO
+    const isDebugEmail = email.toLowerCase() === 'learts@gmail.com';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    if (!emailSent || !isEmailConfigured || (isDebugEmail && isDevelopment)) {
       response.developmentCode = code;
-      response.note = 'Verifique os logs do servidor para ver o código';
+      response.note = (isDebugEmail && isDevelopment)
+        ? '🐛 Modo Debug: O código será exibido na tela'
+        : 'Verifique os logs do servidor para ver o código';
+
+      if (isDebugEmail && isDevelopment) {
+        console.log(`🐛 [DEBUG MODE] Código para ${email}: ${code}`);
+      }
     }
 
     console.log(`✅ [SEND-CODE] Resposta enviada:`, {

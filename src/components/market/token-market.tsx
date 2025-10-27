@@ -306,7 +306,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
             <Button
               variant="outline"
               size="sm"
-              onClick={refetch}
+              onClick={() => refetch()}
               className="flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3" />

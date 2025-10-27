@@ -14,6 +14,7 @@ import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } f
 import { LocalizedLink } from '@/components/ui/localized-link';
 import { useAuth } from '@/contexts/auth-context';
 import { useLocaleNavigation } from '@/hooks/useLocaleNavigation';
+import { useRoundTimer } from '@/hooks/useRoundTimer';
 
 interface MainLeagueData {
   id: string;
@@ -40,6 +41,16 @@ interface EntryStatus {
     amountPaid: number;
     createdAt: string;
   };
+}
+
+// Componente inline para exibir o timer da rodada
+function RoundTimerInline() {
+  const { formatTime, loading, isExpired } = useRoundTimer({ leagueId: 'main-league' });
+
+  if (loading) return <span className="text-gray-400">Carregando...</span>;
+  if (isExpired) return <span className="text-red-600">🔴 Em andamento</span>;
+  
+  return <span className="text-green-600">🟢 Inicia em {formatTime()}</span>;
 }
 
 export function MainLeagueCard() {
@@ -605,10 +616,10 @@ export function MainLeagueCard() {
           
           <div className="flex items-center space-x-2">
             <Clock className="h-4 w-4 text-primary" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Tempo Restante:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Próxima Rodada:</span>
           </div>
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-            {leagueData.round.isActive ? formatTimeRemaining(leagueData.round.timeRemaining) : 'Finalizada'}
+            <RoundTimerInline />
           </div>
         </div>
 

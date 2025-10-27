@@ -39,6 +39,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [debugCode, setDebugCode] = useState<string | null>(null);
   
   // Form states
   const [email, setEmail] = useState('');
@@ -116,12 +117,13 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+    setDebugCode(null);
+
     if (!email) {
       setError('Por favor, digite seu email');
       return;
     }
-    
+
     if (!email.includes('@') || !email.includes('.')) {
       setError('Por favor, insira um email válido');
       return;
@@ -129,11 +131,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
     try {
       setIsLoading(true);
-      await sendVerificationCode(email);
+      const response = await sendVerificationCode(email);
       setVerificationEmail(email);
       setShowVerifyModal(true);
-      setSuccess('Código enviado para seu email!');
-      toast.success('Código enviado para seu email!');
+
+      // 🐛 DEBUG MODE: Se receber código de debug, exibir na tela
+      if (response.developmentCode) {
+        setDebugCode(response.developmentCode);
+        setSuccess(`✅ Código enviado! ${response.note || ''}`);
+        toast.success('Código enviado! Confira na tela abaixo 👇');
+      } else {
+        setSuccess('Código enviado para seu email!');
+        toast.success('Código enviado para seu email!');
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Erro ao enviar código. Tente novamente.');
       toast.error('Erro ao enviar código de verificação');
@@ -552,6 +562,27 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <Alert className="border-green-200 bg-green-50 text-green-800">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* 🐛 DEBUG MODE: Exibir código quando disponível */}
+          {debugCode && (
+            <Alert className="border-orange-400 bg-orange-50 text-orange-900">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="font-bold">🐛 Modo Debug Ativado</AlertTitle>
+              <AlertDescription>
+                <div className="mt-2 space-y-2">
+                  <p className="text-sm">Seu código de verificação:</p>
+                  <div className="bg-white p-4 rounded-md border-2 border-orange-300">
+                    <p className="text-3xl font-bold text-center tracking-widest text-orange-600">
+                      {debugCode}
+                    </p>
+                  </div>
+                  <p className="text-xs text-orange-700">
+                    Este código também foi enviado para seu email. Copie e cole no modal de verificação.
+                  </p>
+                </div>
+              </AlertDescription>
             </Alert>
           )}
         </div>

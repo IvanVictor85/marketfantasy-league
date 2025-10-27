@@ -57,19 +57,13 @@ export function TeamsContent() {
   const { user, isAuthenticated } = useAuth();
   const { canExecuteAction } = useGuardedActionHook();
   const { openModal: openWalletModal } = useWalletModal();
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
   
   console.log('DEBUG TeamsContent: Estado inicial', {
     connected,
     publicKey: publicKey?.toString(),
     user,
     userExists: !!user,
-    userName: user?.name,
-    mounted
+    userName: user?.name
   });
   
   // Inicializar selectedLeagueId com o valor da URL ou 'main' como fallback
@@ -104,10 +98,26 @@ export function TeamsContent() {
   const [existingTeam, setExistingTeam] = useState<any>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [editingAllowed, setEditingAllowed] = useState(false);
 
   // 🛡️ SAFEGUARD: Prevent duplicate calls
   const lastCheckRef = useRef<string | null>(null);
   const checkInProgressRef = useRef<boolean>(false);
+  
+  // ✅ Verificação de horário de edição (client-side only para evitar hydration mismatch)
+  useEffect(() => {
+    // Esta verificação agora roda com segurança no cliente após a hidratação
+    const allowed = !isRodadaEmAndamento();
+    setEditingAllowed(allowed);
+
+    // Mover o log de depuração que estava em isEditingAllowed() para aqui
+    console.log('DEBUG useEditWindow: Verificando horário de edição', {
+      rodadaEmAndamento: !allowed,
+      editingAllowed: allowed,
+      horarioBloqueado: '21:00-09:00 BRT',
+      horarioPermitido: '09:00-20:59 BRT'
+    });
+  }, []);
   
   // Obter o nome do time a partir do nome do usuário
   const teamName = user?.name || 'Meu Time';
@@ -420,28 +430,7 @@ export function TeamsContent() {
     }
   };
 
-  // Verificar se a edição está permitida (FORA da janela 03:00-15:00 BRT)
-  const isEditingAllowed = (): boolean => {
-    // Se estivermos carregando os dados da competição, não permita a edição
-    if (isCompetitionLoading) {
-      console.log('🕐 Verificando horário de edição: Carregando dados da competição');
-      return false;
-    }
-
-    // 🔒 LÓGICA CORRETA: Retorna TRUE se a rodada NÃO estiver em andamento
-    // isRodadaEmAndamento() retorna TRUE entre 21:00-09:00 (bloqueado)
-    // Então invertemos (!): edição permitida FORA dessa janela (09:00-20:59)
-    const editingAllowed = !isRodadaEmAndamento();
-
-    console.log('🕐 Verificando horário de edição:', {
-      rodadaEmAndamento: isRodadaEmAndamento(),
-      editingAllowed,
-      horarioBloqueado: '21:00-09:00 BRT',
-      horarioPermitido: '09:00-20:59 BRT'
-    });
-
-    return editingAllowed;
-  };
+  // ✅ REMOVIDO: Função isEditingAllowed() movida para useEffect acima para evitar hydration mismatch
 
   // Função para salvar escalação
   const handleSaveTeam = async () => {
@@ -463,7 +452,7 @@ export function TeamsContent() {
     }
 
     // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição dentro da janela (21:00-09:00 BRT)
-    if (!isEditingAllowed()) {
+    if (!editingAllowed) {
       console.log('🚫 handleSaveTeam: Rodada em Andamento - edição bloqueada entre 21:00-09:00 BRT');
       setPaymentError('Rodada em Andamento. A edição está bloqueada entre 21:00 e 09:00 (Horário de Brasília).');
       return;
@@ -611,19 +600,6 @@ export function TeamsContent() {
   // Obter tokens já utilizados
   const usedTokens = players.map(p => p.token);
 
-  // Renderização durante hidratação
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700">Carregando escalação...</h2>
-          <p className="text-gray-500">Preparando seu time</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
@@ -683,13 +659,13 @@ export function TeamsContent() {
             <Badge
               variant="default"
               className={`flex items-center gap-1 ${
-                isEditingAllowed()
+                editingAllowed
                   ? 'bg-green-600 text-white'
                   : 'bg-red-600 text-white'
               }`}
             >
               <Clock className="w-3 h-3" />
-              {isEditingAllowed() ? t('roundOpen') : t('roundInProgress')}
+              {editingAllowed ? t('roundOpen') : t('roundInProgress')}
             </Badge>
           </div>
         </div>
@@ -836,8 +812,11 @@ export function TeamsContent() {
                       {t('teamSetup')}
                     </div>
 
+                    {/* ✅ CONTADOR UNIFICADO DA RODADA */}
+                    <CountdownTimer leagueId={selectedLeagueId === 'main' ? 'main-league' : selectedLeagueId} className="text-xs" />
+
                     {/* Indicador de Status da Rodada (consistente com Badge do topo) */}
-                    {isEditingAllowed() ? (
+                    {editingAllowed ? (
                       <span className="text-green-600 font-medium flex items-center gap-1 text-xs md:text-sm">
                         <Clock className="w-3 h-3" />
                         {t('roundOpen')}
@@ -864,10 +843,10 @@ export function TeamsContent() {
                     <Button
                       size="sm"
                       onClick={handleSaveTeam}
-                      disabled={!connected || isSavingTeam || players.length !== 10 || !isEditingAllowed()}
+                      disabled={!connected || isSavingTeam || players.length !== 10 || !editingAllowed}
                       className="flex items-center gap-1"
                     >
-                      {!isEditingAllowed() ? (
+                      {!editingAllowed ? (
                         <>
                           <Clock className="w-4 h-4" />
                           {t('editingBlocked')}

@@ -48,6 +48,7 @@ import { depositSol, withdrawSol, getUserDepositedBalance, hasDepositedBalance, 
 import { useTransactionState } from '@/components/providers/wallet-provider';
 import { toast } from 'sonner';
 import { useTeamData } from '@/hooks/useTeamData';
+import { useRoundTimer } from '@/hooks/useRoundTimer';
 
 // Importando os novos tipos
 import { 
@@ -970,10 +971,7 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
         </div>
       </div>
 
-      <div className="bg-[#2A9D8F]/10 p-3 rounded-md flex items-center mb-2">
-        <Clock className="h-5 w-5 mr-2 text-[#2A9D8F]" />
-        <span className="font-medium">{t('nextRound')} <span className="font-bold">2d 15h 30m</span></span>
-      </div>
+      <RoundTimerDisplay />
 
       {/* Card de Gráfico de Desempenho */}
       <Card>
@@ -1085,6 +1083,39 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
     </div>
   );
 };
+
+// Componente para exibir o timer da rodada
+function RoundTimerDisplay() {
+  const t = useTranslations('DashboardPage');
+  const { formatTime, loading, isExpired } = useRoundTimer({ leagueId: 'main-league' });
+
+  if (loading) {
+    return (
+      <div className="bg-[#2A9D8F]/10 p-3 rounded-md flex items-center mb-2">
+        <Clock className="h-5 w-5 mr-2 text-[#2A9D8F] animate-pulse" />
+        <span className="font-medium">Carregando...</span>
+      </div>
+    );
+  }
+
+  if (isExpired) {
+    return (
+      <div className="bg-red-500/10 p-3 rounded-md flex items-center mb-2">
+        <Clock className="h-5 w-5 mr-2 text-red-600" />
+        <span className="font-medium text-red-700">🔴 Rodada em andamento (21:00-08:59)</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-green-500/10 p-3 rounded-md flex items-center mb-2">
+      <Clock className="h-5 w-5 mr-2 text-green-600" />
+      <span className="font-medium text-green-700">
+        🟢 Próxima rodada inicia em: <span className="font-bold">{formatTime()}</span>
+      </span>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const t = useTranslations('DashboardPage');
