@@ -48,6 +48,10 @@ export default function RankingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Verificar se o usuário é admin
+  const adminEmails = ['learts@gmail.com', 'pretimaoairdrops@gmail.com'];
+  const isAdmin = user && user.email && adminEmails.includes(user.email);
+
   // Buscar todas as ligas
   useEffect(() => {
     const fetchLeagues = async () => {
@@ -277,40 +281,42 @@ export default function RankingPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-blue-500" />
-                {t('actionsTitle')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                onClick={handleSnapshot}
-                className="w-full"
-                variant="outline"
-              >
-                <Trophy className="h-4 w-4 mr-2" />
-                {t('execSnapshotButton')}
-              </Button>
-
-              <Button
-                onClick={handleReset}
-                className="w-full"
-                variant="outline"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                {t('resetRoundButton')}
-              </Button>
-
-              <LocalizedLink href="/teams" className="block">
-                <Button variant="outline" className="w-full">
-                  <Award className="h-4 w-4 mr-2" />
-                  {t('manageTeamButton')}
+          {isAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-blue-500" />
+                  {t('actionsTitle')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  onClick={handleSnapshot}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Trophy className="h-4 w-4 mr-2" />
+                  {t('execSnapshotButton')}
                 </Button>
-              </LocalizedLink>
-            </CardContent>
-          </Card>
+
+                <Button
+                  onClick={handleReset}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  {t('resetRoundButton')}
+                </Button>
+
+                <LocalizedLink href="/teams" className="block">
+                  <Button variant="outline" className="w-full">
+                    <Award className="h-4 w-4 mr-2" />
+                    {t('manageTeamButton')}
+                  </Button>
+                </LocalizedLink>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Conteúdo principal - Ranking */}

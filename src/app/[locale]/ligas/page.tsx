@@ -7,6 +7,7 @@ import { MainLeagueCard } from '@/components/MainLeagueCard';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslations } from 'next-intl';
+import { Badge } from '@/components/ui/badge';
 
 // Mock data para as ligas (removendo a Liga Principal do mock)
 const leaguesData = [
@@ -213,24 +214,64 @@ export default function LigasPage() {
                 {t('otherLeagues')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {principalLeagues.map(league => (
-                  <div 
-                    key={league.id} 
-                    id={`league-${league.id}`}
-                    className={highlightLeagueId === league.id ? 'ring-4 ring-primary ring-opacity-50 rounded-xl animate-pulse' : ''}
-                  >
-                    <LigaCard 
-                      id={league.id}
-                      name={league.name}
-                      type={league.type}
-                      logoUrl={league.logoUrl}
-                      entryFee={league.entryFee}
-                      prizePool={league.prizePool}
-                      participants={league.participants}
-                      maxParticipants={league.maxParticipants}
-                    />
-                  </div>
-                ))}
+                {principalLeagues.map(league => {
+                  // Liga de Ações Tokenizadas desabilitada com temporizador
+                  if (league.id === '2') {
+                    return (
+                      <div
+                        key={league.id}
+                        id={`league-${league.id}`}
+                        className="relative opacity-60 cursor-not-allowed"
+                      >
+                        <div className="absolute top-4 right-4 z-10">
+                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                            Em Breve
+                          </Badge>
+                        </div>
+                        <div className="pointer-events-none">
+                          <LigaCard
+                            id={league.id}
+                            name={league.name}
+                            type={league.type}
+                            logoUrl={league.logoUrl}
+                            entryFee={league.entryFee}
+                            prizePool={league.prizePool}
+                            participants={league.participants}
+                            maxParticipants={league.maxParticipants}
+                          />
+                        </div>
+                        <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm p-4 rounded-lg border-2 border-yellow-300">
+                          <p className="text-sm text-muted-foreground mb-2 text-center font-medium">
+                            A escalação abre em:
+                          </p>
+                          <p className="text-lg font-bold text-center text-yellow-800">
+                            31/10/2025 às 21:00
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Outras ligas principais renderizadas normalmente
+                  return (
+                    <div
+                      key={league.id}
+                      id={`league-${league.id}`}
+                      className={highlightLeagueId === league.id ? 'ring-4 ring-primary ring-opacity-50 rounded-xl animate-pulse' : ''}
+                    >
+                      <LigaCard
+                        id={league.id}
+                        name={league.name}
+                        type={league.type}
+                        logoUrl={league.logoUrl}
+                        entryFee={league.entryFee}
+                        prizePool={league.prizePool}
+                        participants={league.participants}
+                        maxParticipants={league.maxParticipants}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

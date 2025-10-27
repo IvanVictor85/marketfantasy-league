@@ -6,7 +6,9 @@
       "Bash(npm run build:check:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebFetch(domain:api-docs.defillama.com)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

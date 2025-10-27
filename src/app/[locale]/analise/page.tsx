@@ -2,25 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import {
   TrendingUp,
   TrendingDown,
   Users,
   Signal,
-  Send,
-  Bot,
   Sparkles,
   Loader2
 } from 'lucide-react'
 import { getMarketAnalysisData, formatPercentageChange, type MarketToken } from '@/lib/market-analysis'
 import { formatTokenPrice } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import { DefiLlamaService, type DeFiProtocol, type Chain } from '@/lib/defillama-service'
+import { Layers, Flame, AlertTriangle } from 'lucide-react'
 
-// Dados mock para social e trend (mantidos por enquanto)
-// Os dados de gainers e losers agora vêm da API real
-
+// Dados mock para social e trend
 const socialBuzz = [
   {
     name: 'Dogecoin',
@@ -67,19 +63,6 @@ const trendAnalysis = [
     trend: '🎯 Acumulação',
     confidence: '68%'
   }
-]
-
-const chatMessages = [
-  {
-    type: 'ai',
-    content: '👋 Olá! Sou o Oráculo, sua IA especialista em análise de mercado cripto. Posso ajudar você a entender tendências, analisar tokens específicos e dar insights para montar o time perfeito. Como posso ajudar hoje?'
-  }
-]
-
-const suggestedPrompts = [
-  'Qual o melhor momento para investir em SOL?',
-  'Analise o sentimento do mercado para BTC',
-  'Quais tokens têm maior potencial esta semana?'
 ]
 
 interface InsightCardProps {
@@ -219,17 +202,16 @@ export default function AnalisePage() {
   console.log('🎯 Componente AnalisePage renderizado');
   const t = useTranslations('AiAnalysisPage');
 
-  const [chatInput, setChatInput] = useState('')
-  const [messages, setMessages] = useState([
-    {
-      type: 'ai',
-      content: t('oracleGreeting')
-    }
-  ])
   const [topGainers, setTopGainers] = useState<MarketToken[]>([])
   const [topLosers, setTopLosers] = useState<MarketToken[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Estados para dados DeFi
+  const [trendingProtocols, setTrendingProtocols] = useState<DeFiProtocol[]>([])
+  const [decliningProtocols, setDecliningProtocols] = useState<DeFiProtocol[]>([])
+  const [topChains, setTopChains] = useState<Chain[]>([])
+  const [isLoadingDefi, setIsLoadingDefi] = useState(true)
 
   // Carregar dados reais da API
   useEffect(() => {
@@ -262,34 +244,29 @@ export default function AnalisePage() {
     loadMarketData()
   }, [])
 
-  const handleSendMessage = () => {
-    if (!chatInput.trim()) return
-
-    // Adiciona mensagem do usuário
-    const userMessage = { type: 'user', content: chatInput }
-    setMessages(prev => [...prev, userMessage])
-
-    // Simula resposta da IA (em uma implementação real, seria uma chamada para API)
-    setTimeout(() => {
-      const aiResponse = {
-        type: 'ai',
-        content: `Analisando "${chatInput}"... Com base nos dados atuais do mercado, posso fornecer insights detalhados sobre essa questão. Esta é uma resposta simulada da IA.`
+  // Carregar dados DeFi
+  useEffect(() => {
+    const loadDefiData = async () => {
+      try {
+        setIsLoadingDefi(true)
+        const [trending, declining, chains] = await Promise.all([
+          DefiLlamaService.getTrendingProtocols(5),
+          DefiLlamaService.getDecliningProtocols(5),
+          DefiLlamaService.getTopChains(5)
+        ])
+        setTrendingProtocols(trending)
+        setDecliningProtocols(declining)
+        setTopChains(chains)
+      } catch (err) {
+        console.error('Erro ao carregar dados DeFi:', err)
+      } finally {
+        setIsLoadingDefi(false)
       }
-      setMessages(prev => [...prev, aiResponse])
-    }, 1000)
+    }
 
-    setChatInput('')
-  }
+    loadDefiData()
+  }, [])
 
-  const handleSuggestedPrompt = (prompt: string) => {
-    setChatInput(prompt)
-  }
-
-  const suggestedPrompts = [
-    t('suggestion1'),
-    t('suggestion2'),
-    t('suggestion3')
-  ]
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -362,85 +339,147 @@ export default function AnalisePage() {
           )}
         </div>
 
-        {/* Seção 2: "Fale com o Analista IA" */}
-        <div className="mt-16">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <Bot className="w-8 h-8 text-[#2A9D8F]" />
-              <h2 className="text-3xl font-bold text-slate-900">
-                {t('oracleTitle')}
-              </h2>
-            </div>
-            <p className="text-lg text-slate-600">
-              {t('oracleSubtitle')}
-            </p>
-          </div>
+        {/* Nova Seção: DeFi Insights */}
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold text-slate-900 mb-8 text-center">
+            🏦 Insights DeFi
+          </h2>
 
-          <div className="max-w-4xl mx-auto">
-            {/* Interface de Chat */}
-            <div className="bg-white rounded-xl shadow-md border-slate-200 p-6 mb-6">
-              <div className="bg-slate-100 rounded-lg p-4 h-96 overflow-y-auto mb-4 space-y-4">
-                {messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] p-3 rounded-lg ${
-                        message.type === 'user'
-                          ? 'bg-[#2A9D8F] text-white'
-                          : 'bg-white border border-slate-200 text-slate-900'
-                      }`}
-                    >
-                      {message.type === 'ai' && (
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Bot className="w-4 h-4 text-[#2A9D8F]" />
-                          <span className="text-sm font-medium text-[#2A9D8F]">{t('oracleRole')}</span>
+          {isLoadingDefi ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[#2A9D8F]" />
+              <span className="ml-2 text-slate-600">Carregando dados DeFi...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Protocolos em Alta */}
+              <Card className="bg-white rounded-xl shadow-md border-slate-200 hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-slate-900">
+                    <Flame className="w-6 h-6 text-orange-500" />
+                    <span className="text-lg font-bold">🚀 Protocolos Bombando</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {trendingProtocols.map((protocol, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+                          <img
+                            src={protocol.logo}
+                            alt={`${protocol.name} logo`}
+                            className="w-6 h-6 object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.className = "w-8 h-8 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold";
+                                parent.textContent = protocol.name.slice(0, 2).toUpperCase();
+                              }
+                            }}
+                          />
                         </div>
-                      )}
-                      <p className="text-sm leading-relaxed">{message.content}</p>
+                        <div>
+                          <p className="font-medium text-slate-900">{protocol.name}</p>
+                          <p className="text-xs text-slate-500">{protocol.category}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">
+                          {DefiLlamaService.formatPercentage(protocol.change_1d)}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {DefiLlamaService.formatUSD(protocol.tvl)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </CardContent>
+              </Card>
 
-              {/* Input de Chat */}
-              <div className="flex space-x-3">
-                <Input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={t('chatPlaceholder')}
-                  className="flex-1"
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  className="bg-[#2A9D8F] hover:bg-[#238A7A] text-white px-6"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  {t('chatButton')}
-                </Button>
-              </div>
-            </div>
+              {/* Ecossistemas Aquecidos */}
+              <Card className="bg-white rounded-xl shadow-md border-slate-200 hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-slate-900">
+                    <Layers className="w-6 h-6 text-blue-500" />
+                    <span className="text-lg font-bold">🔥 Ecossistemas Top</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {topChains.map((chain, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold">
+                          {chain.tokenSymbol?.slice(0, 2) || chain.name.slice(0, 2)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">{chain.name}</p>
+                          <p className="text-xs text-slate-500">{chain.tokenSymbol}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-blue-600">
+                          #{index + 1}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {DefiLlamaService.formatUSD(chain.tvl)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
 
-            {/* Sugestões de Prompt */}
-            <div className="text-center">
-              <p className="text-sm text-slate-600 mb-4">💡 {t('suggestionsTitle')}</p>
-              <div className="flex flex-wrap justify-center gap-3">
-                {suggestedPrompts.map((prompt, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    onClick={() => handleSuggestedPrompt(prompt)}
-                    className="text-sm border-slate-300 hover:border-[#2A9D8F] hover:text-[#2A9D8F] transition-colors"
-                  >
-                    {prompt}
-                  </Button>
-                ))}
-              </div>
+              {/* Protocolos em Queda */}
+              <Card className="bg-white rounded-xl shadow-md border-slate-200 hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-slate-900">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                    <span className="text-lg font-bold">⚠️ Alertas TVL</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {decliningProtocols.map((protocol, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+                          <img
+                            src={protocol.logo}
+                            alt={`${protocol.name} logo`}
+                            className="w-6 h-6 object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.className = "w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center text-white text-xs font-bold";
+                                parent.textContent = protocol.name.slice(0, 2).toUpperCase();
+                              }
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">{protocol.name}</p>
+                          <p className="text-xs text-slate-500">{protocol.category}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-red-600">
+                          {DefiLlamaService.formatPercentage(protocol.change_1d)}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {DefiLlamaService.formatUSD(protocol.tvl)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
-          </div>
+          )}
         </div>
+
       </div>
     </div>
   )

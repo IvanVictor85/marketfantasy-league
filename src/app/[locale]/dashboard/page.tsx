@@ -633,17 +633,6 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
               {publicKey ? `${formatSolAmount(depositedBalance)} SOL` : '—'}
             </p>
           </div>
-          {treasuryBalance !== null && (
-            <div className="text-sm">
-              <p className="text-muted-foreground">Treasury da Plataforma</p>
-              <p className="font-semibold text-green-600">
-                {`${formatSolAmount(treasuryBalance)} SOL`}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {getPlatformTreasuryAddress()}
-              </p>
-            </div>
-          )}
           <div className="space-y-2">
             {!publicKey ? (
               <Button
@@ -902,12 +891,6 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
               <Link href="/ligas" prefetch={false}>
                 <Trophy className="h-4 w-4 mr-2 text-[#F4A261]" />
                 {t('myLeagues')}
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/market" prefetch={false}>
-                <ShoppingCart className="h-4 w-4 mr-2 text-[#2A9D8F]" />
-                {t('tokenMarket')}
               </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start" asChild>

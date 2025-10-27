@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { LocalizedLink } from '@/components/ui/localized-link';
-import { Menu, Trophy, Target, Shirt, Brain } from 'lucide-react';
+import { Menu, Trophy, Target, Shirt, Brain, Award } from 'lucide-react';
 import { useState } from 'react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { LanguageSelector } from '@/components/ui/language-selector';
@@ -21,6 +21,7 @@ export function NavbarFixed() {
   const navigation = [
     { name: t('leagues'), href: '/ligas', icon: Trophy },
     { name: t('myTeam'), href: '/teams', icon: Shirt },
+    { name: t('ranking'), href: '/ranking', icon: Award },
     { name: t('dashboard'), href: '/dashboard', icon: Target },
     { name: t('analysis'), href: '/analise', icon: Brain },
   ];
@@ -45,16 +46,16 @@ export function NavbarFixed() {
           </LocalizedLink>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-3">
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname?.includes(item.href);
-              
+
               return (
                 <LocalizedLink
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center space-x-1.5 px-2 py-2 rounded-lg transition-colors ${
                     isActive
                       ? 'bg-primary-foreground/20 text-primary-foreground'
                       : 'text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10'
