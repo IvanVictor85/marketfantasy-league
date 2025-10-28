@@ -39,17 +39,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Only run on client side
     if (!isClient) return;
-    
+
     // Check for existing session on mount
-    const checkExistingSession = () => {
+    const checkExistingSession = async () => {
       const savedUser = localStorage.getItem('mfl_user');
       console.log('DEBUG AuthProvider: Checking saved user:', savedUser);
-      
+
       if (savedUser) {
         try {
           const userData = JSON.parse(savedUser);
           console.log('DEBUG AuthProvider: Parsed user data:', userData);
           setUser(userData);
+
+          // 🔄 Buscar dados atualizados do perfil do banco
+          console.log('🔄 [AUTH] Sincronizando perfil do banco de dados...');
+          try {
+            const response = await fetch('/api/user/profile', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              }
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              if (result.success && result.data) {
+                console.log('✅ [AUTH] Perfil atualizado do banco:', result.data);
+                const updatedUser = { ...userData, ...result.data };
+                setUser(updatedUser);
+                localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
+              }
+            } else {
+              console.log('⚠️ [AUTH] Não foi possível buscar perfil atualizado');
+            }
+          } catch (error) {
+            console.error('❌ [AUTH] Erro ao sincronizar perfil:', error);
+          }
         } catch (error) {
           console.error('Error parsing saved user data:', error);
           localStorage.removeItem('mfl_user');
