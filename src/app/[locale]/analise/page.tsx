@@ -312,20 +312,30 @@ export default function AnalisePage() {
           console.log('✅ [ANALISE] Time encontrado:', data.team.tokens);
 
           // Converter os tokens para o formato Player com dados reais
-          const players: Player[] = data.team.tokens.map((tokenData: any, index: number) => ({
-            id: `player-${index}`,
-            position: index + 1,
-            name: tokenData.name || tokenData.symbol || tokenData,
-            token: tokenData.symbol || tokenData,
-            image: tokenData.image,
-            price: tokenData.current_price || 0,
-            points: 0,
-            rarity: 'common' as const,
-            change_24h: tokenData.price_change_percentage_24h || 0,
-            change_7d: tokenData.price_change_percentage_7d_in_currency || 0
-          }));
+          const players: Player[] = data.team.tokens.map((tokenData: any, index: number) => {
+            console.log(`🔍 [ANALISE] Token ${index}:`, {
+              name: tokenData.name,
+              symbol: tokenData.symbol,
+              image: tokenData.image,
+              hasImage: !!tokenData.image
+            });
+
+            return {
+              id: `player-${index}`,
+              position: index + 1,
+              name: tokenData.name || tokenData.symbol || tokenData,
+              token: tokenData.symbol || tokenData,
+              image: tokenData.image,
+              price: tokenData.current_price || 0,
+              points: 0,
+              rarity: 'common' as const,
+              change_24h: tokenData.price_change_percentage_24h || 0,
+              change_7d: tokenData.price_change_percentage_7d_in_currency || 0
+            };
+          });
 
           console.log('👥 [ANALISE] Players processados:', players.length);
+          console.log('🖼️ [ANALISE] Players com imagens:', players.filter(p => p.image).length);
           setMainTeam(players);
         } else {
           console.log('⚠️ [ANALISE] Usuário não tem time criado');
