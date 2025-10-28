@@ -364,49 +364,48 @@ export default function AnalisePage() {
     }
 
     setTeamAnalysisModalOpen(true);
-    setTeamAnalysisLoading(true);
-    setTeamAnalysis('');
+    setTeamAnalysisLoading(false);
 
-    try {
-      // Preparar dados dos tokens para análise
-      const tokens = mainTeam.map(p => ({
-        symbol: p.token,
-        name: p.name,
-        currentPrice: p.price || 0,
-        change24h: p.change_24h || 0
-      }));
+    // 🚧 Funcionalidade temporariamente desabilitada
+    setTeamAnalysis(`🚧 **Análise com IA Temporariamente em Manutenção**
 
-      const result = await GeminiAIService.analyzeTeam(tokens);
-      setTeamAnalysis(result.analysis);
-    } catch (error) {
-      console.error('Erro ao analisar time:', error);
-      setTeamAnalysis('Não foi possível gerar análise no momento. Tente novamente mais tarde.');
-    } finally {
-      setTeamAnalysisLoading(false);
-    }
+Estamos atualizando nossa integração com o Gemini AI para trazer análises ainda melhores para você!
+
+**Seu Time:**
+${mainTeam.map((p, i) => `${i + 1}. ${p.token} - ${p.change_24h !== undefined ? (p.change_24h >= 0 ? '+' : '') + p.change_24h.toFixed(2) + '% (24h)' : 'N/A'}`).join('\n')}
+
+**Em breve você poderá:**
+✅ Receber análise detalhada do seu portfólio
+✅ Identificar tokens com baixa performance
+✅ Obter sugestões de tokens alternativos
+✅ Entender tendências do mercado
+
+Agradecemos sua compreensão! 🙏`);
   };
 
   // Handler para analisar protocolo com IA
   const handleAnalyzeProtocol = async (protocol: DeFiProtocol) => {
     setSelectedProtocol(protocol)
     setAiModalOpen(true)
-    setAiLoading(true)
-    setAiAnalysis('')
+    setAiLoading(false)
 
-    try {
-      const analysis = await GeminiAIService.explainProtocolChange({
-        protocol: protocol.name,
-        tvl: protocol.tvl,
-        change24h: protocol.change_1d,
-        category: protocol.category
-      })
-      setAiAnalysis(analysis)
-    } catch (error) {
-      console.error('Erro ao gerar análise:', error)
-      setAiAnalysis('Não foi possível gerar análise no momento. Tente novamente mais tarde.')
-    } finally {
-      setAiLoading(false)
-    }
+    // 🚧 Funcionalidade temporariamente desabilitada
+    setAiAnalysis(`🚧 **Análise com IA Temporariamente em Manutenção**
+
+Estamos atualizando nossa integração com o Gemini AI para trazer análises ainda melhores!
+
+**${protocol.name}**
+TVL: ${DefiLlamaService.formatUSD(protocol.tvl)}
+Mudança 24h: ${DefiLlamaService.formatPercentage(protocol.change_1d)}
+Categoria: ${protocol.category}
+
+**Em breve você poderá:**
+✅ Entender por que protocolos estão crescendo ou caindo
+✅ Análise de movimentos de capital entre protocolos
+✅ Identificar tendências de yield farming
+✅ Insights sobre sentimento do mercado
+
+Agradecemos sua compreensão! 🙏`)
   }
 
   return (
