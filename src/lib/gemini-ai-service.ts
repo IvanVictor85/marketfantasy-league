@@ -63,15 +63,20 @@ Responda diretamente sem introduções como "A queda pode estar relacionada".
         body: JSON.stringify({ prompt, type: 'defi_protocol' })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Falha ao analisar protocolo');
+        console.error('❌ [GEMINI] Erro na API:', data);
+        const errorMsg = data.error || 'Falha ao analisar protocolo';
+        const details = data.details ? ` (${data.details})` : '';
+        throw new Error(`${errorMsg}${details}`);
       }
 
-      const data = await response.json();
       return data.analysis;
     } catch (error) {
-      console.error('Erro na análise do protocolo:', error);
-      return 'Não foi possível gerar análise no momento. Tente novamente mais tarde.';
+      console.error('❌ [GEMINI] Erro na análise do protocolo:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      return `❌ Erro ao gerar análise:\n\n${errorMessage}\n\n💡 Dica: Verifique se a GEMINI_API_KEY está configurada corretamente no arquivo .env`;
     }
   }
 
@@ -126,11 +131,14 @@ Seja direto, prático e educativo. Use linguagem acessível para iniciantes.
         body: JSON.stringify({ prompt, type: 'team_analysis' })
       });
 
-      if (!response.ok) {
-        throw new Error('Falha ao analisar time');
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ [GEMINI] Erro na API:', data);
+        const errorMsg = data.error || 'Falha ao analisar time';
+        const details = data.details ? ` (${data.details})` : '';
+        throw new Error(`${errorMsg}${details}`);
+      }
 
       // Extrair sugestões do texto (formato: "Substituir X por Y")
       const suggestions = this.extractSuggestions(data.analysis);
@@ -140,9 +148,10 @@ Seja direto, prático e educativo. Use linguagem acessível para iniciantes.
         suggestions
       };
     } catch (error) {
-      console.error('Erro na análise do time:', error);
+      console.error('❌ [GEMINI] Erro na análise do time:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       return {
-        analysis: 'Não foi possível gerar análise no momento. Tente novamente mais tarde.',
+        analysis: `❌ Erro ao gerar análise:\n\n${errorMessage}\n\n💡 Dica: Verifique se a GEMINI_API_KEY está configurada corretamente no arquivo .env`,
         suggestions: []
       };
     }

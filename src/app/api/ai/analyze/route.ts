@@ -42,12 +42,14 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('❌ [GEMINI AI] Erro:', error);
+    console.error('❌ [GEMINI AI] Erro completo:', error);
+    console.error('❌ [GEMINI AI] Error message:', error.message);
+    console.error('❌ [GEMINI AI] Error stack:', error.stack);
 
     // Tratamento de erros específicos
-    if (error.message?.includes('API key')) {
+    if (error.message?.includes('API key') || error.message?.includes('API_KEY_INVALID')) {
       return NextResponse.json(
-        { error: 'Erro de autenticação com a API' },
+        { error: 'API Key inválida ou não configurada. Configure GEMINI_API_KEY no arquivo .env' },
         { status: 401 }
       );
     }
@@ -59,8 +61,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Retornar mensagem de erro mais detalhada
     return NextResponse.json(
-      { error: 'Erro ao processar análise. Tente novamente.' },
+      {
+        error: 'Erro ao processar análise. Tente novamente.',
+        details: error.message || 'Erro desconhecido'
+      },
       { status: 500 }
     );
   }
