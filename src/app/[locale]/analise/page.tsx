@@ -310,9 +310,13 @@ export default function AnalisePage() {
 
         if (response.ok && data.hasTeam !== false && data.team && data.team.tokens) {
           console.log('✅ [ANALISE] Time encontrado:', data.team.tokens);
+          console.log('✅ [ANALISE] Token details:', data.tokenDetails);
+
+          // Usar tokenDetails ao invés de team.tokens (que vem só com símbolos)
+          const tokenDetails = data.tokenDetails || [];
 
           // Converter os tokens para o formato Player com dados reais
-          const players: Player[] = data.team.tokens.map((tokenData: any, index: number) => {
+          const players: Player[] = tokenDetails.map((tokenData: any, index: number) => {
             console.log(`🔍 [ANALISE] Token ${index}:`, {
               name: tokenData.name,
               symbol: tokenData.symbol,
@@ -323,8 +327,8 @@ export default function AnalisePage() {
             return {
               id: `player-${index}`,
               position: index + 1,
-              name: tokenData.name || tokenData.symbol || tokenData,
-              token: tokenData.symbol || tokenData,
+              name: tokenData.name || tokenData.symbol || data.team.tokens[index],
+              token: tokenData.symbol || data.team.tokens[index],
               image: tokenData.image,
               price: tokenData.current_price || 0,
               points: 0,
