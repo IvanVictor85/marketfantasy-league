@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -500,7 +501,7 @@ export default function AnalisePage() {
                   <div className="text-center py-12">
                     <p className="text-slate-600 mb-4">Você ainda não tem um time criado</p>
                     <Button asChild>
-                      <a href="/teams">Criar Meu Time</a>
+                      <Link href="/teams">Criar Meu Time</Link>
                     </Button>
                   </div>
                 ) : mainTeam.length !== 10 ? (
@@ -512,7 +513,7 @@ export default function AnalisePage() {
                       Complete seu time para usar a análise da IA
                     </p>
                     <Button asChild>
-                      <a href="/teams">Completar Time</a>
+                      <Link href="/teams">Completar Time</Link>
                     </Button>
                   </div>
                 ) : (
