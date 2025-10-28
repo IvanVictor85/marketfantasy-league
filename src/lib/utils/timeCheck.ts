@@ -17,8 +17,8 @@ export function isRodadaEmAndamento(): boolean {
   const fusoHorario = 'America/Sao_Paulo';
   const now = new Date();
 
-  // 🎯 DATA/HORA DE INÍCIO DA PRIMEIRA RODADA: 27/10/2025 21:00 BRT
-  const RODADA_INICIO = new Date('2025-10-27T21:00:00-03:00');
+  // 🎯 DATA/HORA DE INÍCIO DA PRIMEIRA RODADA: 31/10/2025 21:00 BRT
+  const RODADA_INICIO = new Date('2025-10-31T21:00:00-03:00');
 
   // ✅ Se ainda não chegou a data/hora de início, edição está PERMITIDA
   if (now < RODADA_INICIO) {
@@ -64,8 +64,8 @@ export function getRodadaInfo(): {
   const fusoHorario = 'America/Sao_Paulo';
   const now = new Date();
 
-  // 🎯 DATA/HORA DE INÍCIO DA PRIMEIRA RODADA: 27/10/2025 21:00 BRT
-  const RODADA_INICIO = new Date('2025-10-27T21:00:00-03:00');
+  // 🎯 DATA/HORA DE INÍCIO DA PRIMEIRA RODADA: 31/10/2025 21:00 BRT
+  const RODADA_INICIO = new Date('2025-10-31T21:00:00-03:00');
 
   const formatter = new Intl.DateTimeFormat('pt-BR', {
     timeZone: fusoHorario,
@@ -87,7 +87,7 @@ export function getRodadaInfo(): {
       horaAtual,
       horaInicioLock: HORA_INICIO_LOCK,
       horaFimLock: HORA_FIM_LOCK,
-      message: `Rodada Aberta (edição permitida até 27/10 às 21:00 - Horário de Brasília)`,
+      message: `Rodada Aberta (edição permitida até 31/10 às 21:00 - Horário de Brasília)`,
     };
   }
 

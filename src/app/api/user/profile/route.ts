@@ -209,6 +209,16 @@ export async function PUT(request: NextRequest) {
       data: updateData
     });
 
+    // Se o avatar foi atualizado, atualizar também o mascote de todos os times do usuário
+    if (updateData.avatar) {
+      console.log('🎭 [PROFILE] Avatar atualizado, atualizando mascote dos times...');
+      const teamsUpdated = await prisma.team.updateMany({
+        where: { userId: userId },
+        data: { selectedMascotUrl: updateData.avatar }
+      });
+      console.log(`✅ [PROFILE] ${teamsUpdated.count} time(s) atualizado(s) com novo mascote`);
+    }
+
     console.log('✅ [PROFILE-UPDATE] Perfil atualizado com sucesso:', {
       userId,
       email: updatedUser.email,

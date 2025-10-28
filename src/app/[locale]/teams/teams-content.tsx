@@ -22,10 +22,10 @@ import { CountdownTimer } from '@/components/ui/countdown-timer';
 import { isRodadaEmAndamento } from '@/lib/utils/timeCheck';
 import { useTranslations } from 'next-intl';
 
-import { 
-  Users, 
-  Trophy, 
-  Target, 
+import {
+  Users,
+  Trophy,
+  Target,
   Settings,
   Save,
   RotateCcw,
