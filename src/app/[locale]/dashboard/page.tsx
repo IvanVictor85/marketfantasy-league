@@ -845,11 +845,11 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
           <CardDescription>{t('portfolioEvolutionDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="h-64 w-full bg-gradient-to-br from-orange-50 to-purple-50 flex flex-col items-center justify-center rounded-md border-2 border-dashed border-orange-200">
+          <div className="h-64 w-full bg-gradient-to-br from-orange-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center rounded-md border-2 border-dashed border-orange-200 dark:border-gray-700">
             <div className="text-center space-y-3">
               <div className="text-5xl">📊</div>
-              <h3 className="text-xl font-bold text-orange-700">{t('comingSoonTitle')}</h3>
-              <p className="text-sm text-muted-foreground max-w-md px-4">{t('comingSoonText')}</p>
+              <h3 className="text-xl font-bold text-orange-700 dark:text-orange-400">{t('comingSoonTitle')}</h3>
+              <p className="text-sm text-muted-foreground dark:text-gray-400 max-w-md px-4">{t('comingSoonText')}</p>
             </div>
           </div>
         </CardContent>
@@ -863,21 +863,21 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {bestToken && (
-              <div className="bg-green-100 p-4 rounded-md">
+              <div className="bg-green-100 dark:bg-green-900/30 p-4 rounded-md">
                 <div className="flex items-center mb-2">
-                  <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
-                  <h3 className="font-bold">{t('bestPerformer')}</h3>
+                  <TrendingUp className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+                  <h3 className="font-bold dark:text-white">{t('bestPerformer')}</h3>
                 </div>
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
-                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
                       {bestToken.token.substring(0, 1)}
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium">{bestToken.name}</p>
-                    <p className="text-xs text-muted-foreground">{bestToken.token}</p>
-                    <p className="text-green-600 font-bold">
+                    <p className="font-medium dark:text-white">{bestToken.name}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{bestToken.token}</p>
+                    <p className="text-green-600 dark:text-green-400 font-bold">
                       {getChange(bestToken) >= 0 ? '+' : ''}{getChange(bestToken).toFixed(1)}%
                     </p>
                   </div>
@@ -885,21 +885,21 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
               </div>
             )}
             {worstToken && (
-              <div className="bg-red-100 p-4 rounded-md">
+              <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-md">
                 <div className="flex items-center mb-2">
-                  <TrendingDown className="h-5 w-5 mr-2 text-red-600" />
-                  <h3 className="font-bold">{t('worstPerformer')}</h3>
+                  <TrendingDown className="h-5 w-5 mr-2 text-red-600 dark:text-red-400" />
+                  <h3 className="font-bold dark:text-white">{t('worstPerformer')}</h3>
                 </div>
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
-                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
                       {worstToken.token.substring(0, 1)}
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium">{worstToken.name}</p>
-                    <p className="text-xs text-muted-foreground">{worstToken.token}</p>
-                    <p className="text-red-600 font-bold">
+                    <p className="font-medium dark:text-white">{worstToken.name}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{worstToken.token}</p>
+                    <p className="text-red-600 dark:text-red-400 font-bold">
                       {getChange(worstToken) >= 0 ? '+' : ''}{getChange(worstToken).toFixed(1)}%
                     </p>
                   </div>
@@ -907,21 +907,21 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
               </div>
             )}
             {neutralToken && (
-              <div className="bg-blue-100 p-4 rounded-md">
+              <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-md">
                 <div className="flex items-center mb-2">
-                  <Target className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="font-bold">{t('mostNeutral')}</h3>
+                  <Target className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                  <h3 className="font-bold dark:text-white">{t('mostNeutral')}</h3>
                 </div>
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
-                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
                       {neutralToken.token.substring(0, 1)}
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium">{neutralToken.name}</p>
-                    <p className="text-xs text-muted-foreground">{neutralToken.token}</p>
-                    <p className="text-blue-600 font-bold">
+                    <p className="font-medium dark:text-white">{neutralToken.name}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{neutralToken.token}</p>
+                    <p className="text-blue-600 dark:text-blue-400 font-bold">
                       {getChange(neutralToken) >= 0 ? '+' : ''}{getChange(neutralToken).toFixed(1)}%
                     </p>
                   </div>

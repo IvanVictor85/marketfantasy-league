@@ -176,22 +176,22 @@ export function SoccerField({
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{players.length}/10</div>
-            <div className="text-sm text-gray-600">Jogadores</div>
+            <div className="text-2xl font-bold text-accent">{players.length}/10</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300">Jogadores</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
               ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </div>
-            <div className="text-sm text-gray-600">Valor Total</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300">Valor Total</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{averagePoints.toFixed(1)}</div>
-            <div className="text-sm text-gray-600">Pontos Médios</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{averagePoints.toFixed(1)}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300">Pontos Médios</div>
           </CardContent>
         </Card>
       </div>
@@ -257,7 +257,7 @@ export function SoccerField({
                             </>
                           ) : (
                             <>
-                              <div className="text-sm font-bold text-gray-800">{positionNum}</div>
+                              <div className="text-sm font-bold text-gray-800 dark:text-white">{positionNum}</div>
                               <div className="text-xs font-semibold text-card-foreground bg-card/80 px-1 rounded">{player.token}</div>
                             </>
                           )}
@@ -277,7 +277,7 @@ export function SoccerField({
                              title={player.name}>
                           {player.name}
                         </div>
-                        <div className="text-xs text-gray-600 flex items-center gap-2 mt-1">
+                        <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2 mt-1">
                           <span className="font-mono">{player.token}</span>
                           {/* TODO: Substituir "rarity" por algo útil como "volatilidade" ou "categoria" */}
                           {/* <Badge variant="secondary" className={getRarityColor(player.rarity)}>

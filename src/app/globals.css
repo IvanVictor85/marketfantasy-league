@@ -20,8 +20,8 @@
   --secondary-foreground: 220 39% 11%;
   --muted: 220 14% 98%; /* #f9fafb - Very light gray */
   --muted-foreground: 220 9% 46%; /* #6b7280 - Medium gray */
-  --accent: 25 95% 83%; /* #fed7aa - Light orange accent */
-  --accent-foreground: 17 88% 20%; /* #9a3412 - Dark orange */
+  --accent: 25 95% 53%; /* #fb923c - Laranja vibrante (igual dark mode) */
+  --accent-foreground: 0 0% 100%; /* Branco (igual dark mode) */
   --destructive: 0 84% 60%; /* #ef4444 - Red for errors */
   --destructive-foreground: 0 0% 100%;
   --border: 220 13% 91%; /* #e5e7eb - Light gray borders */
@@ -38,39 +38,59 @@
 }
 
 .dark {
-    --background: 0 0% 3%;
-    --foreground: 0 0% 75%;
-    --card: 0 0% 11%;
-    --card-foreground: 0 0% 70%;
-    --popover: 0 0% 11%;
-    --popover-foreground: 0 0% 70%;
-    --primary: 171 50% 6%;
-    --primary-foreground: 171 60% 65%;
-    --secondary: 0 0% 11%;
-    --secondary-foreground: 0 0% 65%;
-    --muted: 0 0% 11%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 171 60% 65%;
-    --accent-foreground: 171 50% 6%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 95%;
-    --border: 0 0% 15%;
-    --input: 0 0% 11%;
-    --ring: 171 60% 65%;
-    --radius: 0.5rem;
-    --chart-1: 180 100% 40%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --sidebar-background: 0 0% 4%;
-    --sidebar-foreground: 0 0% 70%;
-    --sidebar-primary: 171 50% 6%;
-    --sidebar-primary-foreground: 171 60% 65%;
-    --sidebar-accent: 171 60% 65%;
-    --sidebar-accent-foreground: 171 50% 6%;
-    --sidebar-border: 0 0% 8%;
-    --sidebar-ring: 171 60% 65%;
+    /* Background ultra dark com leve tonalidade azulada */
+    --background: 220 15% 6%; /* #0d0f14 - Azul escuro profundo */
+    --foreground: 0 0% 95%; /* #f2f2f2 - Texto branco suave */
+    
+    /* Cards com contraste sutil */
+    --card: 220 13% 10%; /* #16181d - Cinza azulado escuro */
+    --card-foreground: 0 0% 92%; /* #ebebeb - Texto claro */
+    
+    /* Popovers */
+    --popover: 220 13% 10%;
+    --popover-foreground: 0 0% 92%;
+    
+    /* Primary - CINZA ESCURO para navbar (mudado de verde) */
+    --primary: 0 0% 8%; /* #141414 - Cinza muito escuro (quase preto) */
+    --primary-foreground: 0 0% 100%; /* Branco */
+    
+    /* Secondary - Cinza médio */
+    --secondary: 220 10% 18%; /* #272a30 - Cinza escuro */
+    --secondary-foreground: 0 0% 85%; /* Texto claro */
+    
+    /* Muted - Áreas de menor ênfase */
+    --muted: 220 10% 14%; /* #1f2227 - Cinza muito escuro */
+    --muted-foreground: 0 0% 60%; /* #999 - Cinza médio */
+    
+    /* Accent - Laranja vibrante (CTA, botões importantes) */
+    --accent: 25 95% 53%; /* #fb923c - Laranja vivo */
+    --accent-foreground: 0 0% 100%; /* Branco */
+    
+    /* Destructive - Vermelho para erros */
+    --destructive: 0 72% 51%; /* #dc2626 - Vermelho */
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders - Linhas sutis */
+    --border: 220 10% 20%; /* #2d3139 - Cinza escuro com leve azul */
+    --input: 220 13% 12%; /* #1a1d23 - Input escuro */
+    --ring: 142 76% 36%; /* Verde (foco) */
+    
+    /* Charts - Cores vibrantes */
+    --chart-1: 142 76% 36%; /* Verde */
+    --chart-2: 217 91% 60%; /* Azul */
+    --chart-3: 280 100% 70%; /* Roxo */
+    --chart-4: 43 96% 56%; /* Amarelo */
+    --chart-5: 25 95% 53%; /* Laranja */
+    
+    /* Sidebar */
+    --sidebar-background: 220 15% 8%; /* #11131a - Quase preto azulado */
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 142 76% 36%; /* Verde */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 25 95% 53%; /* Laranja */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 10% 15%; /* #22252c */
+    --sidebar-ring: 142 76% 36%; /* Verde */
   }
 
 * {
@@ -79,6 +99,73 @@
 
 body {
   @apply bg-background text-foreground;
+}
+
+/* Garantir que light mode tenha fundo claro */
+:root body {
+  background-color: hsl(220 14% 96%);
+  color: hsl(220 39% 11%);
+}
+
+/* Dark mode mantém o fundo escuro */
+.dark body {
+  background-color: hsl(220 15% 6%);
+  color: hsl(0 0% 95%);
+}
+
+/* Faixa laranja sutil atrás da navbar - apenas light mode */
+html:not(.dark) body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px; /* Altura aproximada da navbar */
+  background: linear-gradient(to bottom, rgba(249, 115, 22, 0.08), rgba(249, 115, 22, 0));
+  z-index: 40; /* Abaixo da navbar (z-50) mas acima do conteúdo */
+  pointer-events: none;
+}
+
+/* Gradiente TRANSPARENTE no dark mode (igual Figma) */
+.dark nav {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0)) !important;
+}
+
+/* Gradiente LARANJA no light mode (99% opacidade - quase sólido) */
+html:not(.dark) nav {
+  background: linear-gradient(to bottom, rgba(249, 115, 22, 0.99), rgba(249, 115, 22, 0)) !important;
+}
+
+/* Links e Texto da navbar - Dark mode */
+.dark nav a:not(:has(button)),
+.dark nav span:not(button span),
+.dark nav .text-foreground {
+  color: white !important;
+}
+
+/* Links e Texto da navbar - Light mode (BRANCO pois fundo é laranja) */
+html:not(.dark) nav a:not(:has(button)),
+html:not(.dark) nav span:not(button span),
+html:not(.dark) nav .text-foreground {
+  color: white !important;
+}
+
+/* Botões laranjas em AMBOS os modos */
+nav button.bg-accent,
+nav button.bg-accent *,
+nav a > button.bg-accent,
+nav a > button.bg-accent * {
+  background-color: #fb923c !important;
+  color: white !important;
+}
+
+/* SVG icons na navbar */
+.dark nav svg {
+  color: white !important;
+}
+
+html:not(.dark) nav svg {
+  color: white !important;
 }
 
 /* Hide MetaMask from Solana Wallet Adapter Modal */

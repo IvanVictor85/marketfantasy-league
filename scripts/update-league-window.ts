@@ -30,9 +30,9 @@ async function updateLeagueWindow() {
       competitionsCount: mainLeague.competitions.length
     });
 
-    // Definir nova janela: amanhã (25/10/2025) das 00:00 às 23:59
-    const tomorrow = new Date('2025-10-25T00:00:00-03:00'); // Início: 25/10/2025 00:00 (Brasília)
-    const tomorrowEnd = new Date('2025-10-25T23:59:00-03:00'); // Fim: 25/10/2025 23:59 (Brasília)
+    // Definir nova janela: domingo (02/11/2025) às 21:00 até sexta (07/11/2025) às 21:00
+    const tomorrow = new Date('2025-11-02T21:00:00-03:00'); // Início: 02/11/2025 21:00 (Brasília - Domingo)
+    const tomorrowEnd = new Date('2025-11-07T21:00:00-03:00'); // Fim: 07/11/2025 21:00 (Brasília - Sexta)
 
     console.log('📅 Nova janela definida:', {
       início: tomorrow.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
@@ -84,7 +84,7 @@ async function updateLeagueWindow() {
     }
 
     console.log('🎉 Janela da rodada atualizada com sucesso!');
-    console.log('📝 Agora você pode testar a edição de times durante todo o dia 25/10/2025');
+    console.log('📝 Rodada em andamento: domingo 21:00 até sexta 21:00 (horário de Brasília) - 5 dias');
 
   } catch (error) {
     console.error('❌ Erro ao atualizar janela da rodada:', error);

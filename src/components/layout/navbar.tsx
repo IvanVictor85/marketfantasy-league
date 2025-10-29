@@ -27,7 +27,7 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="bg-primary sticky top-0 z-50 shadow-md">
+    <nav className="bg-gradient-to-b from-white/80 to-white/0 dark:from-black/80 dark:to-black/0 sticky top-0 z-50 shadow-lg backdrop-blur-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -39,7 +39,7 @@ export function Navbar() {
               height={40}
               className="mr-3"
             />
-            <span className="text-lg md:text-xl font-bold text-primary-foreground truncate">
+            <span className="text-lg md:text-xl font-bold text-foreground truncate">
               <span className="hidden sm:inline">Market Fantasy League</span>
               <span className="sm:hidden">MFL</span>
             </span>
@@ -57,8 +57,8 @@ export function Navbar() {
                   prefetch={false}
                   className={`px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
-                      ? 'text-accent-foreground font-semibold'
-                      : 'text-primary-foreground hover:text-accent-foreground'
+                      ? 'text-accent font-semibold'
+                      : 'text-foreground hover:text-accent'
                   }`}
                 >
                   {item.name}
@@ -70,7 +70,7 @@ export function Navbar() {
           {/* User Authentication */}
           <div className="hidden md:flex md:items-center md:space-x-3">
             <LanguageSelector />
-            <ThemeToggle className="text-primary-foreground hover:text-accent-foreground" />
+            <ThemeToggle className="text-foreground hover:text-accent" />
             <WalletConnectButton />
             <UserButton />
           </div>
@@ -79,7 +79,7 @@ export function Navbar() {
           <div className="md:hidden">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-primary-foreground">
+                <Button variant="ghost" size="sm" className="text-foreground">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>

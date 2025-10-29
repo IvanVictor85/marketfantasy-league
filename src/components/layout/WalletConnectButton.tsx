@@ -62,7 +62,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
   if (publicKey) {
     return (
       <Button
-        className={`bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md ${className ?? ''}`}
+        className={`bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-md ${className ?? ''}`}
         onClick={() => disconnect()}
       >
         <Wallet className="w-4 h-4 mr-2" />
@@ -86,7 +86,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
   // Botão de conectar
   return (
     <Button
-      className={`bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md ${className ?? ''}`}
+      className={`bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-md ${className ?? ''}`}
       onClick={() => setVisible(true)}
     >
       <Wallet className="w-4 h-4 mr-2" />

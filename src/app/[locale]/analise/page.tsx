@@ -87,9 +87,9 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
       case 'gainers':
       case 'losers':
         return (
-          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 flex items-center justify-center">
                 <img 
                   src={item.logoUrl} 
                   alt={`${item.name} logo`}
@@ -107,24 +107,24 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
                 />
               </div>
               <div>
-                <p className="font-medium text-slate-900">{item.name}</p>
-                <p className="text-sm text-slate-500">{item.symbol || item.ticker}</p>
+                <p className="font-medium text-slate-900 dark:text-white">{item.name}</p>
+                <p className="text-sm text-slate-500 dark:text-gray-400">{item.symbol || item.ticker}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className={`font-bold ${type === 'gainers' ? 'text-[#2A9D8F]' : 'text-[#E76F51]'}`}>
+              <p className={`font-bold ${type === 'gainers' ? 'text-[#2A9D8F] dark:text-green-400' : 'text-[#E76F51] dark:text-red-400'}`}>
                 {item.value || formatPercentageChange(item.priceChange24h)}
               </p>
-              <p className="text-sm text-slate-500">{item.price || formatTokenPrice(item.currentPrice)}</p>
+              <p className="text-sm text-slate-500 dark:text-gray-400">{item.price || formatTokenPrice(item.currentPrice)}</p>
             </div>
           </div>
         )
       
       case 'social':
         return (
-          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 flex items-center justify-center">
                 <img 
                   src={item.logoUrl} 
                   alt={`${item.name} logo`}
@@ -142,22 +142,22 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
                 />
               </div>
               <div>
-                <p className="font-medium text-slate-900">{item.name}</p>
-                <p className="text-sm text-slate-500">{item.ticker}</p>
+                <p className="font-medium text-slate-900 dark:text-white">{item.name}</p>
+                <p className="text-sm text-slate-500 dark:text-gray-400">{item.ticker}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-slate-900">{item.sentiment}</p>
-              <p className="text-xs text-slate-500">{item.mentions} {t('mentions')}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{item.sentiment}</p>
+              <p className="text-xs text-slate-500 dark:text-gray-400">{item.mentions} {t('mentions')}</p>
             </div>
           </div>
         )
       
       case 'trend':
         return (
-          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 flex items-center justify-center">
                 <img 
                   src={item.logoUrl} 
                   alt={`${item.name} logo`}
@@ -175,13 +175,13 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
                 />
               </div>
               <div>
-                <p className="font-medium text-slate-900">{item.name}</p>
-                <p className="text-sm text-slate-500">{item.ticker}</p>
+                <p className="font-medium text-slate-900 dark:text-white">{item.name}</p>
+                <p className="text-sm text-slate-500 dark:text-gray-400">{item.ticker}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-slate-900">{item.trend}</p>
-              <p className="text-xs text-slate-500">{t('confidence')}: {item.confidence}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{item.trend}</p>
+              <p className="text-xs text-slate-500 dark:text-gray-400">{t('confidence')}: {item.confidence}</p>
             </div>
           </div>
         )
@@ -192,9 +192,9 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
   }
 
   return (
-    <Card className="bg-white rounded-xl shadow-md border-slate-200 hover:shadow-lg transition-shadow">
+    <Card className="bg-white dark:bg-gray-900 rounded-xl shadow-md border-slate-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center space-x-2 text-slate-900">
+        <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
           {icon}
           <span className="text-lg font-bold">{title}</span>
         </CardTitle>
@@ -409,25 +409,25 @@ Agradecemos sua compreensão! 🙏`)
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header da Página */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <Sparkles className="w-10 h-10 text-[#F4A261]" />
-            <h1 className="text-4xl md:text-5xl font-bold text-slate-900">
+            <Sparkles className="w-10 h-10 text-[#F4A261] dark:text-orange-400" />
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white">
               {t('title')}
             </h1>
-            <Sparkles className="w-10 h-10 text-[#E9C46A]" />
+            <Sparkles className="w-10 h-10 text-[#E9C46A] dark:text-yellow-400" />
           </div>
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+          <p className="text-xl text-slate-600 dark:text-gray-300 max-w-3xl mx-auto">
             {t('subtitle')}
           </p>
         </div>
 
         {/* Seção 1: Dashboard "Pulso do Mercado" */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-slate-900 mb-8 text-center">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8 text-center">
             📊 {t('marketPulse')}
           </h2>
           
@@ -482,15 +482,15 @@ Agradecemos sua compreensão! 🙏`)
         {/* Seção 2: Análise do Seu Time */}
         {isAuthenticated && (
           <div className="mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-8 text-center">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8 text-center">
               🎯 Análise do Seu Time
             </h2>
 
-            <Card className="bg-white rounded-xl shadow-md border-slate-200">
+            <Card className="bg-white dark:bg-gray-900 rounded-xl shadow-md border-slate-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex items-center justify-between dark:text-white">
                   <div className="flex items-center space-x-2">
-                    <Brain className="w-6 h-6 text-purple-600" />
+                    <Brain className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     <span>Seu Time Principal</span>
                   </div>
                   {mainTeam.length === 10 && (
@@ -507,22 +507,22 @@ Agradecemos sua compreensão! 🙏`)
               <CardContent>
                 {isLoadingTeam ? (
                   <div className="flex justify-center items-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-                    <span className="ml-2 text-slate-600">Carregando seu time...</span>
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-600 dark:text-purple-400" />
+                    <span className="ml-2 text-slate-600 dark:text-gray-300">Carregando seu time...</span>
                   </div>
                 ) : mainTeam.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-slate-600 mb-4">Você ainda não tem um time criado</p>
+                    <p className="text-slate-600 dark:text-gray-300 mb-4">Você ainda não tem um time criado</p>
                     <Button asChild>
                       <Link href="/teams">Criar Meu Time</Link>
                     </Button>
                   </div>
                 ) : mainTeam.length !== 10 ? (
                   <div className="text-center py-12">
-                    <p className="text-slate-600 mb-4">
+                    <p className="text-slate-600 dark:text-gray-300 mb-4">
                       Seu time está incompleto ({mainTeam.length}/10 tokens)
                     </p>
-                    <p className="text-xs text-slate-500 mb-4">
+                    <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
                       Complete seu time para usar a análise da IA
                     </p>
                     <Button asChild>
@@ -534,9 +534,9 @@ Agradecemos sua compreensão! 🙏`)
                     {mainTeam.map((player, index) => (
                       <div
                         key={index}
-                        className="flex flex-col items-center space-y-2 bg-slate-50 rounded-lg p-3 border border-slate-200 hover:border-purple-300 transition-colors"
+                        className="flex flex-col items-center space-y-2 bg-slate-50 dark:bg-gray-800 rounded-lg p-3 border border-slate-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-500 transition-colors"
                       >
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white border-2 border-slate-200 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white dark:bg-gray-700 border-2 border-slate-200 dark:border-gray-600 flex items-center justify-center">
                           {player.image ? (
                             <img
                               src={player.image}
@@ -559,11 +559,11 @@ Agradecemos sua compreensão! 🙏`)
                             </div>
                           )}
                         </div>
-                        <p className="text-sm font-medium text-slate-900 text-center truncate w-full">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white text-center truncate w-full">
                           {player.token}
                         </p>
                         {player.change_24h !== undefined && player.change_24h !== 0 && (
-                          <p className={`text-xs font-semibold ${player.change_24h > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <p className={`text-xs font-semibold ${player.change_24h > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                             {player.change_24h > 0 ? '+' : ''}{player.change_24h.toFixed(1)}%
                           </p>
                         )}
@@ -578,7 +578,7 @@ Agradecemos sua compreensão! 🙏`)
 
         {/* Nova Seção: DeFi Insights */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-slate-900 mb-8 text-center">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8 text-center">
             🏦 Insights DeFi
           </h2>
 
@@ -590,18 +590,18 @@ Agradecemos sua compreensão! 🙏`)
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Protocolos em Alta */}
-              <Card className="bg-white rounded-xl shadow-md border-slate-200 hover:shadow-lg transition-shadow">
+              <Card className="bg-white dark:bg-gray-900 rounded-xl shadow-md border-slate-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center space-x-2 text-slate-900">
+                  <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                     <Flame className="w-6 h-6 text-orange-500" />
                     <span className="text-lg font-bold">🚀 Protocolos Bombando</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {trendingProtocols.map((protocol, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors">
                       <div className="flex items-center space-x-3 flex-1">
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 flex items-center justify-center">
                           <img
                             src={protocol.logo}
                             alt={`${protocol.name} logo`}
@@ -618,8 +618,8 @@ Agradecemos sua compreensão! 🙏`)
                           />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-slate-900">{protocol.name}</p>
-                          <p className="text-xs text-slate-500">{protocol.category}</p>
+                          <p className="font-medium text-slate-900 dark:text-white">{protocol.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-gray-400">{protocol.category}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -627,7 +627,7 @@ Agradecemos sua compreensão! 🙏`)
                           <p className="font-bold text-green-600">
                             {DefiLlamaService.formatPercentage(protocol.change_1d)}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-slate-500 dark:text-gray-400">
                             {DefiLlamaService.formatUSD(protocol.tvl)}
                           </p>
                         </div>
@@ -646,30 +646,30 @@ Agradecemos sua compreensão! 🙏`)
               </Card>
 
               {/* Ecossistemas Aquecidos */}
-              <Card className="bg-white rounded-xl shadow-md border-slate-200 hover:shadow-lg transition-shadow">
+              <Card className="bg-white dark:bg-gray-900 rounded-xl shadow-md border-slate-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center space-x-2 text-slate-900">
+                  <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                     <Layers className="w-6 h-6 text-blue-500" />
                     <span className="text-lg font-bold">🔥 Ecossistemas Top</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {topChains.map((chain, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold">
                           {chain.tokenSymbol?.slice(0, 2) || chain.name.slice(0, 2)}
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900">{chain.name}</p>
-                          <p className="text-xs text-slate-500">{chain.tokenSymbol}</p>
+                          <p className="font-medium text-slate-900 dark:text-white">{chain.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-gray-400">{chain.tokenSymbol}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-blue-600">
                           #{index + 1}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-gray-400">
                           {DefiLlamaService.formatUSD(chain.tvl)}
                         </p>
                       </div>
@@ -679,18 +679,18 @@ Agradecemos sua compreensão! 🙏`)
               </Card>
 
               {/* Protocolos em Queda */}
-              <Card className="bg-white rounded-xl shadow-md border-slate-200 hover:shadow-lg transition-shadow">
+              <Card className="bg-white dark:bg-gray-900 rounded-xl shadow-md border-slate-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center space-x-2 text-slate-900">
+                  <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                     <AlertTriangle className="w-6 h-6 text-red-500" />
                     <span className="text-lg font-bold">⚠️ Alertas TVL</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {decliningProtocols.map((protocol, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors">
                       <div className="flex items-center space-x-3 flex-1">
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 flex items-center justify-center">
                           <img
                             src={protocol.logo}
                             alt={`${protocol.name} logo`}
@@ -707,8 +707,8 @@ Agradecemos sua compreensão! 🙏`)
                           />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium text-slate-900">{protocol.name}</p>
-                          <p className="text-xs text-slate-500">{protocol.category}</p>
+                          <p className="font-medium text-slate-900 dark:text-white">{protocol.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-gray-400">{protocol.category}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -716,7 +716,7 @@ Agradecemos sua compreensão! 🙏`)
                           <p className="font-bold text-red-600">
                             {DefiLlamaService.formatPercentage(protocol.change_1d)}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-slate-500 dark:text-gray-400">
                             {DefiLlamaService.formatUSD(protocol.tvl)}
                           </p>
                         </div>

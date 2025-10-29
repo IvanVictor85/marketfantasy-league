@@ -35,27 +35,16 @@ export function useRoundTimer({ leagueId = 'main-league', enabled = true }: UseR
   });
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !competition?.startTime) return;
 
     const calculateTimeRemaining = (): TimeRemaining => {
       const now = new Date();
       
-      // 🎯 LÓGICA: Calcular tempo até as 21:00 de AMANHÃ (início da próxima rodada)
-      // Horário de Brasília (GMT-3)
-      const brasiliaOffset = -3 * 60; // -3 horas em minutos
-      const localOffset = now.getTimezoneOffset(); // offset do navegador
-      const offsetDiff = localOffset - brasiliaOffset;
-      
-      // Ajustar para horário de Brasília
-      const nowBrasilia = new Date(now.getTime() + offsetDiff * 60 * 1000);
-      
-      // ✅ SEMPRE calcular para AMANHÃ às 21:00
-      const nextRoundStart = new Date(nowBrasilia);
-      nextRoundStart.setDate(nextRoundStart.getDate() + 1); // AMANHÃ
-      nextRoundStart.setHours(21, 0, 0, 0); // 21:00
+      // 🎯 USA A DATA DO BANCO (startTime da competição)
+      const nextRoundStart = new Date(competition.startTime);
       
       // Calcular diferença
-      const difference = nextRoundStart.getTime() - nowBrasilia.getTime();
+      const difference = nextRoundStart.getTime() - now.getTime();
 
       if (difference <= 0) {
         return { days: 0, hours: 0, minutes: 0, seconds: 0, totalMs: 0 };
@@ -79,7 +68,7 @@ export function useRoundTimer({ leagueId = 'main-league', enabled = true }: UseR
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [enabled]);
+  }, [enabled, competition?.startTime]);
 
   // Formata o tempo para exibição
   const formatTime = (includeSeconds = false): string => {

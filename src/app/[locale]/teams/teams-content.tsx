@@ -602,15 +602,15 @@ export function TeamsContent() {
   const usedTokens = players.map(p => p.token);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
               {t('pageTitle')}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               {t('pageSubtitle')}
             </p>
             {existingTeam && (
@@ -759,10 +759,10 @@ export function TeamsContent() {
           <Card className="mb-6">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                   {fixedFilter.label}
                 </Badge>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-300">
                   Esta liga permite apenas tokens da categoria {fixedFilter.label}
                 </span>
               </div>
@@ -778,8 +778,8 @@ export function TeamsContent() {
               <Card className="max-w-md mx-4">
                 <CardContent className="p-6 text-center">
                   <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Pagamento Necessário</h3>
-                  <p className="text-gray-600 mb-4">
+                  <h3 className="text-lg font-semibold mb-2 dark:text-white">Pagamento Necessário</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
                     {currentLeague?.type === 'main' 
                       ? 'Você precisa pagar a taxa de entrada da Liga Principal para criar seu time.'
                       : `Você precisa pagar a taxa de entrada da ${currentLeague?.name} para criar seu time.`
@@ -892,18 +892,18 @@ export function TeamsContent() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
                   {/* Pontuação Total (atual do time no banco) */}
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                       {existingTeam?.totalScore?.toFixed(1) || 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600">{t('totalScore')}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">{t('totalScore')}</div>
                   </div>
 
                   {/* Ranking na Liga (atual do time no banco) */}
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {existingTeam?.rank ? `#${existingTeam.rank}` : 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600">{t('leagueRank')}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">{t('leagueRank')}</div>
                   </div>
 
                   {/* Melhor Ativo (baseado em change_7d) */}
@@ -912,8 +912,8 @@ export function TeamsContent() {
                       if (players.length === 0) {
                         return (
                           <>
-                            <div className="text-2xl font-bold text-gray-400">N/A</div>
-                            <div className="text-sm text-gray-600">{t('bestAsset')}</div>
+                            <div className="text-2xl font-bold text-gray-400 dark:text-gray-500">N/A</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-300">{t('bestAsset')}</div>
                           </>
                         );
                       }
@@ -925,10 +925,10 @@ export function TeamsContent() {
                           <div className="text-lg font-bold text-green-600">
                             {best.token}
                           </div>
-                          <div className="text-xs text-green-600">
+                          <div className="text-xs text-green-600 dark:text-green-400">
                             +{(best.change_7d || 0).toFixed(1)}%
                           </div>
-                          <div className="text-sm text-gray-600">{t('bestAsset')}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300">{t('bestAsset')}</div>
                         </>
                       );
                     })()}
@@ -940,8 +940,8 @@ export function TeamsContent() {
                       if (players.length === 0) {
                         return (
                           <>
-                            <div className="text-2xl font-bold text-gray-400">N/A</div>
-                            <div className="text-sm text-gray-600">{t('worstAsset')}</div>
+                            <div className="text-2xl font-bold text-gray-400 dark:text-gray-500">N/A</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-300">{t('worstAsset')}</div>
                           </>
                         );
                       }

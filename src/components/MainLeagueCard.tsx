@@ -591,7 +591,7 @@ export function MainLeagueCard() {
         {/* League Stats */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="flex items-center space-x-2">
-            <Coins className="h-4 w-4 text-primary" />
+            <Coins className="h-4 w-4 text-accent" />
             <span className="text-sm text-gray-600 dark:text-gray-400">Entrada:</span>
           </div>
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
@@ -599,15 +599,15 @@ export function MainLeagueCard() {
           </div>
           
           <div className="flex items-center space-x-2">
-            <Trophy className="h-4 w-4 text-primary" />
+            <Trophy className="h-4 w-4 text-accent" />
             <span className="text-sm text-gray-600 dark:text-gray-400">Prêmio Total:</span>
           </div>
-          <div className="text-sm font-bold text-primary">
+          <div className="text-sm font-bold text-accent">
             {leagueData.totalPrizePool} SOL
           </div>
           
           <div className="flex items-center space-x-2">
-            <Users className="h-4 w-4 text-primary" />
+            <Users className="h-4 w-4 text-accent" />
             <span className="text-sm text-gray-600 dark:text-gray-400">Participantes:</span>
           </div>
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
@@ -615,7 +615,7 @@ export function MainLeagueCard() {
           </div>
           
           <div className="flex items-center space-x-2">
-            <Clock className="h-4 w-4 text-primary" />
+            <Clock className="h-4 w-4 text-accent" />
             <span className="text-sm text-gray-600 dark:text-gray-400">Próxima Rodada:</span>
           </div>
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100">

@@ -373,7 +373,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
         
         <div className="mt-4 px-2 md:px-0">
           <select 
-            className="text-sm border rounded p-2 w-full mx-2 md:mx-0"
+            className="text-sm border rounded p-2 w-full mx-2 md:mx-0 bg-background text-foreground dark:bg-gray-800 dark:border-gray-700"
             value={selectedPeriod}
             onChange={(e) => {
               setSelectedPeriod(e.target.value);
@@ -438,7 +438,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
           </div>
           <div className="col-span-2 text-right">
             <select 
-              className="text-sm font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
+              className="text-sm font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-accent dark:text-gray-200 transition-colors"
               value={selectedPeriod}
               onChange={(e) => {
                 setSelectedPeriod(e.target.value);
@@ -471,7 +471,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
             <span>TOKENS</span>
             <div className="flex gap-2">
               <select 
-                className="text-xs font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-primary transition-colors"
+                className="text-xs font-semibold border-none bg-transparent focus:ring-0 p-0 cursor-pointer hover:text-accent dark:text-gray-200 transition-colors"
                 value={sortBy}
                 onChange={(e) => {
                   const newSortBy = e.target.value;
@@ -514,17 +514,17 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                 <div 
                   className={`hidden md:grid grid-cols-12 gap-3 px-4 py-3 border-b transition-colors ${
                     isUsed 
-                      ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' 
+                      ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed dark:bg-red-900/20 dark:border-red-800' 
                       : isSelected 
-                        ? 'bg-primary/10 border-primary/30 cursor-pointer' 
-                        : 'hover:bg-muted/50 cursor-pointer'
+                        ? 'bg-primary/10 border-primary/30 cursor-pointer dark:bg-orange-900/20 dark:border-orange-700/50' 
+                        : 'hover:bg-muted/50 cursor-pointer dark:hover:bg-gray-800/50'
                   }`}
                   onClick={() => !isUsed && handleTokenClick(token)}
                   onDoubleClick={() => !isUsed && onAutoPosition?.(token)}
                   draggable={!isUsed}
                   onDragStart={(e) => !isUsed && handleDragStart(e, token)}
                 >
-                <div className="col-span-1 text-sm text-gray-600 text-center">
+                <div className="col-span-1 text-sm text-gray-600 dark:text-gray-400 text-center">
                   {index + 1}
                 </div>
                 
@@ -550,17 +550,17 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm truncate" title={token.name}>
+                      <div className={`font-medium text-sm truncate ${isSelected ? 'text-gray-900 dark:text-gray-100' : 'dark:text-gray-100'}`} title={token.name}>
                         {token.name}
                       </div>
-                      <div className="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded inline-block mt-0.5">
+                      <div className={`text-xs font-bold px-1.5 py-0.5 rounded inline-block mt-0.5 ${isSelected ? 'text-blue-900 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/50' : 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30'}`}>
                         {token.symbol}
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="col-span-2 text-sm font-medium text-right">
+                <div className="col-span-2 text-sm font-medium text-right dark:text-gray-100">
                   {formatTokenPrice(token.price)}
                 </div>
                 
@@ -587,7 +587,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                 </div>
                 
                 <div className="col-span-2 text-sm font-medium text-right flex items-center justify-end gap-2">
-                  <span>{formatMarketCap(token.market_cap)}</span>
+                  <span className="dark:text-gray-100">{formatMarketCap(token.market_cap)}</span>
                   <Button
                     size="sm"
                     variant={isUsed ? "destructive" : isSelected ? "default" : "outline"}
@@ -619,10 +619,10 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                 <div 
                   className={`md:hidden px-4 py-3 border-b transition-colors ${
                     isUsed 
-                      ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' 
+                      ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed dark:bg-red-900/20 dark:border-red-800' 
                       : isSelected 
-                        ? 'bg-primary/10 border-primary/30 cursor-pointer' 
-                        : 'hover:bg-muted/50 cursor-pointer'
+                        ? 'bg-primary/10 border-primary/30 cursor-pointer dark:bg-orange-900/20 dark:border-orange-700/50' 
+                        : 'hover:bg-muted/50 cursor-pointer dark:hover:bg-gray-800/50'
                   }`}
                   onClick={() => !isUsed && handleTokenClick(token)}
                   onDoubleClick={() => !isUsed && onAutoPosition?.(token)}
@@ -631,7 +631,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-sm text-gray-600 font-medium w-6 text-center flex-shrink-0">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 font-medium w-6 text-center flex-shrink-0">
                         {index + 1}
                       </span>
                       {token.image.startsWith('/') ? (
@@ -652,10 +652,10 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                         />
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="font-medium text-sm truncate" title={token.name}>
+                        <div className="font-medium text-sm truncate dark:text-gray-100" title={token.name}>
                           {token.name}
                         </div>
-                        <div className="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded inline-block">
+                        <div className="text-xs font-bold text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30 px-1.5 py-0.5 rounded inline-block">
                           {token.symbol}
                         </div>
                       </div>
@@ -691,11 +691,11 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   
                   <div className="mt-2 grid grid-cols-3 gap-3 text-xs">
                     <div className="text-center">
-                      <div className="text-gray-500 mb-1">Preço</div>
-                      <div className="font-medium">{formatTokenPrice(token.price)}</div>
+                      <div className="text-gray-500 dark:text-gray-400 mb-1">Preço</div>
+                      <div className="font-medium dark:text-gray-100">{formatTokenPrice(token.price)}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-gray-500 mb-1">
+                      <div className="text-gray-500 dark:text-gray-400 mb-1">
                         {timePeriods.find(p => p.value === selectedPeriod)?.label || 'N/A'} %
                       </div>
                       <div className={`font-medium ${getPercentageColorClass(
@@ -713,8 +713,8 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                       </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-gray-500 mb-1">MCAP</div>
-                      <div className="font-medium">{formatMarketCap(token.market_cap)}</div>
+                      <div className="text-gray-500 dark:text-gray-400 mb-1">MCAP</div>
+                      <div className="font-medium dark:text-gray-100">{formatMarketCap(token.market_cap)}</div>
                     </div>
                   </div>
                 </div>

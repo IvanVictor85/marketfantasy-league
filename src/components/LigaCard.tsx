@@ -56,7 +56,7 @@ export function LigaCard({
               className="object-contain"
             />
           ) : (
-            <Trophy className="h-8 w-8 text-primary" />
+            <Trophy className="h-8 w-8 text-accent" />
           )}
         </div>
         {isPrincipal && (
@@ -76,7 +76,7 @@ export function LigaCard({
         
         <div className="grid grid-cols-2 gap-2">
           <div className="flex items-center space-x-2">
-            <Coins className="h-4 w-4 text-primary" />
+            <Coins className="h-4 w-4 text-accent" />
             <span className="text-sm text-muted-foreground">Entrada:</span>
           </div>
           <div className="text-sm font-medium text-card-foreground">
@@ -84,7 +84,7 @@ export function LigaCard({
           </div>
           
           <div className="flex items-center space-x-2">
-            <Trophy className="h-4 w-4 text-primary" />
+            <Trophy className="h-4 w-4 text-accent" />
             <span className="text-sm text-muted-foreground">Prêmio:</span>
           </div>
           <div className="text-sm font-medium text-card-foreground">
@@ -92,7 +92,7 @@ export function LigaCard({
           </div>
           
           <div className="flex items-center space-x-2">
-            <Users className="h-4 w-4 text-primary" />
+            <Users className="h-4 w-4 text-accent" />
             <span className="text-sm text-muted-foreground">Participantes:</span>
           </div>
           <div className="text-sm font-medium text-card-foreground">
@@ -102,7 +102,7 @@ export function LigaCard({
       </CardContent>
       
       <CardFooter>
-        <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+        <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
           <LocalizedLink href={`/teams?league=${id}`}>
             Entrar na Liga
           </LocalizedLink>

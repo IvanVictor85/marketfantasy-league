@@ -51,7 +51,7 @@ export function UserButton({ className }: UserButtonProps) {
     return (
       <LocalizedLink href="/login">
         <Button
-          className={`bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md ${className || ''}`}
+          className={`bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-md ${className || ''}`}
         >
           <User className="w-4 h-4 mr-2" />
           {t('login')}
