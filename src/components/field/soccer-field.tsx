@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { type TokenMarketData } from '@/data/expanded-tokens';
+import { useTranslations } from 'next-intl';
 
 import { 
   User, 
@@ -50,6 +51,7 @@ export function SoccerField({
   selectedToken,
   onTokenAdd
 }: SoccerFieldProps) {
+  const t = useTranslations('teams');
   const [dragOverPosition, setDragOverPosition] = useState<number | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
 
@@ -346,13 +348,13 @@ export function SoccerField({
             {/* Formation indicator */}
             <div className="absolute top-4 left-4">
               <Badge variant="secondary" className="bg-card/90 text-card-foreground">
-                Formação {formation.split('').join('-')}
+                {t('formation')} {formation.split('').join('-')}
               </Badge>
             </div>
 
             {/* Field direction indicator */}
             <div className="absolute top-4 right-4 text-white text-sm font-medium">
-              ⬆️ Ataque
+              ⬆️ {t('attack')}
             </div>
           </div>
         </CardContent>
