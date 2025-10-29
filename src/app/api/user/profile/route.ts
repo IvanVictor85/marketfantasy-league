@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 // Interface para os dados de atualização do perfil
 interface ProfileUpdateData {
   name?: string;
+  username?: string;
   avatar?: string;
   twitter?: string;
   discord?: string;
@@ -19,6 +20,18 @@ function validateProfileData(data: ProfileUpdateData): { isValid: boolean; error
       errors.push('Nome deve ser uma string');
     } else if (data.name.length > 100) {
       errors.push('Nome deve ter no máximo 100 caracteres');
+    }
+  }
+
+  if (data.username !== undefined) {
+    if (typeof data.username !== 'string') {
+      errors.push('Username deve ser uma string');
+    } else if (data.username.length < 3) {
+      errors.push('Username deve ter no mínimo 3 caracteres');
+    } else if (data.username.length > 30) {
+      errors.push('Username deve ter no máximo 30 caracteres');
+    } else if (!/^[a-zA-Z0-9_]+$/.test(data.username)) {
+      errors.push('Username deve conter apenas letras, números e underline');
     }
   }
 
@@ -200,6 +213,24 @@ export async function PUT(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // Verificar se username já existe (se estiver sendo atualizado)
+    if (updateData.username) {
+      const existingUsername = await prisma.user.findUnique({
+        where: { username: updateData.username }
+      });
+
+      if (existingUsername && existingUsername.id !== userId) {
+        console.error('❌ [PROFILE] Username já existe:', updateData.username);
+        return NextResponse.json(
+          {
+            error: 'Nome de usuário já está em uso',
+            details: ['Este nome de usuário já está sendo usado por outro jogador']
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Atualizar perfil no banco

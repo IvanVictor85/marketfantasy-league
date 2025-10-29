@@ -126,7 +126,8 @@ model User {
   id         String   @id @default(cuid())
   email      String   @unique
   publicKey  String?  @unique // Carteira Solana (única por usuário)
-  name       String
+  name       String   // Nome do Time
+  username   String?  @unique // Nome de usuário único
   avatar     String?
   twitter    String?
   discord    String?

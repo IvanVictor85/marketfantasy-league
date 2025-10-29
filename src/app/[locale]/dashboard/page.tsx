@@ -74,8 +74,8 @@ interface SavedMascot {
 // Mock Data
 const mockUserData: UserData = {
   id: "user-1",
-  teamName: "Sport Club Receba",
-  userName: "Ivan Victor",
+  teamName: "Nome do Time",
+  userName: "Nome de Usuário",
   mascot: {
     animal: "doge",
     colors: {
@@ -199,12 +199,9 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
   // Modal states
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-  const [isFundTreasuryModalOpen, setIsFundTreasuryModalOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [fundTreasuryAmount, setFundTreasuryAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [isFundingTreasury, setIsFundingTreasury] = useState(false);
 
   useEffect(() => {
     const fetchBalances = async () => {
@@ -429,77 +426,6 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
     setIsDepositModalOpen(false);
   }, [depositAmount, handleRealDeposit]);
 
-  // Handle fund treasury
-  const handleFundTreasury = useCallback(async () => {
-    // 🔒 TRAVA DE SEGURANÇA: Verificar compatibilidade de carteira
-    if (!canExecuteAction()) {
-      console.error('🚨 Dashboard: Ação bloqueada - carteira incompatível');
-      return;
-    }
-
-    if (!publicKey || !connected) {
-      toast.error('Conecte sua carteira adequadamente para financiar o treasury');
-      return;
-    }
-
-    const amount = parseFloat(fundTreasuryAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Digite um valor válido para financiar o treasury');
-      return;
-    }
-
-    // Check if user has sufficient balance
-    if (balance === null || balance < solToLamports(amount)) {
-      toast.error('Saldo insuficiente na carteira para financiar o treasury');
-      return;
-    }
-
-    setIsFundingTreasury(true);
-
-    try {
-      toast.info(`Financiando treasury com ${amount} SOL...`);
-      
-      // Call the addSolToTreasury function
-      const signature = await addSolToTreasury(wallet, amount, setTransactionActive);
-      
-      toast.info('Confirmando financiamento...');
-      
-      // Update balances after successful funding
-      const [newWalletBalance, newTreasuryBalance] = await Promise.all([
-        connection.getBalance(publicKey),
-        getPlatformTreasuryBalance()
-      ]);
-      
-      setBalance(newWalletBalance);
-      setTreasuryBalance(newTreasuryBalance);
-      
-      toast.success(`Treasury financiado com ${amount} SOL!`, {
-        description: `Saldo do treasury: ${formatSolAmount(newTreasuryBalance)} SOL`,
-        duration: 5000,
-      });
-
-      setFundTreasuryAmount('');
-      setIsFundTreasuryModalOpen(false);
-      
-    } catch (err: any) {
-      console.error('Falha ao financiar treasury:', err);
-      
-      let errorMessage = 'Falha ao financiar o treasury.';
-      
-      if (err.message?.includes('insufficient funds')) {
-        errorMessage = 'Saldo insuficiente para cobrir o financiamento e taxas de transação.';
-      } else if (err.message?.includes('User rejected')) {
-        errorMessage = 'Transação cancelada pelo usuário.';
-      } else if (err.message?.includes('Wallet not connected')) {
-        errorMessage = 'Carteira não conectada. Conecte sua carteira e tente novamente.';
-      }
-      
-      toast.error(errorMessage);
-    } finally {
-      setIsFundingTreasury(false);
-    }
-  }, [publicKey, fundTreasuryAmount, balance, connected, setTransactionActive, setBalance, setTreasuryBalance, setFundTreasuryAmount, setIsFundTreasuryModalOpen, setIsFundingTreasury]);
-
   // Handle withdrawal
   const handleWithdraw = useCallback(async () => {
     // 🔒 TRAVA DE SEGURANÇA: Verificar compatibilidade de carteira
@@ -688,7 +614,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="deposit-amount">Valor (SOL)</Label>
+                        <Label htmlFor="deposit-amount">{t('amountSol')}</Label>
                         <Input
                           id="deposit-amount"
                           type="number"
@@ -700,19 +626,19 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
                         />
                       </div>
                       <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="flex-1"
                           onClick={() => setIsDepositModalOpen(false)}
                         >
-                          Cancelar
+                          {t('cancel')}
                         </Button>
-                        <Button 
+                        <Button
                           className="flex-1"
                           onClick={handleModalDeposit}
                           disabled={isDepositingReal || !depositAmount}
                         >
-                          {isDepositingReal ? 'Depositando...' : 'Depositar'}
+                          {isDepositingReal ? t('depositing') : t('depositSol')}
                         </Button>
                       </div>
                     </div>
@@ -743,7 +669,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="withdraw-amount">Valor (SOL)</Label>
+                          <Label htmlFor="withdraw-amount">{t('amountSol')}</Label>
                           <Input
                             id="withdraw-amount"
                             type="number"
@@ -756,84 +682,30 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
                           />
                         </div>
                         <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             className="flex-1"
                             onClick={() => setIsWithdrawModalOpen(false)}
                           >
-                            Cancelar
+                            {t('cancel')}
                           </Button>
-                          <Button 
+                          <Button
                             className="flex-1"
                             onClick={handleWithdraw}
                             disabled={isWithdrawing || !withdrawAmount}
                           >
-                            {isWithdrawing ? 'Retirando...' : 'Retirar'}
+                            {isWithdrawing ? t('withdrawing') : t('withdrawSol')}
                           </Button>
                         </div>
                       </div>
                     </DialogContent>
                   </Dialog>
                 )}
-
-                <Dialog open={isFundTreasuryModalOpen} onOpenChange={setIsFundTreasuryModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="outline"
-                      className="w-full bg-purple-50 hover:bg-purple-100 border-purple-200"
-                      disabled={!publicKey || isFundingTreasury}
-                    >
-                      {isFundingTreasury ? t('funding') : `🏦 ${t('fundTreasury')}`}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{t('fundTreasuryTitle')}</DialogTitle>
-                      <DialogDescription>
-                        {t('fundTreasuryDescription')}
-                        <br />
-                        <span className="text-sm text-muted-foreground">
-                          Saldo na carteira: {balance !== null ? formatSolAmount(balance) : '0'} SOL
-                        </span>
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="fund-treasury-amount">Valor (SOL)</Label>
-                        <Input
-                          id="fund-treasury-amount"
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          placeholder="Ex: 1.0"
-                          value={fundTreasuryAmount}
-                          onChange={(e) => setFundTreasuryAmount(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => setIsFundTreasuryModalOpen(false)}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button 
-                          className="flex-1 bg-purple-600 hover:bg-purple-700"
-                          onClick={handleFundTreasury}
-                          disabled={isFundingTreasury || !fundTreasuryAmount}
-                        >
-                          {isFundingTreasury ? 'Financiando...' : 'Financiar'}
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
               </>
             ) : depositedBalance >= 10000000 ? (
               <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-sm text-green-700 font-medium">
-                  ✅ Pronto para jogar!
+                  ✅ {t('readyToPlay')}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
                   Você tem SOL depositado na plataforma
@@ -914,13 +786,21 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
 }) => {
   const t = useTranslations('DashboardPage');
 
-  // Encontrar o melhor e pior token do time
+  // Encontrar o melhor, pior e mais neutro token do time (baseado em 7d se disponível, senão 24h)
   const teamPlayers = selectedTeamData.team?.players || [];
-  const bestToken = teamPlayers.length > 0 ? teamPlayers.reduce((best, current) => 
-    (current.change_24h ?? 0) > (best.change_24h ?? 0) ? current : best
+
+  const getChange = (player: any) => player.change_7d ?? player.change_24h ?? 0;
+
+  const bestToken = teamPlayers.length > 0 ? teamPlayers.reduce((best, current) =>
+    getChange(current) > getChange(best) ? current : best
   ) : null;
-  const worstToken = teamPlayers.length > 0 ? teamPlayers.reduce((worst, current) => 
-    (current.change_24h ?? 0) < (worst.change_24h ?? 0) ? current : worst
+
+  const worstToken = teamPlayers.length > 0 ? teamPlayers.reduce((worst, current) =>
+    getChange(current) < getChange(worst) ? current : worst
+  ) : null;
+
+  const neutralToken = teamPlayers.length > 0 ? teamPlayers.reduce((neutral, current) =>
+    Math.abs(getChange(current)) < Math.abs(getChange(neutral)) ? current : neutral
   ) : null;
 
   return (
@@ -960,12 +840,17 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
       <Card>
         <CardHeader>
           <CardTitle>{selectedTeamData.isMainTeam
-            ? t('chartTitle')
-            : `${t('walletEvolution')} ${selectedTeamData.league?.leagueName || 'N/A'}`}</CardTitle>
+            ? t('portfolioEvolutionTitle')
+            : `${t('portfolioEvolutionTitle')} - ${selectedTeamData.league?.leagueName || 'N/A'}`}</CardTitle>
+          <CardDescription>{t('portfolioEvolutionDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="h-64 w-full bg-slate-100 flex items-center justify-center rounded-md">
-            <p className="text-muted-foreground">{t('chartPlaceholder')}</p>
+          <div className="h-64 w-full bg-gradient-to-br from-orange-50 to-purple-50 flex flex-col items-center justify-center rounded-md border-2 border-dashed border-orange-200">
+            <div className="text-center space-y-3">
+              <div className="text-5xl">📊</div>
+              <h3 className="text-xl font-bold text-orange-700">{t('comingSoonTitle')}</h3>
+              <p className="text-sm text-muted-foreground max-w-md px-4">{t('comingSoonText')}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -973,15 +858,15 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
       {/* Card "Meu Time na Rodada" (Destaques) */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('highlightsTitle').replace('Time Principal', selectedTeamData.isMainTeam ? t('teamName') : selectedTeamData.league?.leagueName || 'N/A')}</CardTitle>
+          <CardTitle>{t('highlightsTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {bestToken && (
               <div className="bg-green-100 p-4 rounded-md">
                 <div className="flex items-center mb-2">
                   <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
-                  <h3 className="font-bold">{t('gem')}</h3>
+                  <h3 className="font-bold">{t('bestPerformer')}</h3>
                 </div>
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
@@ -990,8 +875,11 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium">{bestToken.name} ({bestToken.token})</p>
-                    <p className="text-green-600 font-bold">+{(bestToken.change_24h ?? 0).toFixed(1)}%</p>
+                    <p className="font-medium">{bestToken.name}</p>
+                    <p className="text-xs text-muted-foreground">{bestToken.token}</p>
+                    <p className="text-green-600 font-bold">
+                      {getChange(bestToken) >= 0 ? '+' : ''}{getChange(bestToken).toFixed(1)}%
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1000,7 +888,7 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
               <div className="bg-red-100 p-4 rounded-md">
                 <div className="flex items-center mb-2">
                   <TrendingDown className="h-5 w-5 mr-2 text-red-600" />
-                  <h3 className="font-bold">{t('anchor')}</h3>
+                  <h3 className="font-bold">{t('worstPerformer')}</h3>
                 </div>
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
@@ -1009,8 +897,33 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                     </div>
                   </div>
                   <div>
-                    <p className="font-medium">{worstToken.name} ({worstToken.token})</p>
-                    <p className="text-red-600 font-bold">{(worstToken.change_24h ?? 0).toFixed(1)}%</p>
+                    <p className="font-medium">{worstToken.name}</p>
+                    <p className="text-xs text-muted-foreground">{worstToken.token}</p>
+                    <p className="text-red-600 font-bold">
+                      {getChange(worstToken) >= 0 ? '+' : ''}{getChange(worstToken).toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {neutralToken && (
+              <div className="bg-blue-100 p-4 rounded-md">
+                <div className="flex items-center mb-2">
+                  <Target className="h-5 w-5 mr-2 text-blue-600" />
+                  <h3 className="font-bold">{t('mostNeutral')}</h3>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 relative mr-3">
+                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
+                      {neutralToken.token.substring(0, 1)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium">{neutralToken.name}</p>
+                    <p className="text-xs text-muted-foreground">{neutralToken.token}</p>
+                    <p className="text-blue-600 font-bold">
+                      {getChange(neutralToken) >= 0 ? '+' : ''}{getChange(neutralToken).toFixed(1)}%
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1022,29 +935,38 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
       {/* Card "Composição do Time" */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('yourLineup')} {selectedTeamData.isMainTeam ? t('teamName') : selectedTeamData.league?.leagueName || 'N/A'}</CardTitle>
+          <CardTitle>{t('lineupTitle')}</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('token')}</TableHead>
-                <TableHead>{t('symbol')}</TableHead>
-                <TableHead className="text-right">{t('performance')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teamPlayers.map((player) => (
-                <TableRow key={player.token}>
-                  <TableCell className="font-medium">{player.name}</TableCell>
-                  <TableCell>{player.token}</TableCell>
-                  <TableCell className={`text-right font-medium ${(player.change_24h ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {(player.change_24h ?? 0) >= 0 ? '+' : ''}{(player.change_24h ?? 0).toFixed(1)}%
-                  </TableCell>
+          {teamPlayers.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('lineupName')}</TableHead>
+                  <TableHead>{t('lineupSymbol')}</TableHead>
+                  <TableHead className="text-right">{t('lineupChange7d')}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {teamPlayers.map((player) => {
+                  const change = getChange(player);
+                  return (
+                    <TableRow key={player.token}>
+                      <TableCell className="font-medium">{player.name}</TableCell>
+                      <TableCell>{player.token}</TableCell>
+                      <TableCell className={`text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {change >= 0 ? '+' : ''}{change.toFixed(1)}%
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>{t('noTokensInLineup')}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1056,9 +978,11 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-bold mb-1">{t('betterWithFriends')}</h3>
-            <p className="text-muted-foreground mb-4">{t('inviteFriendsDesc')}</p>
-            <Button className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90">
-              {t('inviteFriends')}
+            <p className="text-muted-foreground mb-4">
+              {t('inviteFriendsDesc')} <span className="text-orange-600 font-semibold">({t('inviteComingSoon')})</span>
+            </p>
+            <Button className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90" disabled>
+              {t('inviteLearnMore')}
             </Button>
           </div>
         </CardContent>
@@ -1128,14 +1052,15 @@ export default function Dashboard() {
           price: player.price,
           points: player.points || 0,
           rarity: (player.rarity || "common") as "common" | "legendary" | "epic" | "rare",
-          change_24h: player.change_24h || 0
+          change_24h: player.change_24h || 0,
+          change_7d: player.change_7d || 0
         }))
       } : undefined;
 
       return {
         id: user.id,
-        teamName: mainTeamData?.teamName || user.name || "Meu Time",
-        userName: user.name || "Usuário",
+        teamName: mainTeamData?.teamName || user.name || "Nome do Time",
+        userName: user.username || "Nome de Usuário",
         mascot: mockUserData.mascot, // Manter mascote mock por enquanto
         mainTeam: mainTeam,
         leagueTeams: [], // Por enquanto vazio, pode ser expandido depois
@@ -1234,10 +1159,10 @@ export default function Dashboard() {
         isMainTeam: true
       };
     }
-    
+
     const league = userData.leagues.find(l => l.id === selectedTeamId);
     const team = userData.leagueTeams.find(t => t.leagueId === selectedTeamId);
-    
+
     return {
       league: league || null,
       team: team || null,

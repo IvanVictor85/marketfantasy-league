@@ -11,6 +11,7 @@ export interface User {
   email?: string;
   publicKey?: string;
   name?: string;
+  username?: string;
   avatar?: string;
   loginMethod: 'email' | 'wallet';
   // Campos de perfil adicionais

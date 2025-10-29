@@ -13,6 +13,7 @@ export interface TeamPlayer {
   points: number;
   rarity: string;
   change_24h: number;
+  change_7d: number;
 }
 
 export interface TeamData {
@@ -72,14 +73,15 @@ export function useTeamData(leagueId?: string) {
             league: data.league || null,
           });
         } else {
-          setTeamData({
+          const teamDataObject = {
             id: data.team.id,
-            teamName: data.team.teamName,
+            teamName: data.team.name || data.team.teamName,
             tokens: data.team.tokens,
-            players: data.team.tokenDetails || [],
+            players: data.tokenDetails || data.team.tokenDetails || [],
             hasTeam: true,
             league: data.league || null,
-          });
+          };
+          setTeamData(teamDataObject);
         }
       } catch (err) {
         console.error('Erro ao buscar dados do time:', err);

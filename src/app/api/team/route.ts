@@ -382,10 +382,9 @@ export async function GET(request: NextRequest) {
 
     // Get token details for the team from CoinGecko API
     let tokenDetails: any[] = [];
-    
+
     if (teamTokens.length > 0) {
       try {
-        console.log('🔄 API team GET: Buscando dados do CoinGecko para:', teamTokens);
         
         const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h,24h,7d,30d', {
           headers: {
@@ -399,55 +398,56 @@ export async function GET(request: NextRequest) {
           
           // Enriquecer dados dos tokens do time com dados do CoinGecko
           tokenDetails = teamTokens.map(symbol => {
-            const tokenData = allTokens.find((token: any) => 
+            const tokenData = allTokens.find((token: any) =>
               token.symbol.toUpperCase() === symbol.toUpperCase()
             );
-            
+
             if (tokenData) {
               return {
-                symbol: symbol,
+                token: symbol,
                 name: tokenData.name,
-                logoUrl: tokenData.image,
-                currentPrice: tokenData.current_price,
-                priceChange24h: tokenData.price_change_percentage_24h,
-                priceChange7d: tokenData.price_change_percentage_7d_in_currency
+                image: tokenData.image,
+                price: tokenData.current_price,
+                change_24h: tokenData.price_change_percentage_24h || 0,
+                change_7d: tokenData.price_change_percentage_7d_in_currency || 0,
+                rarity: 'common' // Placeholder - pode ser calculado depois
               };
             }
-            
+
             // Fallback para tokens não encontrados
             return {
-              symbol: symbol,
+              token: symbol,
               name: symbol,
-              logoUrl: '',
-              currentPrice: 0,
-              priceChange24h: 0,
-              priceChange7d: 0
+              image: '',
+              price: 0,
+              change_24h: 0,
+              change_7d: 0,
+              rarity: 'common'
             };
           });
-          
-          console.log('✅ API team GET: Dados do CoinGecko carregados com sucesso');
         } else {
-          console.warn('⚠️ API team GET: Erro ao carregar dados do CoinGecko');
           // Fallback para erro na API
           tokenDetails = teamTokens.map(symbol => ({
-            symbol: symbol,
+            token: symbol,
             name: symbol,
-            logoUrl: '',
-            currentPrice: 0,
-            priceChange24h: 0,
-            priceChange7d: 0
+            image: '',
+            price: 0,
+            change_24h: 0,
+            change_7d: 0,
+            rarity: 'common'
           }));
         }
       } catch (error) {
-        console.error('❌ API team GET: Erro ao buscar dados do CoinGecko:', error);
+        console.error('Erro ao buscar dados do CoinGecko:', error);
         // Fallback para erro na requisição
         tokenDetails = teamTokens.map(symbol => ({
-          symbol: symbol,
+          token: symbol,
           name: symbol,
-          logoUrl: '',
-          currentPrice: 0,
-          priceChange24h: 0,
-          priceChange7d: 0
+          image: '',
+          price: 0,
+          change_24h: 0,
+          change_7d: 0,
+          rarity: 'common'
         }));
       }
     }
@@ -462,7 +462,8 @@ export async function GET(request: NextRequest) {
         performance: team.totalScore || 0,
         hasValidEntry: team.hasValidEntry,
         createdAt: team.createdAt,
-        updatedAt: team.updatedAt
+        updatedAt: team.updatedAt,
+        tokenDetails: tokenDetails // ← ADICIONAR AQUI TAMBÉM!
       },
       tokenDetails: tokenDetails,
       league: {

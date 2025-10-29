@@ -33,6 +33,7 @@ export default function PerfilPage() {
   const t = useTranslations('ProfilePage');
 
   const [name, setName] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
   const [twitter, setTwitter] = useState<string>('');
   const [discord, setDiscord] = useState<string>('');
   const [bio, setBio] = useState<string>('');
@@ -62,12 +63,14 @@ export default function PerfilPage() {
     // Carregar dados do perfil se usuário autenticado
     if (user) {
       setName(user.name || '');
+      setUsername(user.username || '');
       setTwitter(user.twitter || '');
       setDiscord(user.discord || '');
       setBio(user.bio || '');
 
       console.log('✅ [PERFIL] Estados setados:', {
         name: user.name,
+        username: user.username,
         twitter: user.twitter,
         discord: user.discord,
         bio: user.bio
@@ -129,13 +132,13 @@ export default function PerfilPage() {
     
     try {
       // Salva dados do perfil e mascote gerado (se houver)
-      const profileData: any = { name, twitter, discord, bio };
+      const profileData: any = { name, username, twitter, discord, bio };
       if (generatedMascot) {
         profileData.generatedMascot = generatedMascot;
       }
-      
+
       console.log('📡 [PROFILE-FRONTEND] ProfileData:', JSON.stringify(profileData, null, 2));
-      
+
       await updateUserProfile(profileData);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -326,16 +329,29 @@ export default function PerfilPage() {
               <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">{t('nameLabel')}</Label>
+                  <Label htmlFor="name">Nome do Time</Label>
                   <Input
                     id="name"
                     key={`name-${user?.id}`}
                     defaultValue={user?.name || ''}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Seu nome ou nome do time"
+                    placeholder="Nome do seu time"
                     required
                   />
-                  <p className="text-xs text-muted-foreground">{t('nameHelp')}</p>
+                  <p className="text-xs text-muted-foreground">Este é o nome público do seu time</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="username">Nome de Usuário</Label>
+                  <Input
+                    id="username"
+                    key={`username-${user?.id}`}
+                    defaultValue={user?.username || ''}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="seu_username"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Nome único para identificar você (sem espaços)</p>
                 </div>
 
                 <div className="space-y-2">
@@ -389,6 +405,7 @@ export default function PerfilPage() {
                     }
                     // Resetar estados também
                     setName(user?.name || '');
+                    setUsername(user?.username || '');
                     setTwitter(user?.twitter || '');
                     setDiscord(user?.discord || '');
                     setBio(user?.bio || '');

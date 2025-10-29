@@ -205,18 +205,18 @@ export function TeamsContent() {
           if (teamData.tokenDetails && teamData.team.tokens) {
             console.log('DEBUG checkPaymentAndLoadTeam: Carregando players do time existente');
             const loadedPlayers: Player[] = teamData.team.tokens.map((symbol: string, index: number) => {
-              const tokenDetail = teamData.tokenDetails.find((t: any) => t.symbol === symbol);
+              const tokenDetail = teamData.tokenDetails.find((t: any) => t.token === symbol);
               return {
                 id: symbol, // Usar símbolo como ID para consistência
                 position: index + 1,
                 name: tokenDetail?.name || symbol,
                 token: symbol,
-                image: tokenDetail?.logoUrl || '',
-                price: tokenDetail?.currentPrice || 0,
+                image: tokenDetail?.image || '',
+                price: tokenDetail?.price || 0,
                 points: 0,
                 rarity: 'common' as const,
-                change_24h: tokenDetail?.priceChange24h || 0,
-                change_7d: tokenDetail?.priceChange7d || 0
+                change_24h: tokenDetail?.change_24h || 0,
+                change_7d: tokenDetail?.change_7d || 0
               };
             });
             console.log('DEBUG checkPaymentAndLoadTeam: Players carregados:', loadedPlayers);
@@ -536,19 +536,20 @@ export function TeamsContent() {
           console.log('🔄 handleSaveTeam: Atualizando players com dados da API');
           
           const updatedPlayers: Player[] = data.team.tokens.map((symbol: string, index: number) => {
-            const tokenDetail = data.tokenDetails.find((t: any) => t.symbol === symbol);
+            const tokenDetail = data.tokenDetails.find((t: any) => t.token === symbol);
             const existingPlayer = players.find(p => p.token === symbol);
-            
+
             return {
               id: symbol, // Usar símbolo como ID para consistência
               position: index + 1,
               name: tokenDetail?.name || existingPlayer?.name || symbol,
               token: symbol,
-              image: existingPlayer?.image || tokenDetail?.logoUrl || '', // Preservar imagem existente
-              price: existingPlayer?.price || 0,
+              image: existingPlayer?.image || tokenDetail?.image || '', // Preservar imagem existente
+              price: tokenDetail?.price || existingPlayer?.price || 0,
               points: existingPlayer?.points || 0,
               rarity: (existingPlayer?.rarity as 'common' | 'rare' | 'epic' | 'legendary') || 'common',
-              change_24h: existingPlayer?.change_24h || 0
+              change_24h: tokenDetail?.change_24h || existingPlayer?.change_24h || 0,
+              change_7d: tokenDetail?.change_7d || existingPlayer?.change_7d || 0
             };
           });
           
