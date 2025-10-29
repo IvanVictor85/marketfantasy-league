@@ -1,0 +1,21 @@
+name: Check Competitions
+
+on:
+  schedule:
+    # Roda a cada hora, no minuto 0
+    - cron: '0 * * * *'
+
+  # Permite que você rode manualmente pelo GitHub (para testar)
+  workflow_dispatch:
+
+jobs:
+  check-competitions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Chamar a API de verificação de competições (POST)
+        run: |
+          curl --request POST \
+            --url 'https://www.mflprotocol.xyz/api/cron/check-competitions' \
+            --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+            --fail
