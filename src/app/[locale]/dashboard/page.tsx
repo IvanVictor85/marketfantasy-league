@@ -994,13 +994,15 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
 // Componente para exibir o timer da rodada
 function RoundTimerDisplay() {
   const t = useTranslations('DashboardPage');
+  const tTeams = useTranslations('teams');
+  const tCommon = useTranslations('common');
   const { formatTime, loading, isExpired } = useRoundTimer({ leagueId: 'main-league' });
 
   if (loading) {
     return (
       <div className="bg-[#2A9D8F]/10 p-3 rounded-md flex items-center mb-2">
         <Clock className="h-5 w-5 mr-2 text-[#2A9D8F] animate-pulse" />
-        <span className="font-medium">Carregando...</span>
+        <span className="font-medium">{tCommon('loading')}</span>
       </div>
     );
   }
@@ -1009,7 +1011,7 @@ function RoundTimerDisplay() {
     return (
       <div className="bg-red-500/10 p-3 rounded-md flex items-center mb-2">
         <Clock className="h-5 w-5 mr-2 text-red-600" />
-        <span className="font-medium text-red-700">🔴 Rodada em andamento (21:00-08:59)</span>
+        <span className="font-medium text-red-700">🔴 {tTeams('roundInProgressTime')}</span>
       </div>
     );
   }
@@ -1018,7 +1020,7 @@ function RoundTimerDisplay() {
     <div className="bg-green-500/10 p-3 rounded-md flex items-center mb-2">
       <Clock className="h-5 w-5 mr-2 text-green-600" />
       <span className="font-medium text-green-700">
-        🟢 Próxima rodada inicia em: <span className="font-bold">{formatTime()}</span>
+        🟢 {tTeams('nextRoundStartsIn')} <span className="font-bold">{formatTime()}</span>
       </span>
     </div>
   );

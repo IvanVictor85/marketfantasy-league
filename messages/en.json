@@ -111,8 +111,8 @@
     "teamNameLabel": "Team Name",
     "teamNameHelp": "The team name is based on your username. You can change it on your profile page.",
     "paymentConfirmed": "Payment confirmed",
-    "formation": "Formation",
-    "attack": "Attack"
+    "nextRoundStartsIn": "Next round starts in:",
+    "roundInProgressTime": "Round in progress (21:00-08:59)"
   },
   "market": {
     "title": "Token Market",
@@ -276,7 +276,6 @@
     "nextRound": "Next round in:",
     "chartTitle": "Wallet Evolution - Main Team",
     "chartPlaceholder": "Performance chart will be here",
-    "highlightsTitle": "Your team's highlights in: Main Team",
     "gem": "Your Gem of the Round",
     "anchor": "Your Anchor of the Round",
     "balanceTitle": "Balance & Deposit",

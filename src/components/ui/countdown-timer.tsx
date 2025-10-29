@@ -3,6 +3,7 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 import { useRoundTimer } from '@/hooks/useRoundTimer';
+import { useTranslations } from 'next-intl';
 
 interface CountdownTimerProps {
   leagueId?: string;
@@ -10,13 +11,15 @@ interface CountdownTimerProps {
 }
 
 export function CountdownTimer({ leagueId = 'main-league', className = '' }: CountdownTimerProps) {
+  const t = useTranslations('teams');
+  const tCommon = useTranslations('common');
   const { timeRemaining, loading, isExpired } = useRoundTimer({ leagueId });
 
   if (loading) {
     return (
       <div className={`flex items-center gap-2 text-gray-400 font-semibold ${className}`}>
         <Clock className="h-4 w-4 animate-pulse" />
-        <span>Carregando...</span>
+        <span>{tCommon('loading')}</span>
       </div>
     );
   }
@@ -25,7 +28,7 @@ export function CountdownTimer({ leagueId = 'main-league', className = '' }: Cou
     return (
       <div className={`flex items-center gap-2 text-red-600 font-semibold ${className}`}>
         <Clock className="h-4 w-4" />
-        <span>🔴 Rodada em andamento (21:00-08:59)</span>
+        <span>🔴 {t('roundInProgressTime')}</span>
       </div>
     );
   }
@@ -33,7 +36,7 @@ export function CountdownTimer({ leagueId = 'main-league', className = '' }: Cou
   return (
     <div className={`flex items-center gap-2 text-green-600 font-semibold ${className}`}>
       <Clock className="h-4 w-4" />
-      <span>🟢 Próxima rodada inicia em:</span>
+      <span>🟢 {t('nextRoundStartsIn')}</span>
       <div className="flex items-center gap-1 font-mono text-sm">
         <span className="bg-green-100 px-2 py-1 rounded">
           {timeRemaining.days.toString().padStart(2, '0')}
