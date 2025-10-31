@@ -55,8 +55,7 @@ const HeroSection = () => {
 
         {/* Título principal */}
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-tight leading-tight">
-          O Fantasy Game do <br />
-          <span className="text-accent">Universo Cripto.</span>
+          {t('heroTitle')}
         </h1>
 
         {/* Subtítulo */}
