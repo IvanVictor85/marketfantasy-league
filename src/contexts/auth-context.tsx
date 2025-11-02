@@ -110,31 +110,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.email, user?.loginMethod, connected, publicKey, disconnect]);
 
   useEffect(() => {
-    console.log('🔄 [WALLET-CHANGE] Estado da carteira mudou:', { 
-      connected, 
-      publicKey: publicKey?.toString(), 
-      user: user?.email, 
-      loginMethod: user?.loginMethod 
-    });
-    
-    // Se carteira conectou e usuário está logado por wallet
-    if (connected && publicKey && user?.loginMethod === 'wallet') {
-      console.log('✅ [WALLET-CHANGE] Atualizando endereço da carteira no usuário');
-      setUser(prev => prev ? { ...prev, publicKey: publicKey.toString() } : null);
-    } 
-    // Se carteira desconectou e usuário estava logado por wallet
-    else if (!connected && user?.loginMethod === 'wallet') {
-      console.log('🚪 [WALLET-CHANGE] Carteira desconectada - fazendo logout');
-      logout();
+    // A única coisa que este hook deve fazer é
+    // forçar o logout se a carteira for DESCONECTADA.
+
+    if (!connected && user?.loginMethod === 'wallet') {
+      console.log('🔌 [WALLET-DISCONNECT] Carteira desconectada. Forçando logout.');
+      logout(); // Apenas lida com desconexão
     }
-    // Se carteira conectou mas usuário está logado por email
-    else if (connected && publicKey && user?.loginMethod === 'email') {
-      console.log('⚠️ [WALLET-CHANGE] Carteira conectada mas usuário logado por email - AUTO-VINCULAR DESABILITADO');
-      // DESABILITADO: Auto-vinculação de carteira
-      // A vinculação deve ser feita manualmente pelo usuário
-      console.log('🔒 [WALLET-CHANGE] Sistema de segurança ativo - carteira não será vinculada automaticamente');
-    }
-  }, [connected, publicKey, user?.loginMethod, user?.email, logout, disconnect]);
+
+    // A verificação de MISMATCH (carteira trocada)
+    // é 100% responsabilidade do useAppWalletStatus.ts.
+    // Este arquivo NÃO DEVE MAIS FAZER ISSO.
+
+    // A publicKey do usuário é definida APENAS no login
+    // e NUNCA deve ser atualizada por este useEffect.
+
+  }, [connected, user?.loginMethod, logout]);
 
   const sendVerificationCode = async (email: string): Promise<SendCodeResponse> => {
     try {
