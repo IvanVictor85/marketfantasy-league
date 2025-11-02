@@ -8,6 +8,7 @@ import {
   determineWinners,
   canEndCompetition
 } from '@/lib/competition/manager';
+import { getTop100Tokens } from '@/lib/services/coingecko.service';
 
 // ============================================
 // VALIDATION SCHEMA
@@ -125,6 +126,64 @@ export async function POST(request: NextRequest) {
       }
     });
     console.log('✅ Status atualizado para completed');
+
+    // ETAPA 6: Criar próxima competição e salvar Top 100 tokens
+    console.log('🔄 ETAPA 6: Criando próxima competição e salvando cardápio...');
+
+    try {
+      // Buscar Top 100 tokens da CoinGecko
+      console.log('🌐 Buscando Top 100 tokens da CoinGecko...');
+      const top100Tokens = await getTop100Tokens();
+      console.log(`✅ Top 100 tokens obtidos: ${top100Tokens.length} tokens`);
+
+      // Calcular horários da próxima competição (próxima semana)
+      const nextStartTime = new Date(competition.endTime);
+      nextStartTime.setDate(nextStartTime.getDate() + 7); // +7 dias para próximo domingo 21h
+
+      const nextEndTime = new Date(nextStartTime);
+      nextEndTime.setDate(nextEndTime.getDate() + 7); // +7 dias para domingo seguinte 21h
+
+      console.log(`📅 Próxima competição: ${nextStartTime.toISOString()} → ${nextEndTime.toISOString()}`);
+
+      // Criar próxima competição
+      const nextCompetition = await prisma.competition.create({
+        data: {
+          leagueId: competition.leagueId,
+          startTime: nextStartTime,
+          endTime: nextEndTime,
+          status: 'pending',
+          prizePool: 0, // Será atualizado conforme entradas pagas
+          distributed: false
+        }
+      });
+
+      console.log(`✅ Próxima competição criada: ${nextCompetition.id}`);
+
+      // Salvar os 100 tokens no banco
+      console.log('💾 Salvando cardápio de tokens no banco...');
+
+      const tokensToCreate = top100Tokens.map(token => ({
+        competitionId: nextCompetition.id,
+        tokenId: token.id,
+        symbol: token.symbol,
+        name: token.name,
+        imageUrl: token.image,
+        marketCapRank: token.market_cap_rank
+      }));
+
+      await prisma.competitionToken.createMany({
+        data: tokensToCreate,
+        skipDuplicates: true
+      });
+
+      console.log(`✅ Cardápio salvo: ${tokensToCreate.length} tokens disponíveis para draft`);
+      console.log(`   🔒 Cardápio TRAVADO até ${nextEndTime.toISOString()}`);
+
+    } catch (error) {
+      console.error('⚠️ Erro ao criar próxima competição:', error);
+      // Não falhar o endpoint inteiro se isso der erro
+      // A competição atual foi finalizada com sucesso
+    }
 
     // Buscar rankings atualizados
     const rankings = await prisma.team.findMany({

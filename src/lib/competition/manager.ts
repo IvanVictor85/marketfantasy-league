@@ -9,7 +9,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { getCachedMarketTokens } from '@/lib/cache/coingecko-cache';
+import { getMarketDataByTokenIds, symbolsToIds } from '@/lib/services/coingecko.service';
 
 // ============================================
 // TYPES
@@ -57,6 +57,7 @@ export interface TeamScore {
 
 /**
  * Cria snapshot de preços no início da competição
+ * Usa a nova função getMarketDataByTokenIds para buscar preços frescos
  */
 export async function createStartSnapshot(competitionId: string): Promise<TokenSnapshot[]> {
   console.log(`📸 Criando snapshot inicial para competição ${competitionId}...`);
@@ -91,23 +92,33 @@ export async function createStartSnapshot(competitionId: string): Promise<TokenS
 
     console.log(`🔍 Encontrados ${allTokens.size} tokens únicos nos times`);
 
-    // Buscar preços atuais do cache
-    const { tokens: marketTokens } = await getCachedMarketTokens();
+    // Converter símbolos para IDs da CoinGecko
+    const symbolsArray = Array.from(allTokens);
+    const tokenIds = symbolsToIds(symbolsArray);
+
+    console.log(`🔄 Convertidos ${symbolsArray.length} símbolos → ${tokenIds.length} IDs`);
+
+    // Buscar preços atuais da CoinGecko (dados frescos)
+    const marketTokens = await getMarketDataByTokenIds(tokenIds);
+
     const snapshots: TokenSnapshot[] = [];
     const now = new Date();
 
+    // Criar mapa símbolo → preço para acesso rápido
+    const priceMap = new Map(
+      marketTokens.map(t => [t.symbol.toUpperCase(), t.current_price])
+    );
+
     // Criar entradas de snapshot para cada token
     for (const symbol of allTokens) {
-      const tokenData = marketTokens.find(
-        t => t.symbol.toUpperCase() === symbol.toUpperCase()
-      );
+      const price = priceMap.get(symbol.toUpperCase());
 
-      if (tokenData) {
+      if (price !== undefined) {
         // Salvar no banco
         await prisma.priceHistory.create({
           data: {
             tokenSymbol: symbol,
-            price: tokenData.currentPrice,
+            price: price,
             timestamp: now,
             source: `competition_start_${competitionId}`
           }
@@ -115,11 +126,11 @@ export async function createStartSnapshot(competitionId: string): Promise<TokenS
 
         snapshots.push({
           symbol,
-          price: tokenData.currentPrice,
+          price: price,
           timestamp: now
         });
 
-        console.log(`  ✅ ${symbol}: $${tokenData.currentPrice}`);
+        console.log(`  ✅ ${symbol}: $${price}`);
       } else {
         console.warn(`  ⚠️ Token ${symbol} não encontrado no mercado`);
       }
@@ -136,6 +147,7 @@ export async function createStartSnapshot(competitionId: string): Promise<TokenS
 
 /**
  * Cria snapshot de preços no fim da competição
+ * Usa a nova função getMarketDataByTokenIds para buscar preços frescos
  */
 export async function createEndSnapshot(competitionId: string): Promise<TokenSnapshot[]> {
   console.log(`📸 Criando snapshot final para competição ${competitionId}...`);
@@ -170,23 +182,33 @@ export async function createEndSnapshot(competitionId: string): Promise<TokenSna
 
     console.log(`🔍 Encontrados ${allTokens.size} tokens únicos nos times`);
 
-    // Buscar preços atuais do cache
-    const { tokens: marketTokens } = await getCachedMarketTokens();
+    // Converter símbolos para IDs da CoinGecko
+    const symbolsArray = Array.from(allTokens);
+    const tokenIds = symbolsToIds(symbolsArray);
+
+    console.log(`🔄 Convertidos ${symbolsArray.length} símbolos → ${tokenIds.length} IDs`);
+
+    // Buscar preços atuais da CoinGecko (dados frescos)
+    const marketTokens = await getMarketDataByTokenIds(tokenIds);
+
     const snapshots: TokenSnapshot[] = [];
     const now = new Date();
 
+    // Criar mapa símbolo → preço para acesso rápido
+    const priceMap = new Map(
+      marketTokens.map(t => [t.symbol.toUpperCase(), t.current_price])
+    );
+
     // Criar entradas de snapshot para cada token
     for (const symbol of allTokens) {
-      const tokenData = marketTokens.find(
-        t => t.symbol.toUpperCase() === symbol.toUpperCase()
-      );
+      const price = priceMap.get(symbol.toUpperCase());
 
-      if (tokenData) {
+      if (price !== undefined) {
         // Salvar no banco
         await prisma.priceHistory.create({
           data: {
             tokenSymbol: symbol,
-            price: tokenData.currentPrice,
+            price: price,
             timestamp: now,
             source: `competition_end_${competitionId}`
           }
@@ -194,11 +216,11 @@ export async function createEndSnapshot(competitionId: string): Promise<TokenSna
 
         snapshots.push({
           symbol,
-          price: tokenData.currentPrice,
+          price: price,
           timestamp: now
         });
 
-        console.log(`  ✅ ${symbol}: $${tokenData.currentPrice}`);
+        console.log(`  ✅ ${symbol}: $${price}`);
       } else {
         console.warn(`  ⚠️ Token ${symbol} não encontrado no mercado`);
       }

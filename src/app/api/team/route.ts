@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { validateTokens } from '@/lib/valid-tokens'
 import { isRodadaEmAndamento } from '@/lib/utils/timeCheck'
+import { getMarketDataWithFallback } from '@/lib/services/coingecko.service'
 
 // 🔒 SEGURANÇA: Schema NÃO aceita mais userWallet do cliente
 const teamSchema = z.object({
@@ -380,70 +381,37 @@ export async function GET(request: NextRequest) {
       teamTokens = [];
     }
 
-    // Get token details for the team from CoinGecko API
+    // Get token details for the team using new service (com fallback para ghost tokens)
     let tokenDetails: any[] = [];
 
     if (teamTokens.length > 0) {
       try {
-        
-        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h,24h,7d,30d', {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'CryptoFantasy/1.0'
-          }
-        });
+        console.log(`🔍 [TEAM-GET] Buscando dados de ${teamTokens.length} tokens do time...`);
 
-        if (response.ok) {
-          const allTokens = await response.json();
-          
-          // Enriquecer dados dos tokens do time com dados do CoinGecko
-          tokenDetails = teamTokens.map(symbol => {
-            const tokenData = allTokens.find((token: any) =>
-              token.symbol.toUpperCase() === symbol.toUpperCase()
-            );
+        // Usar a nova função que busca por IDs e cria ghosts para tokens delistados
+        const marketData = await getMarketDataWithFallback(teamTokens);
 
-            if (tokenData) {
-              return {
-                token: symbol,
-                name: tokenData.name,
-                image: tokenData.image,
-                price: tokenData.current_price,
-                change_24h: tokenData.price_change_percentage_24h || 0,
-                change_7d: tokenData.price_change_percentage_7d_in_currency || 0,
-                rarity: 'common' // Placeholder - pode ser calculado depois
-              };
-            }
+        console.log(`✅ [TEAM-GET] ${marketData.length} tokens obtidos (incluindo ghosts se necessário)`);
 
-            // Fallback para tokens não encontrados
-            return {
-              token: symbol,
-              name: symbol,
-              image: '',
-              price: 0,
-              change_24h: 0,
-              change_7d: 0,
-              rarity: 'common'
-            };
-          });
-        } else {
-          // Fallback para erro na API
-          tokenDetails = teamTokens.map(symbol => ({
-            token: symbol,
-            name: symbol,
-            image: '',
-            price: 0,
-            change_24h: 0,
-            change_7d: 0,
-            rarity: 'common'
-          }));
-        }
+        // Mapear para formato esperado pela UI
+        tokenDetails = marketData.map(tokenData => ({
+          token: tokenData.symbol,
+          name: tokenData.name,
+          image: tokenData.image,
+          price: tokenData.current_price,
+          change_24h: tokenData.price_change_percentage_24h || 0,
+          change_7d: tokenData.price_change_percentage_7d_in_currency || 0,
+          rarity: 'common' // Placeholder - pode ser calculado depois
+        }));
+
       } catch (error) {
-        console.error('Erro ao buscar dados do CoinGecko:', error);
-        // Fallback para erro na requisição
+        console.error('❌ [TEAM-GET] Erro ao buscar dados do CoinGecko:', error);
+
+        // Fallback para erro crítico: retornar tokens básicos
         tokenDetails = teamTokens.map(symbol => ({
           token: symbol,
           name: symbol,
-          image: '',
+          image: '/icons/token-placeholder.svg',
           price: 0,
           change_24h: 0,
           change_7d: 0,

@@ -107,8 +107,27 @@ model Competition {
   updatedAt   DateTime @updatedAt
 
   league      League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  tokens      CompetitionToken[] // Tokens disponíveis para esta competição
 
   @@map("competitions")
+}
+
+model CompetitionToken {
+  id            String   @id @default(cuid())
+  competitionId String
+  tokenId       String   // CoinGecko ID (ex: "bitcoin", "ethereum", "pudgy-penguins")
+  symbol        String   // Símbolo (ex: "BTC", "ETH", "PENGU")
+  name          String   // Nome completo (ex: "Bitcoin", "Ethereum", "Pudgy Penguins")
+  imageUrl      String   // URL da imagem do token
+  marketCapRank Int?     // Ranking no momento do snapshot
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, tokenId]) // Previne duplicatas na mesma competição
+  @@index([competitionId])
+  @@map("competition_tokens")
 }
 
 model PriceHistory {
