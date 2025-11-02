@@ -553,18 +553,18 @@ Agradecemos sua compreensão! 🙏`)
                                 const parent = target.parentElement;
                                 if (parent) {
                                   parent.className = "w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm";
-                                  parent.textContent = player.token.slice(0, 2);
+                                  parent.textContent = (player.symbol || player.token || '?').slice(0, 2);
                                 }
                               }}
                             />
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
-                              {player.token.slice(0, 2)}
+                              {(player.symbol || player.token || '?').slice(0, 2)}
                             </div>
                           )}
                         </div>
                         <p className="text-sm font-medium text-slate-900 dark:text-white text-center truncate w-full">
-                          {player.token}
+                          {player.symbol || player.token || '?'}
                         </p>
                         {((player.priceChange24h || player.change_24h) !== undefined && (player.priceChange24h || player.change_24h || 0) !== 0) && (
                           <p className={`text-xs font-semibold ${(player.priceChange24h || player.change_24h || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
