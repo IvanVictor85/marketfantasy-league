@@ -136,14 +136,18 @@ export async function POST(request: NextRequest) {
       const top100Tokens = await getTop100Tokens();
       console.log(`✅ Top 100 tokens obtidos: ${top100Tokens.length} tokens`);
 
-      // Calcular horários da próxima competição (próxima semana)
-      const nextStartTime = new Date(competition.endTime);
-      nextStartTime.setDate(nextStartTime.getDate() + 7); // +7 dias para próximo domingo 21h
+      // Calcular horários da próxima competição (baseado no fluxo SEX-DOM)
+      const now = new Date(competition.endTime); // Este é Sexta-feira, 21h
 
+      // O próximo draft começa agora, mas a próxima *competição* começa em 2 dias
+      const nextStartTime = new Date(now);
+      nextStartTime.setDate(now.getDate() + 2); // Sexta + 2 dias = Domingo 21h
+
+      // A próxima competição termina 5 dias após o início
       const nextEndTime = new Date(nextStartTime);
-      nextEndTime.setDate(nextEndTime.getDate() + 7); // +7 dias para domingo seguinte 21h
+      nextEndTime.setDate(nextStartTime.getDate() + 5); // Domingo + 5 dias = Próxima Sexta 21h
 
-      console.log(`📅 Próxima competição: ${nextStartTime.toISOString()} → ${nextEndTime.toISOString()}`);
+      console.log(`📅 Próxima competição: Início (Domingo) ${nextStartTime.toISOString()} → Fim (Sexta) ${nextEndTime.toISOString()}`);
 
       // Criar próxima competição
       const nextCompetition = await prisma.competition.create({
