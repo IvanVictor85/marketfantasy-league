@@ -1,23 +1,41 @@
 // Tipos para o sistema de múltiplos times por liga
 
 export interface Token {
+  id: string;
   name: string;
   symbol: string;
-  logoUrl: string;
-  performance: number;
-  id: string;
-  price: number;
   image?: string;
+  logoUrl?: string; // Mantido para compatibilidade
+  // Campos padronizados (novos)
+  currentPrice?: number;
+  priceChange24h?: number;
+  priceChange7d?: number;
+  marketCap?: number;
+  totalVolume?: number;
+  marketCapRank?: number | null;
+  // Campos antigos (mantidos para compatibilidade)
+  price: number;
+  performance?: number;
   rarity?: 'common' | 'rare' | 'epic' | 'legendary';
   change_24h?: number;
+  change_7d?: number;
 }
 
 export interface Player {
   id: string;
   position: number; // 1-10 (1 = goalkeeper, 2-5 = defenders, 6-8 = midfielders, 9-10 = forwards)
   name: string;
-  token: string;
+  symbol: string; // ✅ Campo padronizado (novo)
+  token?: string; // Mantido para compatibilidade (antigo)
   image?: string;
+  // Campos padronizados (novos)
+  currentPrice?: number;
+  priceChange24h?: number;
+  priceChange7d?: number;
+  marketCap?: number;
+  totalVolume?: number;
+  marketCapRank?: number | null;
+  // Campos antigos (mantidos para compatibilidade)
   price: number;
   points: number;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
