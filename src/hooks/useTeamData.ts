@@ -8,7 +8,13 @@ export interface TeamPlayer {
   position: number;
   name: string;
   token: string;
+  symbol?: string; // NEW standardized field
   image: string;
+  // NEW standardized field names
+  currentPrice?: number;
+  priceChange24h?: number;
+  priceChange7d?: number;
+  // OLD field names (for compatibility)
   price: number;
   points: number;
   rarity: string;
@@ -73,11 +79,26 @@ export function useTeamData(leagueId?: string) {
             league: data.league || null,
           });
         } else {
+          // Map tokenDetails to ensure both old and new field names are present
+          const mappedPlayers = (data.tokenDetails || data.team.tokenDetails || []).map((token: any) => ({
+            ...token,
+            // Ensure new standardized field names
+            symbol: token.symbol || token.token,
+            currentPrice: token.currentPrice || token.price || 0,
+            priceChange24h: token.priceChange24h || token.change_24h || 0,
+            priceChange7d: token.priceChange7d || token.change_7d || 0,
+            // Ensure old field names for backward compatibility
+            token: token.token || token.symbol,
+            price: token.price || token.currentPrice || 0,
+            change_24h: token.change_24h || token.priceChange24h || 0,
+            change_7d: token.change_7d || token.priceChange7d || 0,
+          }));
+
           const teamDataObject = {
             id: data.team.id,
             teamName: data.team.name || data.team.teamName,
             tokens: data.team.tokens,
-            players: data.tokenDetails || data.team.tokenDetails || [],
+            players: mappedPlayers,
             hasTeam: true,
             league: data.league || null,
           };

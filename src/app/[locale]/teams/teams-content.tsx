@@ -205,18 +205,18 @@ export function TeamsContent() {
           if (teamData.tokenDetails && teamData.team.tokens) {
             console.log('DEBUG checkPaymentAndLoadTeam: Carregando players do time existente');
             const loadedPlayers: Player[] = teamData.team.tokens.map((symbol: string, index: number) => {
-              const tokenDetail = teamData.tokenDetails.find((t: any) => t.token === symbol);
+              const tokenDetail = teamData.tokenDetails.find((t: any) => t.token === symbol || t.symbol === symbol);
               return {
                 id: symbol, // Usar símbolo como ID para consistência
                 position: index + 1,
                 name: tokenDetail?.name || symbol,
                 token: symbol,
                 image: tokenDetail?.image || '',
-                price: tokenDetail?.currentPrice || 0,
+                price: tokenDetail?.currentPrice || tokenDetail?.price || 0,
                 points: 0,
                 rarity: 'common' as const,
-                change_24h: tokenDetail?.priceChange24h || 0,
-                change_7d: tokenDetail?.priceChange7d || 0
+                change_24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || 0,
+                change_7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || 0
               };
             });
             console.log('DEBUG checkPaymentAndLoadTeam: Players carregados:', loadedPlayers);
@@ -349,10 +349,10 @@ export function TeamsContent() {
                 ...player,
                 image: tokenData.image,
                 name: tokenData.name,
-                price: tokenData.current_price,
-                change_24h: tokenData.price_change_percentage_24h,
-                change_7d: tokenData.price_change_percentage_7d_in_currency,
-                points: Math.round((tokenData.current_price || 0) * 0.1 + (tokenData.price_change_percentage_24h || 0) * 0.5) // Recalcular pontos
+                price: tokenData.currentPrice || tokenData.current_price || 0,
+                change_24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
+                change_7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
+                points: Math.round(((tokenData.currentPrice || tokenData.current_price || 0) * 0.1) + ((tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0) * 0.5)) // Recalcular pontos
               };
             }
             
@@ -387,11 +387,11 @@ export function TeamsContent() {
       name: token.name,
       token: token.symbol,
       image: token.image,
-      price: token.price || 0,
-      points: Math.round((token.price || 0) * 0.1 + (token.change_24h || 0) * 0.5), // Calcular pontos baseado no preço e performance
+      price: token.currentPrice || token.price || 0,
+      points: Math.round(((token.currentPrice || token.price || 0) * 0.1) + ((token.priceChange24h || token.change_24h || 0) * 0.5)), // Calcular pontos baseado no preço e performance
       rarity: 'common',
-      change_24h: token.change_24h,
-      change_7d: token.change_7d
+      change_24h: token.priceChange24h || token.change_24h || 0,
+      change_7d: token.priceChange7d || token.change_7d || 0
     };
 
     setPlayers(prev => {
@@ -545,11 +545,11 @@ export function TeamsContent() {
               name: tokenDetail?.name || existingPlayer?.name || symbol,
               token: symbol,
               image: existingPlayer?.image || tokenDetail?.image || '', // Preservar imagem existente
-              price: tokenDetail?.currentPrice || existingPlayer?.price || 0,
+              price: tokenDetail?.currentPrice || tokenDetail?.price || existingPlayer?.price || 0,
               points: existingPlayer?.points || 0,
               rarity: (existingPlayer?.rarity as 'common' | 'rare' | 'epic' | 'legendary') || 'common',
-              change_24h: tokenDetail?.priceChange24h || existingPlayer?.change_24h || 0,
-              change_7d: tokenDetail?.priceChange7d || existingPlayer?.change_7d || 0
+              change_24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || existingPlayer?.change_24h || 0,
+              change_7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || existingPlayer?.change_7d || 0
             };
           });
           
@@ -918,7 +918,7 @@ export function TeamsContent() {
                         );
                       }
                       const best = players.reduce((prev, current) =>
-                        (current.change_7d || 0) > (prev.change_7d || 0) ? current : prev
+                        ((current.priceChange7d || current.change_7d || 0) > (prev.priceChange7d || prev.change_7d || 0)) ? current : prev
                       );
                       return (
                         <>
@@ -926,7 +926,7 @@ export function TeamsContent() {
                             {best.token}
                           </div>
                           <div className="text-xs text-green-600 dark:text-green-400">
-                            +{(best.change_7d || 0).toFixed(1)}%
+                            +{(best.priceChange7d || best.change_7d || 0).toFixed(1)}%
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-300">{t('bestAsset')}</div>
                         </>
@@ -946,7 +946,7 @@ export function TeamsContent() {
                         );
                       }
                       const worst = players.reduce((prev, current) =>
-                        (current.change_7d || 0) < (prev.change_7d || 0) ? current : prev
+                        ((current.priceChange7d || current.change_7d || 0) < (prev.priceChange7d || prev.change_7d || 0)) ? current : prev
                       );
                       return (
                         <>
@@ -954,7 +954,7 @@ export function TeamsContent() {
                             {worst.token}
                           </div>
                           <div className="text-xs text-red-600">
-                            {(worst.change_7d || 0).toFixed(1)}%
+                            {(worst.priceChange7d || worst.change_7d || 0).toFixed(1)}%
                           </div>
                           <div className="text-sm text-gray-600">{t('worstAsset')}</div>
                         </>
@@ -966,7 +966,7 @@ export function TeamsContent() {
                   <div className="text-center">
                     {(() => {
                       const performance7d = players.length > 0
-                        ? (players.reduce((sum, p) => sum + (p.change_7d || 0), 0) / players.length)
+                        ? (players.reduce((sum, p) => sum + (p.priceChange7d || p.change_7d || 0), 0) / players.length)
                         : 0;
                       const getPerformanceColor = (value: number) => {
                         if (value > 5) return 'text-green-600';

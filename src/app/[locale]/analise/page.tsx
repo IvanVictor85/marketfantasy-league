@@ -113,9 +113,9 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
             </div>
             <div className="text-right">
               <p className={`font-bold ${type === 'gainers' ? 'text-[#2A9D8F] dark:text-green-400' : 'text-[#E76F51] dark:text-red-400'}`}>
-                {item.value || formatPercentageChange(item.priceChange24h)}
+                {item.value || formatPercentageChange(item.priceChange24h || item.change_24h || 0)}
               </p>
-              <p className="text-sm text-slate-500 dark:text-gray-400">{item.price || formatTokenPrice(item.currentPrice)}</p>
+              <p className="text-sm text-slate-500 dark:text-gray-400">{item.price || formatTokenPrice(item.currentPrice || item.price || 0)}</p>
             </div>
           </div>
         )
@@ -330,11 +330,11 @@ export default function AnalisePage() {
               name: tokenData.name || tokenData.symbol || data.team.tokens[index],
               token: tokenData.symbol || data.team.tokens[index],
               image: tokenData.image,
-              price: tokenData.current_price || 0,
+              price: tokenData.currentPrice || tokenData.current_price || 0,
               points: 0,
               rarity: 'common' as const,
-              change_24h: tokenData.price_change_percentage_24h || 0,
-              change_7d: tokenData.price_change_percentage_7d_in_currency || 0
+              change_24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
+              change_7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0
             };
           });
 
@@ -372,7 +372,7 @@ export default function AnalisePage() {
 Estamos atualizando nossa integração com o Gemini AI para trazer análises ainda melhores para você!
 
 **Seu Time:**
-${mainTeam.map((p, i) => `${i + 1}. ${p.token} - ${p.change_24h !== undefined ? (p.change_24h >= 0 ? '+' : '') + p.change_24h.toFixed(2) + '% (24h)' : 'N/A'}`).join('\n')}
+${mainTeam.map((p, i) => `${i + 1}. ${p.token} - ${(p.priceChange24h || p.change_24h) !== undefined ? ((p.priceChange24h || p.change_24h || 0) >= 0 ? '+' : '') + (p.priceChange24h || p.change_24h || 0).toFixed(2) + '% (24h)' : 'N/A'}`).join('\n')}
 
 **Em breve você poderá:**
 ✅ Receber análise detalhada do seu portfólio
@@ -562,9 +562,9 @@ Agradecemos sua compreensão! 🙏`)
                         <p className="text-sm font-medium text-slate-900 dark:text-white text-center truncate w-full">
                           {player.token}
                         </p>
-                        {player.change_24h !== undefined && player.change_24h !== 0 && (
-                          <p className={`text-xs font-semibold ${player.change_24h > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {player.change_24h > 0 ? '+' : ''}{player.change_24h.toFixed(1)}%
+                        {((player.priceChange24h || player.change_24h) !== undefined && (player.priceChange24h || player.change_24h || 0) !== 0) && (
+                          <p className={`text-xs font-semibold ${(player.priceChange24h || player.change_24h || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {(player.priceChange24h || player.change_24h || 0) > 0 ? '+' : ''}{(player.priceChange24h || player.change_24h || 0).toFixed(1)}%
                           </p>
                         )}
                       </div>

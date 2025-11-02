@@ -789,7 +789,7 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
   // Encontrar o melhor, pior e mais neutro token do time (baseado em 7d se disponível, senão 24h)
   const teamPlayers = selectedTeamData.team?.players || [];
 
-  const getChange = (player: any) => player.priceChange7d ?? player.change_7d ?? player.priceChange24h ?? player.change_24h ?? 0;
+  const getChange = (player: any) => player.priceChange7d || player.change_7d || player.priceChange24h || player.change_24h || 0;
 
   const bestToken = teamPlayers.length > 0 ? teamPlayers.reduce((best, current) =>
     getChange(current) > getChange(best) ? current : best
@@ -1052,11 +1052,14 @@ export default function Dashboard() {
           symbol: player.symbol || player.token,
           token: player.symbol || player.token, // Manter para compatibilidade
           image: player.image || "",
-          price: player.price,
+          currentPrice: player.currentPrice || player.price || 0,
+          price: player.currentPrice || player.price || 0, // Manter para compatibilidade
           points: player.points || 0,
           rarity: (player.rarity || "common") as "common" | "legendary" | "epic" | "rare",
-          change_24h: player.priceChange24h || player.change_24h || 0,
-          change_7d: player.priceChange7d || player.change_7d || 0
+          priceChange24h: player.priceChange24h || player.change_24h || 0,
+          change_24h: player.priceChange24h || player.change_24h || 0, // Manter para compatibilidade
+          priceChange7d: player.priceChange7d || player.change_7d || 0,
+          change_7d: player.priceChange7d || player.change_7d || 0 // Manter para compatibilidade
         }))
       } : undefined;
 

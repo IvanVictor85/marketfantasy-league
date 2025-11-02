@@ -169,8 +169,8 @@ export function SoccerField({
     }
   };
 
-  const totalValue = players.reduce((sum, player) => sum + player.price, 0);
-  const averagePoints = players.length > 0 ? players.reduce((sum, player) => sum + player.points, 0) / players.length : 0;
+  const totalValue = players.reduce((sum, player) => sum + (player.currentPrice || player.price || 0), 0);
+  const averagePoints = players.length > 0 ? players.reduce((sum, player) => sum + (player.points || 0), 0) / players.length : 0;
 
   return (
     <div className="space-y-4">
@@ -287,7 +287,7 @@ export function SoccerField({
                           </Badge> */}
                         </div>
                         <div className="text-xs text-gray-600 mt-1">
-                          {formatPrice(player.price)} • {player.points} pts
+                          {formatPrice(player.currentPrice || player.price || 0)} • {player.points || 0} pts
                         </div>
                         <Button
                           size="sm"
