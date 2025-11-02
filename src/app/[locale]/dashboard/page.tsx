@@ -789,7 +789,7 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
   // Encontrar o melhor, pior e mais neutro token do time (baseado em 7d se disponível, senão 24h)
   const teamPlayers = selectedTeamData.team?.players || [];
 
-  const getChange = (player: any) => player.change_7d ?? player.change_24h ?? 0;
+  const getChange = (player: any) => player.priceChange7d ?? player.change_7d ?? player.priceChange24h ?? player.change_24h ?? 0;
 
   const bestToken = teamPlayers.length > 0 ? teamPlayers.reduce((best, current) =>
     getChange(current) > getChange(best) ? current : best
@@ -871,12 +871,12 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
                     <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {bestToken.token.substring(0, 1)}
+                      {(bestToken.symbol || bestToken.token || '?').substring(0, 1)}
                     </div>
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{bestToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{bestToken.token}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{bestToken.symbol || bestToken.token}</p>
                     <p className="text-green-600 dark:text-green-400 font-bold">
                       {getChange(bestToken) >= 0 ? '+' : ''}{getChange(bestToken).toFixed(1)}%
                     </p>
@@ -893,12 +893,12 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
                     <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {worstToken.token.substring(0, 1)}
+                      {(worstToken.symbol || worstToken.token || '?').substring(0, 1)}
                     </div>
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{worstToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{worstToken.token}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{worstToken.symbol || worstToken.token}</p>
                     <p className="text-red-600 dark:text-red-400 font-bold">
                       {getChange(worstToken) >= 0 ? '+' : ''}{getChange(worstToken).toFixed(1)}%
                     </p>
@@ -915,12 +915,12 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
                     <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {neutralToken.token.substring(0, 1)}
+                      {(neutralToken.symbol || neutralToken.token || '?').substring(0, 1)}
                     </div>
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{neutralToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{neutralToken.token}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{neutralToken.symbol || neutralToken.token}</p>
                     <p className="text-blue-600 dark:text-blue-400 font-bold">
                       {getChange(neutralToken) >= 0 ? '+' : ''}{getChange(neutralToken).toFixed(1)}%
                     </p>
@@ -951,9 +951,9 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 {teamPlayers.map((player) => {
                   const change = getChange(player);
                   return (
-                    <TableRow key={player.token}>
+                    <TableRow key={player.symbol || player.token}>
                       <TableCell className="font-medium">{player.name}</TableCell>
-                      <TableCell>{player.token}</TableCell>
+                      <TableCell>{player.symbol || player.token}</TableCell>
                       <TableCell className={`text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {change >= 0 ? '+' : ''}{change.toFixed(1)}%
                       </TableCell>
@@ -1046,16 +1046,17 @@ export default function Dashboard() {
         createdAt: new Date(),
         updatedAt: new Date(),
         players: mainTeamData.players.map((player, index) => ({
-          id: player.token.toLowerCase(),
+          id: (player.symbol || player.token || '').toLowerCase(),
           position: index + 1,
           name: player.name,
-          token: player.token,
+          symbol: player.symbol || player.token,
+          token: player.symbol || player.token, // Manter para compatibilidade
           image: player.image || "",
           price: player.price,
           points: player.points || 0,
           rarity: (player.rarity || "common") as "common" | "legendary" | "epic" | "rare",
-          change_24h: player.change_24h || 0,
-          change_7d: player.change_7d || 0
+          change_24h: player.priceChange24h || player.change_24h || 0,
+          change_7d: player.priceChange7d || player.change_7d || 0
         }))
       } : undefined;
 
