@@ -212,11 +212,11 @@ export function TeamsContent() {
                 name: tokenDetail?.name || symbol,
                 token: symbol,
                 image: tokenDetail?.image || '',
-                price: tokenDetail?.price || 0,
+                price: tokenDetail?.currentPrice || 0,
                 points: 0,
                 rarity: 'common' as const,
-                change_24h: tokenDetail?.change_24h || 0,
-                change_7d: tokenDetail?.change_7d || 0
+                change_24h: tokenDetail?.priceChange24h || 0,
+                change_7d: tokenDetail?.priceChange7d || 0
               };
             });
             console.log('DEBUG checkPaymentAndLoadTeam: Players carregados:', loadedPlayers);
@@ -545,11 +545,11 @@ export function TeamsContent() {
               name: tokenDetail?.name || existingPlayer?.name || symbol,
               token: symbol,
               image: existingPlayer?.image || tokenDetail?.image || '', // Preservar imagem existente
-              price: tokenDetail?.price || existingPlayer?.price || 0,
+              price: tokenDetail?.currentPrice || existingPlayer?.price || 0,
               points: existingPlayer?.points || 0,
               rarity: (existingPlayer?.rarity as 'common' | 'rare' | 'epic' | 'legendary') || 'common',
-              change_24h: tokenDetail?.change_24h || existingPlayer?.change_24h || 0,
-              change_7d: tokenDetail?.change_7d || existingPlayer?.change_7d || 0
+              change_24h: tokenDetail?.priceChange24h || existingPlayer?.change_24h || 0,
+              change_7d: tokenDetail?.priceChange7d || existingPlayer?.change_7d || 0
             };
           });
           
