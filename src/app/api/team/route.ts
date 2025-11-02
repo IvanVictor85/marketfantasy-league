@@ -240,6 +240,7 @@ export async function POST(request: NextRequest) {
         tokens: JSON.parse(team.tokens),
         totalValue: teamValue,
         performance: team.totalScore || 0,
+        rank: team.rank || null,
         hasValidEntry: team.hasValidEntry,
         createdAt: team.createdAt,
         updatedAt: team.updatedAt
@@ -434,10 +435,11 @@ export async function GET(request: NextRequest) {
         tokens: teamTokens,
         totalValue: 0, // Calculate based on token prices if needed
         performance: team.totalScore || 0,
+        rank: team.rank || null,
         hasValidEntry: team.hasValidEntry,
         createdAt: team.createdAt,
         updatedAt: team.updatedAt,
-        tokenDetails: tokenDetails // ← ADICIONAR AQUI TAMBÉM!
+        tokenDetails: tokenDetails
       },
       tokenDetails: tokenDetails,
       league: {
