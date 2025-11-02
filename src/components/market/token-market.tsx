@@ -171,9 +171,13 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
     // Sort tokens
     filtered.sort((a, b) => {
       let comparison = 0;
-      
+
       if (sortBy === 'rank') {
-        comparison = a.rank - b.rank;
+        // Usa marketCapRank (novo nome padronizado) com fallback para rank (nome antigo)
+        // Tokens sem rank (null/undefined) vão para o fim da lista
+        const aRank = a.marketCapRank ?? a.rank ?? 999999;
+        const bRank = b.marketCapRank ?? b.rank ?? 999999;
+        comparison = aRank - bRank;
       } else if (sortBy === 'name') {
         comparison = a.name.localeCompare(b.name);
       } else if (sortBy === 'price') {
