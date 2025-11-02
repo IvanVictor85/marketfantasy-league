@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { type TokenMarketData } from '@/data/expanded-tokens';
 import { useTranslations } from 'next-intl';
+import { Player } from '@/types/teams';
 
 import { 
   User, 
@@ -17,17 +18,6 @@ import {
   Plus,
   X
 } from 'lucide-react';
-
-interface Player {
-  id: string;
-  position: number; // 1-10 (1 = goalkeeper, 2-4 = defenders, 5-7 = midfielders, 8-10 = forwards)
-  name: string;
-  token: string;
-  image?: string; // URL do logo oficial do token
-  price: number;
-  points: number;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
-}
 
 
 
@@ -169,7 +159,7 @@ export function SoccerField({
     }
   };
 
-  const totalValue = players.reduce((sum, player) => sum + (player.currentPrice || player.price || 0), 0);
+  const totalValue = players.reduce((sum, player) => sum + ((player.currentPrice || player.price || 0)), 0);
   const averagePoints = players.length > 0 ? players.reduce((sum, player) => sum + (player.points || 0), 0) / players.length : 0;
 
   return (
@@ -260,7 +250,7 @@ export function SoccerField({
                           ) : (
                             <>
                               <div className="text-sm font-bold text-gray-800 dark:text-white">{positionNum}</div>
-                              <div className="text-xs font-semibold text-card-foreground bg-card/80 px-1 rounded">{player.token}</div>
+                              <div className="text-xs font-semibold text-card-foreground bg-card/80 px-1 rounded">{(player.symbol || player.token || '?')}</div>
                             </>
                           )}
                         </div>
@@ -280,14 +270,14 @@ export function SoccerField({
                           {player.name}
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2 mt-1">
-                          <span className="font-mono">{player.token}</span>
+                          <span className="font-mono">{(player.symbol || player.token || '?')}</span>
                           {/* TODO: Substituir "rarity" por algo útil como "volatilidade" ou "categoria" */}
                           {/* <Badge variant="secondary" className={getRarityColor(player.rarity)}>
                             {player.rarity}
                           </Badge> */}
                         </div>
                         <div className="text-xs text-gray-600 mt-1">
-                          {formatPrice(player.currentPrice || player.price || 0)} • {player.points || 0} pts
+                          {formatPrice((player.currentPrice || player.price || 0))} • {player.points || 0} pts
                         </div>
                         <Button
                           size="sm"
@@ -306,7 +296,7 @@ export function SoccerField({
                       {/* Ticker abaixo do logo */}
                       {player.image && (
                         <div className="mt-1 text-xs font-bold text-white bg-black/80 px-2 py-0.5 rounded-full shadow-lg text-center mx-auto">
-                          {player.token}
+                          {(player.symbol || player.token || '?')}
                         </div>
                       )}
                     </div>
