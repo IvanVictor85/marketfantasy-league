@@ -393,29 +393,35 @@ export async function GET(request: NextRequest) {
 
         console.log(`✅ [TEAM-GET] ${marketData.length} tokens obtidos (incluindo ghosts se necessário)`);
 
-        // Mapear para formato esperado pela UI
+        // Mapear para formato esperado pela UI (padronizado com /api/market)
         tokenDetails = marketData.map(tokenData => ({
-          token: tokenData.symbol,
+          id: tokenData.id,
+          symbol: tokenData.symbol,
           name: tokenData.name,
           image: tokenData.image,
-          price: tokenData.current_price || 0, // ✅ Fallback para ghost tokens
-          change_24h: tokenData.price_change_percentage_24h || 0,
-          change_7d: tokenData.price_change_percentage_7d_in_currency || 0,
-          rarity: 'common' // Placeholder - pode ser calculado depois
+          currentPrice: tokenData.current_price || 0,
+          priceChange24h: tokenData.price_change_percentage_24h || 0,
+          priceChange7d: tokenData.price_change_percentage_7d_in_currency || 0,
+          marketCap: tokenData.market_cap || 0,
+          totalVolume: tokenData.total_volume || 0,
+          marketCapRank: tokenData.market_cap_rank || null
         }));
 
       } catch (error) {
         console.error('❌ [TEAM-GET] Erro ao buscar dados do CoinGecko:', error);
 
-        // Fallback para erro crítico: retornar tokens básicos
+        // Fallback para erro crítico: retornar tokens básicos (padronizado com /api/market)
         tokenDetails = teamTokens.map(symbol => ({
-          token: symbol,
+          id: `unknown-${symbol.toLowerCase()}`,
+          symbol: symbol,
           name: symbol,
           image: '/icons/token-placeholder.svg',
-          price: 0,
-          change_24h: 0,
-          change_7d: 0,
-          rarity: 'common'
+          currentPrice: 0,
+          priceChange24h: 0,
+          priceChange7d: 0,
+          marketCap: 0,
+          totalVolume: 0,
+          marketCapRank: null
         }));
       }
     }
