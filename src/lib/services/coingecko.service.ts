@@ -100,6 +100,8 @@ export const SYMBOL_TO_ID_MAP: Record<string, string> = {
   'WBTC': 'wrapped-bitcoin',
   'DAI': 'dai',
   'USDD': 'usdd',
+  'HYPE': 'hyperliquid',
+  'JLP': 'jupiter-perpetuals-liquidity-provider-token',
 };
 
 /**
@@ -217,7 +219,7 @@ export function createGhostToken(
     id: tokenId,
     symbol: symbol.toUpperCase(),
     name: 'Token Não Encontrado',
-    image: '/icons/token-placeholder.svg',
+    image: '/icons/coinx.svg',
     current_price: 0,
     price_change_percentage_24h: 0,
     price_change_percentage_7d_in_currency: 0,
@@ -243,7 +245,7 @@ export async function getMarketDataWithFallback(
 
   if (ids.length === 0) {
     console.warn('⚠️ Nenhum ID válido encontrado');
-    return symbols.map(s => createGhostToken(`unknown-${s.toLowerCase()}`, s));
+    return await Promise.all(symbols.map(s => createGhostToken(`unknown-${s.toLowerCase()}`, s)));
   }
 
   // Criar mapa símbolo → ID
@@ -269,7 +271,7 @@ export async function getMarketDataWithFallback(
 
     if (!tokenId) {
       // Símbolo não mapeado - criar ghost
-      result.push(createGhostToken(`unknown-${symbol.toLowerCase()}`, symbol));
+      result.push(await createGhostToken(`unknown-${symbol.toLowerCase()}`, symbol));
       continue;
     }
 
@@ -280,7 +282,7 @@ export async function getMarketDataWithFallback(
       result.push(apiToken);
     } else {
       // Token não retornado pela API (delistado) - criar ghost 👻
-      result.push(createGhostToken(tokenId, symbol));
+      result.push(await createGhostToken(tokenId, symbol));
     }
   }
 
