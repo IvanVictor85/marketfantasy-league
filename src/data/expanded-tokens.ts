@@ -1,24 +1,33 @@
 export interface TokenMarketData {
   id: string;
-  rank: number;
+  rank?: number;
   name: string;
   symbol: string;
   image: string;
-  price: number;
-  change_5m: number;
-  change_15m: number;
-  change_30m: number;
-  change_1h: number;
-  change_4h: number;
-  change_12h: number;
-  change_24h: number;
-  change_1d: number;
-  change_1w: number;
-  change_7d: number;
-  change_30d: number;
-  market_cap: number;
-  volume_24h: number;
-  circulating_supply: number;
+  // Padronizado com /api/market
+  currentPrice: number;
+  priceChange24h: number;
+  priceChange7d: number;
+  marketCap: number;
+  totalVolume: number;
+  marketCapRank?: number | null;
+
+  // Campos legados/extras (para compatibilidade com xStocks e outros componentes)
+  price?: number; // Alias para currentPrice
+  change_5m?: number;
+  change_15m?: number;
+  change_30m?: number;
+  change_1h?: number;
+  change_4h?: number;
+  change_12h?: number;
+  change_24h?: number; // Alias para priceChange24h
+  change_1d?: number;
+  change_1w?: number;
+  change_7d?: number; // Alias para priceChange7d
+  change_30d?: number;
+  market_cap?: number; // Alias para marketCap
+  volume_24h?: number; // Alias para totalVolume
+  circulating_supply?: number;
   rarity?: 'common' | 'rare' | 'epic' | 'legendary';
 }
 

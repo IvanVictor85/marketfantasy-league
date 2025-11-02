@@ -111,6 +111,14 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       name: xstock.name,
       symbol: xstock.symbol,
       image: xstock.image || '/icons/default-token.svg',
+      // NEW standardized field names (REQUIRED)
+      currentPrice: xstock.priceUsd || 0,
+      priceChange24h: xstock.change24h || 0,
+      priceChange7d: xstock.change7d || 0,
+      marketCap: xstock.marketCapUsd || 0,
+      totalVolume: xstock.volume24hUsd || 0,
+      marketCapRank: index + 1,
+      // OLD field names (OPTIONAL - for compatibility)
       price: xstock.priceUsd || 0,
       change_5m: 0,
       change_15m: 0,
@@ -169,16 +177,16 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       } else if (sortBy === 'name') {
         comparison = a.name.localeCompare(b.name);
       } else if (sortBy === 'price') {
-        comparison = a.price - b.price;
+        comparison = (a.currentPrice || a.price || 0) - (b.currentPrice || b.price || 0);
       } else if (sortBy === 'market_cap') {
-        comparison = a.market_cap - b.market_cap;
+        comparison = (a.marketCap || a.market_cap || 0) - (b.marketCap || b.market_cap || 0);
       } else if (sortBy.startsWith('change_')) {
         // Ordenação dinâmica baseada no período selecionado
         const aValue = a[sortBy as keyof typeof a] as number || 0;
         const bValue = b[sortBy as keyof typeof b] as number || 0;
         comparison = aValue - bValue;
       } else {
-        comparison = a.market_cap - b.market_cap;
+        comparison = (a.marketCap || a.market_cap || 0) - (b.marketCap || b.market_cap || 0);
       }
       
       return sortOrder === 'asc' ? comparison : -comparison;
@@ -561,33 +569,33 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                 </div>
                 
                 <div className="col-span-2 text-sm font-medium text-right dark:text-gray-100">
-                  {formatTokenPrice(token.price)}
+                  {formatTokenPrice(token.currentPrice || token.price || 0)}
                 </div>
-                
+
                 <div className="col-span-2 text-sm font-medium text-right">
-                  <span className={getPercentageColorClass(token.change_7d)}>
-                    {formatPercentage(token.change_7d)}
+                  <span className={getPercentageColorClass(token.priceChange7d || token.change_7d || 0)}>
+                    {formatPercentage(token.priceChange7d || token.change_7d || 0)}
                   </span>
                 </div>
                 
                 <div className="col-span-2 text-sm font-medium text-right">
                   <span className={getPercentageColorClass(
-                    selectedPeriod === 'oneHour' ? token.change_1h :
-                    selectedPeriod === 'twentyFourHour' ? token.change_24h :
-                    selectedPeriod === 'sevenDay' ? token.change_7d :
-                    selectedPeriod === 'thirtyDay' ? token.change_30d : 0
+                    selectedPeriod === 'oneHour' ? (token.change_1h || 0) :
+                    selectedPeriod === 'twentyFourHour' ? (token.priceChange24h || token.change_24h || 0) :
+                    selectedPeriod === 'sevenDay' ? (token.priceChange7d || token.change_7d || 0) :
+                    selectedPeriod === 'thirtyDay' ? (token.change_30d || 0) : 0
                   )}>
                     {formatPercentage(
-                      selectedPeriod === 'oneHour' ? token.change_1h :
-                      selectedPeriod === 'twentyFourHour' ? token.change_24h :
-                      selectedPeriod === 'sevenDay' ? token.change_7d :
-                      selectedPeriod === 'thirtyDay' ? token.change_30d : 0
+                      selectedPeriod === 'oneHour' ? (token.change_1h || 0) :
+                      selectedPeriod === 'twentyFourHour' ? (token.priceChange24h || token.change_24h || 0) :
+                      selectedPeriod === 'sevenDay' ? (token.priceChange7d || token.change_7d || 0) :
+                      selectedPeriod === 'thirtyDay' ? (token.change_30d || 0) : 0
                     )}
                   </span>
                 </div>
-                
+
                 <div className="col-span-2 text-sm font-medium text-right flex items-center justify-end gap-2">
-                  <span className="dark:text-gray-100">{formatMarketCap(token.market_cap)}</span>
+                  <span className="dark:text-gray-100">{formatMarketCap(token.marketCap || token.market_cap || 0)}</span>
                   <Button
                     size="sm"
                     variant={isUsed ? "destructive" : isSelected ? "default" : "outline"}
@@ -692,29 +700,29 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
                   <div className="mt-2 grid grid-cols-3 gap-3 text-xs">
                     <div className="text-center">
                       <div className="text-gray-500 dark:text-gray-400 mb-1">Preço</div>
-                      <div className="font-medium dark:text-gray-100">{formatTokenPrice(token.price)}</div>
+                      <div className="font-medium dark:text-gray-100">{formatTokenPrice(token.currentPrice || token.price || 0)}</div>
                     </div>
                     <div className="text-center">
                       <div className="text-gray-500 dark:text-gray-400 mb-1">
                         {timePeriods.find(p => p.value === selectedPeriod)?.label || 'N/A'} %
                       </div>
                       <div className={`font-medium ${getPercentageColorClass(
-                        selectedPeriod === 'oneHour' ? token.change_1h :
-                        selectedPeriod === 'twentyFourHour' ? token.change_24h :
-                        selectedPeriod === 'sevenDay' ? token.change_7d :
-                        selectedPeriod === 'thirtyDay' ? token.change_30d : 0
+                        selectedPeriod === 'oneHour' ? (token.change_1h || 0) :
+                        selectedPeriod === 'twentyFourHour' ? (token.priceChange24h || token.change_24h || 0) :
+                        selectedPeriod === 'sevenDay' ? (token.priceChange7d || token.change_7d || 0) :
+                        selectedPeriod === 'thirtyDay' ? (token.change_30d || 0) : 0
                       )}`}>
                         {formatPercentage(
-                          selectedPeriod === 'oneHour' ? token.change_1h :
-                          selectedPeriod === 'twentyFourHour' ? token.change_24h :
-                          selectedPeriod === 'sevenDay' ? token.change_7d :
-                          selectedPeriod === 'thirtyDay' ? token.change_30d : 0
+                          selectedPeriod === 'oneHour' ? (token.change_1h || 0) :
+                          selectedPeriod === 'twentyFourHour' ? (token.priceChange24h || token.change_24h || 0) :
+                          selectedPeriod === 'sevenDay' ? (token.priceChange7d || token.change_7d || 0) :
+                          selectedPeriod === 'thirtyDay' ? (token.change_30d || 0) : 0
                         )}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-gray-500 dark:text-gray-400 mb-1">MCAP</div>
-                      <div className="font-medium dark:text-gray-100">{formatMarketCap(token.market_cap)}</div>
+                      <div className="font-medium dark:text-gray-100">{formatMarketCap(token.marketCap || token.market_cap || 0)}</div>
                     </div>
                   </div>
                 </div>
