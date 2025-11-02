@@ -399,7 +399,7 @@ export async function GET(request: NextRequest) {
           id: tokenData.id,
           symbol: tokenData.symbol,
           name: tokenData.name,
-          image: tokenData.image,
+          image: tokenData.image || '/icons/coinx.svg', // Fallback para tokens sem imagem
           currentPrice: tokenData.current_price || 0,
           priceChange24h: tokenData.price_change_percentage_24h || 0,
           priceChange7d: tokenData.price_change_percentage_7d_in_currency || 0,
@@ -416,7 +416,7 @@ export async function GET(request: NextRequest) {
           id: `unknown-${symbol.toLowerCase()}`,
           symbol: symbol,
           name: symbol,
-          image: '/icons/token-placeholder.svg',
+          image: '/icons/coinx.svg',
           currentPrice: 0,
           priceChange24h: 0,
           priceChange7d: 0,

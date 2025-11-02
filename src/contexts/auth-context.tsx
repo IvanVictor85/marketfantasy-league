@@ -110,18 +110,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.email, user?.loginMethod, connected, publicKey, disconnect]);
 
   useEffect(() => {
-    console.log('🔄 [WALLET-CHANGE] Estado da carteira mudou:', { 
-      connected, 
-      publicKey: publicKey?.toString(), 
-      user: user?.email, 
-      loginMethod: user?.loginMethod 
+    console.log('🔄 [WALLET-CHANGE] Estado da carteira mudou:', {
+      connected,
+      publicKey: publicKey?.toString(),
+      user: user?.email,
+      userPublicKey: user?.publicKey,
+      loginMethod: user?.loginMethod
     });
-    
-    // Se carteira conectou e usuário está logado por wallet
-    if (connected && publicKey && user?.loginMethod === 'wallet') {
-      console.log('✅ [WALLET-CHANGE] Atualizando endereço da carteira no usuário');
-      setUser(prev => prev ? { ...prev, publicKey: publicKey.toString() } : null);
-    } 
+
+    // 🔒 SEGURANÇA: Detectar troca de carteira (endereço diferente)
+    if (connected && publicKey && user?.loginMethod === 'wallet' && user?.publicKey) {
+      const currentWallet = publicKey.toString();
+      const savedWallet = user.publicKey;
+
+      if (currentWallet !== savedWallet) {
+        console.log('🚨 [WALLET-CHANGE] CARTEIRA TROCADA! Forçando logout por segurança:', {
+          savedWallet,
+          currentWallet
+        });
+        logout();
+        return;
+      }
+
+      console.log('✅ [WALLET-CHANGE] Mesma carteira - atualizando dados');
+      setUser(prev => prev ? { ...prev, publicKey: currentWallet } : null);
+    }
     // Se carteira desconectou e usuário estava logado por wallet
     else if (!connected && user?.loginMethod === 'wallet') {
       console.log('🚪 [WALLET-CHANGE] Carteira desconectada - fazendo logout');
@@ -134,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // A vinculação deve ser feita manualmente pelo usuário
       console.log('🔒 [WALLET-CHANGE] Sistema de segurança ativo - carteira não será vinculada automaticamente');
     }
-  }, [connected, publicKey, user?.loginMethod, user?.email, logout, disconnect]);
+  }, [connected, publicKey, user?.loginMethod, user?.email, user?.publicKey, logout, disconnect]);
 
   const sendVerificationCode = async (email: string): Promise<SendCodeResponse> => {
     try {
