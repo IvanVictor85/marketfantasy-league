@@ -398,7 +398,7 @@ export async function GET(request: NextRequest) {
           token: tokenData.symbol,
           name: tokenData.name,
           image: tokenData.image,
-          price: tokenData.current_price,
+          price: tokenData.current_price || 0, // ✅ Fallback para ghost tokens
           change_24h: tokenData.price_change_percentage_24h || 0,
           change_7d: tokenData.price_change_percentage_7d_in_currency || 0,
           rarity: 'common' // Placeholder - pode ser calculado depois
