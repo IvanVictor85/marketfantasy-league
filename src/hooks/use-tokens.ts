@@ -14,14 +14,14 @@ export type Token = TokenMarketData;
  */
 const fetchTokens = async (): Promise<TokenMarketData[]> => {
   try {
-    // ✅ Chama a API Route interna que busca dados da CoinGecko
-    const response = await fetch('/api/tokens');
-    
+    // ✅ Chama a nova API Route /api/market (Static Draft Universe)
+    const response = await fetch('/api/market');
+
     // ✅ CORREÇÃO CRÍTICA: Lançar erro se a resposta não for 2xx
     if (!response.ok) {
       // Tenta ler a mensagem de erro da API, se houver
       let errorMessage = `${response.status} ${response.statusText}`;
-      
+
       try {
         const errorData = await response.json();
         if (errorData.error) {
@@ -30,24 +30,28 @@ const fetchTokens = async (): Promise<TokenMarketData[]> => {
       } catch {
         // Se não conseguir parsear o JSON, usa a mensagem padrão
       }
-      
+
       throw new Error(`API Error: ${errorMessage}`);
     }
 
     const data = await response.json();
-    
+
+    // ✅ Nova API retorna { tokens: [...], competition: {...}, count: N }
+    // Extrair apenas o array de tokens
+    const tokensArray = data.tokens || data;
+
     // ✅ Validação adicional: Garante que os dados são um array
-    if (!Array.isArray(data)) {
+    if (!Array.isArray(tokensArray)) {
       console.error('Formato inesperado de dados:', data);
       throw new Error('Formato de dados inválido: esperado um array de tokens');
     }
-    
-    return data;
+
+    return tokensArray;
 
   } catch (error) {
     // ✅ Log detalhado para debug
     console.error('❌ Erro ao buscar tokens:', error);
-    
+
     // Re-lança o erro para o React Query poder capturá-lo
     throw error;
   }
