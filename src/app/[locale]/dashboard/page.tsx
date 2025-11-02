@@ -1051,7 +1051,7 @@ export default function Dashboard() {
           name: player.name,
           symbol: player.symbol || player.token,
           token: player.symbol || player.token, // Manter para compatibilidade
-          image: player.image || "",
+          image: player.image || '/icons/coinx.svg',
           currentPrice: player.currentPrice || player.price || 0,
           price: player.currentPrice || player.price || 0, // Manter para compatibilidade
           points: player.points || 0,

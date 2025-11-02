@@ -110,7 +110,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
       rank: index + 1,
       name: xstock.name,
       symbol: xstock.symbol,
-      image: xstock.image || '/icons/default-token.svg',
+      image: xstock.image || '/icons/coinx.svg',
       // NEW standardized field names (REQUIRED)
       currentPrice: xstock.priceUsd || 0,
       priceChange24h: xstock.change24h || 0,

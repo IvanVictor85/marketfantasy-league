@@ -212,7 +212,7 @@ export function TeamsContent() {
                 name: tokenDetail?.name || symbol,
                 symbol: symbol,
                 token: symbol,
-                image: tokenDetail?.image || '',
+                image: tokenDetail?.image || '/icons/coinx.svg',
                 currentPrice: tokenDetail?.currentPrice || tokenDetail?.price || 0,
                 price: tokenDetail?.currentPrice || tokenDetail?.price || 0,
                 points: 0,
@@ -556,7 +556,7 @@ export function TeamsContent() {
               name: tokenDetail?.name || existingPlayer?.name || symbol,
               symbol: symbol,
               token: symbol,
-              image: existingPlayer?.image || tokenDetail?.image || '', // Preservar imagem existente
+              image: existingPlayer?.image || tokenDetail?.image || '/icons/coinx.svg', // Preservar imagem existente
               currentPrice: tokenDetail?.currentPrice || tokenDetail?.price || existingPlayer?.currentPrice || existingPlayer?.price || 0,
               price: tokenDetail?.currentPrice || tokenDetail?.price || existingPlayer?.currentPrice || existingPlayer?.price || 0,
               points: existingPlayer?.points || 0,
