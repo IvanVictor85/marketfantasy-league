@@ -376,7 +376,7 @@ export default function AnalisePage() {
 Estamos atualizando nossa integração com o Gemini AI para trazer análises ainda melhores para você!
 
 **Seu Time:**
-${mainTeam.map((p, i) => `${i + 1}. ${p.token} - ${(p.priceChange24h || p.change_24h) !== undefined ? ((p.priceChange24h || p.change_24h || 0) >= 0 ? '+' : '') + (p.priceChange24h || p.change_24h || 0).toFixed(2) + '% (24h)' : 'N/A'}`).join('\n')}
+${mainTeam.map((p, i) => `${i + 1}. ${p.symbol || p.token || '?'} - ${(p.priceChange24h || p.change_24h) !== undefined ? ((p.priceChange24h || p.change_24h || 0) >= 0 ? '+' : '') + (p.priceChange24h || p.change_24h || 0).toFixed(2) + '% (24h)' : 'N/A'}`).join('\n')}
 
 **Em breve você poderá:**
 ✅ Receber análise detalhada do seu portfólio
@@ -769,10 +769,10 @@ Agradecemos sua compreensão! 🙏`)
                       {mainTeam.map((player, index) => (
                         <div key={index} className="flex items-center space-x-2 bg-white rounded p-2 border border-slate-200">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                            {player.token.slice(0, 2)}
+                            {(player.symbol || player.token || '?').slice(0, 2)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-900 truncate">{player.token}</p>
+                            <p className="text-xs font-medium text-slate-900 truncate">{player.symbol || player.token || '?'}</p>
                           </div>
                         </div>
                       ))}
