@@ -1,139 +1,61 @@
 /**
- * Verifica se a rodada/competição está EM ANDAMENTO (bloqueada para edição).
+ * Verifica se a rodada de competição está atualmente em andamento (edição bloqueada).
  *
- * LÓGICA DE NEGÓCIO (Horário de Brasília - UTC-3):
+ * As regras de negócio são baseadas no fuso horário de Brasília (BRT, UTC-3):
+ * - DRAFT (Edição PERMITIDA): Sexta 21:00 BRT até Domingo 21:00 BRT.
+ * - ATIVA (Edição BLOQUEADA): Domingo 21:00 BRT até Sexta 21:00 BRT.
  *
- * 📅 PERÍODO DE DRAFT (Edição PERMITIDA):
- *    - Sexta-feira das 21h em diante
- *    - Sábado (dia todo)
- *    - Domingo até às 21h
- *    → Retorna FALSE (não está em andamento = pode editar)
+ * O servidor Vercel roda em UTC. Vamos converter as regras para UTC:
+ * - DRAFT (PERMITIDA): Sábado 00:00 UTC até Segunda 00:00 UTC.
+ * - ATIVA (BLOQUEADA): Segunda 00:00 UTC até Sábado 00:00 UTC.
  *
- * 🏆 PERÍODO DE COMPETIÇÃO (Edição BLOQUEADA):
- *    - Domingo das 21h em diante
- *    - Segunda, Terça, Quarta, Quinta (dias inteiros)
- *    - Sexta até às 20h59
- *    → Retorna TRUE (está em andamento = bloqueado)
- *
- * IMPORTANTE:
- * - Usa Intl.DateTimeFormat para obter dia da semana e hora no fuso correto
- * - Seguro para rodar tanto no cliente quanto no servidor
- * - A verificação é feita em tempo real (não usa cache)
- *
- * @returns {boolean} - True se a rodada estiver EM ANDAMENTO (bloqueada), false se é Draft (editável).
+ * @param now A data/hora atual (o padrão é a hora do servidor, que é UTC).
+ * @returns {boolean} Retorna `true` se a rodada estiver ATIVA (bloqueada), `false` se estiver em DRAFT (permitida).
  */
-export function isRodadaEmAndamento(): boolean {
-  const fusoHorario = 'America/Sao_Paulo';
-  const now = new Date();
+export function isRodadaEmAndamento(now = new Date()): boolean {
+  
+  // getUTCDay() retorna 0 para Domingo, 1 para Segunda, ..., 6 para Sábado.
+  const diaDaSemanaUTC = now.getUTCDay();
 
-  // Obtém o dia da semana e a hora no fuso horário de São Paulo
-  const formatterDia = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: fusoHorario,
-    weekday: 'long', // 'domingo', 'segunda-feira', etc.
-  });
-
-  const formatterHora = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: fusoHorario,
-    hour12: false,
-    hour: 'numeric',
-  });
-
-  const diaDaSemanaNome = formatterDia.format(now).toLowerCase();
-  const horaAtualStr = formatterHora.format(now);
-  const horaAtual = parseInt(horaAtualStr);
-
-  // Mapear nome do dia para número (Domingo = 0, Segunda = 1, ..., Sábado = 6)
-  const diasMap = {
-    'domingo': 0,
-    'segunda-feira': 1,
-    'terça-feira': 2,
-    'quarta-feira': 3,
-    'quinta-feira': 4,
-    'sexta-feira': 5,
-    'sábado': 6,
-  };
-
-  const diaDaSemana = diasMap[diaDaSemanaNome] ?? 0;
-
-  // --- PERÍODO DE DRAFT (Edição PERMITIDA - retorna FALSE) ---
-
-  // Sexta-feira (5) depois das 21h
-  if (diaDaSemana === 5 && horaAtual >= 21) {
-    return false; // É Draft - edição PERMITIDA
+  // --- Período de DRAFT (Edição PERMITIDA) ---
+  // O DRAFT acontece no Sábado (6) e no Domingo (0), no horário UTC.
+  if (diaDaSemanaUTC === 6 || diaDaSemanaUTC === 0) {
+    return false; // Edição PERMITIDA
   }
 
-  // Sábado (6) o dia todo
-  if (diaDaSemana === 6) {
-    return false; // É Draft - edição PERMITIDA
-  }
-
-  // Domingo (0) antes das 21h
-  if (diaDaSemana === 0 && horaAtual < 21) {
-    return false; // É Draft - edição PERMITIDA
-  }
-
-  // --- PERÍODO DE COMPETIÇÃO (Edição BLOQUEADA - retorna TRUE) ---
-  // Se não caiu em nenhuma das regras acima, a rodada está em andamento.
-  // Ex: Domingo 21h+, Segunda, Terça, Quarta, Quinta, Sexta antes das 21h
-  return true; // Rodada em andamento - edição BLOQUEADA
+  // --- Período de Competição ATIVA (Edição BLOQUEADA) ---
+  // Se for Segunda (1), Terça (2), Quarta (3), Quinta (4), ou Sexta (5) (UTC).
+  return true; // Edição BLOQUEADA
 }
 
 /**
  * Retorna informações detalhadas sobre o estado da rodada.
  * Útil para debugging e mensagens ao usuário.
  */
-export function getRodadaInfo(): {
+export function getRodadaInfo(now = new Date()): {
   isEmAndamento: boolean;
   isEditavel: boolean;
   diaDaSemana: number;
-  horaAtual: number;
   message: string;
 } {
-  const fusoHorario = 'America/Sao_Paulo';
-  const now = new Date();
-
-  const formatterDia = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: fusoHorario,
-    weekday: 'long',
-  });
-
-  const formatterHora = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: fusoHorario,
-    hour12: false,
-    hour: 'numeric',
-  });
-
-  const diaDaSemanaNome = formatterDia.format(now).toLowerCase();
-  const horaAtualStr = formatterHora.format(now);
-  const horaAtual = parseInt(horaAtualStr);
-
-  const diasMap = {
-    'domingo': 0,
-    'segunda-feira': 1,
-    'terça-feira': 2,
-    'quarta-feira': 3,
-    'quinta-feira': 4,
-    'sexta-feira': 5,
-    'sábado': 6,
-  };
-
-  const diaDaSemana = diasMap[diaDaSemanaNome] ?? 0;
-
-  const isEmAndamento = isRodadaEmAndamento();
+  const diaDaSemanaUTC = now.getUTCDay();
+  const isEmAndamento = isRodadaEmAndamento(now);
   const isEditavel = !isEmAndamento;
+
+  const diasNomes = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  const diaAtual = diasNomes[diaDaSemanaUTC];
 
   let message = '';
   if (isEditavel) {
-    message = 'Período de Draft - Edição Permitida (Sexta 21h até Domingo 21h)';
+    message = `Período de Draft - Edição Permitida (Sábado/Domingo UTC = Sexta 21h até Domingo 21h BRT). Hoje é ${diaAtual} UTC.`;
   } else {
-    message = 'Rodada em Andamento - Edição Bloqueada (Domingo 21h até Sexta 21h)';
+    message = `Rodada em Andamento - Edição Bloqueada (Segunda a Sexta UTC = Domingo 21h até Sexta 21h BRT). Hoje é ${diaAtual} UTC.`;
   }
 
   return {
     isEmAndamento,
     isEditavel,
-    diaDaSemana,
-    horaAtual,
+    diaDaSemana: diaDaSemanaUTC,
     message,
   };
 }
