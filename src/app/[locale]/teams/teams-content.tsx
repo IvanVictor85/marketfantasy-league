@@ -344,8 +344,8 @@ export function TeamsContent() {
         // Atualizar players com logos do CoinGecko
         setPlayers(prevPlayers => {
           return prevPlayers.map(player => {
-            const tokenData = allTokens.find((token: any) => 
-              token.symbol.toUpperCase() === player.token.toUpperCase()
+            const tokenData = allTokens.find((token: any) =>
+              token.symbol.toUpperCase() === (player.symbol || player.token || '').toUpperCase()
             );
             
             if (tokenData) {
@@ -381,7 +381,7 @@ export function TeamsContent() {
     console.log('🎯 Adicionando token ao campo:', { token: token.symbol, position });
     
     // Verificar se o token já está sendo usado em outra posição
-    const isTokenAlreadyUsed = players.some(p => p.token === token.symbol && p.position !== position);
+    const isTokenAlreadyUsed = players.some(p => (p.symbol || p.token) === token.symbol && p.position !== position);
     if (isTokenAlreadyUsed) {
       setPaymentError(`O token ${token.symbol} já está sendo usado em outra posição.`);
       setTimeout(() => setPaymentError(null), 3000);
@@ -498,7 +498,7 @@ export function TeamsContent() {
     try {
       const tokens = players
         .sort((a, b) => a.position - b.position)
-        .map(player => player.token);
+        .map(player => player.symbol || player.token || '');
 
       console.log('📋 handleSaveTeam: Tokens preparados:', tokens);
 
@@ -547,8 +547,8 @@ export function TeamsContent() {
           console.log('🔄 handleSaveTeam: Atualizando players com dados da API');
           
           const updatedPlayers: Player[] = data.team.tokens.map((symbol: string, index: number) => {
-            const tokenDetail = data.tokenDetails.find((t: any) => t.token === symbol);
-            const existingPlayer = players.find(p => p.token === symbol);
+            const tokenDetail = data.tokenDetails.find((t: any) => t.symbol === symbol || t.token === symbol);
+            const existingPlayer = players.find(p => (p.symbol || p.token) === symbol);
 
             return {
               id: symbol, // Usar símbolo como ID para consistência
@@ -614,7 +614,7 @@ export function TeamsContent() {
   };
 
   // Obter tokens já utilizados
-  const usedTokens = players.map(p => p.token);
+  const usedTokens = players.map(p => p.symbol || p.token || '');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
@@ -938,7 +938,7 @@ export function TeamsContent() {
                       return (
                         <>
                           <div className="text-lg font-bold text-green-600">
-                            {best.token}
+                            {best.symbol || best.token || '?'}
                           </div>
                           <div className="text-xs text-green-600 dark:text-green-400">
                             +{(best.priceChange7d || best.change_7d || 0).toFixed(1)}%
@@ -966,7 +966,7 @@ export function TeamsContent() {
                       return (
                         <>
                           <div className="text-lg font-bold text-red-600">
-                            {worst.token}
+                            {worst.symbol || worst.token || '?'}
                           </div>
                           <div className="text-xs text-red-600">
                             {(worst.priceChange7d || worst.change_7d || 0).toFixed(1)}%
