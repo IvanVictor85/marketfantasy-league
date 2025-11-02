@@ -328,12 +328,16 @@ export default function AnalisePage() {
               id: `player-${index}`,
               position: index + 1,
               name: tokenData.name || tokenData.symbol || data.team.tokens[index],
+              symbol: tokenData.symbol || data.team.tokens[index],
               token: tokenData.symbol || data.team.tokens[index],
               image: tokenData.image,
+              currentPrice: tokenData.currentPrice || tokenData.current_price || 0,
               price: tokenData.currentPrice || tokenData.current_price || 0,
               points: 0,
               rarity: 'common' as const,
+              priceChange24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
               change_24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
+              priceChange7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
               change_7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0
             };
           });

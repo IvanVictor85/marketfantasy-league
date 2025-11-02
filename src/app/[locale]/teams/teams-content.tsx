@@ -210,12 +210,16 @@ export function TeamsContent() {
                 id: symbol, // Usar símbolo como ID para consistência
                 position: index + 1,
                 name: tokenDetail?.name || symbol,
+                symbol: symbol,
                 token: symbol,
                 image: tokenDetail?.image || '',
+                currentPrice: tokenDetail?.currentPrice || tokenDetail?.price || 0,
                 price: tokenDetail?.currentPrice || tokenDetail?.price || 0,
                 points: 0,
                 rarity: 'common' as const,
+                priceChange24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || 0,
                 change_24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || 0,
+                priceChange7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || 0,
                 change_7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || 0
               };
             });
@@ -349,8 +353,11 @@ export function TeamsContent() {
                 ...player,
                 image: tokenData.image,
                 name: tokenData.name,
+                currentPrice: tokenData.currentPrice || tokenData.current_price || 0,
                 price: tokenData.currentPrice || tokenData.current_price || 0,
+                priceChange24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
                 change_24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
+                priceChange7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
                 change_7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
                 points: Math.round(((tokenData.currentPrice || tokenData.current_price || 0) * 0.1) + ((tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0) * 0.5)) // Recalcular pontos
               };
@@ -385,12 +392,16 @@ export function TeamsContent() {
       id: token.symbol, // Usar o símbolo como ID para consistência
       position,
       name: token.name,
+      symbol: token.symbol,
       token: token.symbol,
       image: token.image,
+      currentPrice: token.currentPrice || token.price || 0,
       price: token.currentPrice || token.price || 0,
       points: Math.round(((token.currentPrice || token.price || 0) * 0.1) + ((token.priceChange24h || token.change_24h || 0) * 0.5)), // Calcular pontos baseado no preço e performance
       rarity: 'common',
+      priceChange24h: token.priceChange24h || token.change_24h || 0,
       change_24h: token.priceChange24h || token.change_24h || 0,
+      priceChange7d: token.priceChange7d || token.change_7d || 0,
       change_7d: token.priceChange7d || token.change_7d || 0
     };
 
@@ -543,13 +554,17 @@ export function TeamsContent() {
               id: symbol, // Usar símbolo como ID para consistência
               position: index + 1,
               name: tokenDetail?.name || existingPlayer?.name || symbol,
+              symbol: symbol,
               token: symbol,
               image: existingPlayer?.image || tokenDetail?.image || '', // Preservar imagem existente
-              price: tokenDetail?.currentPrice || tokenDetail?.price || existingPlayer?.price || 0,
+              currentPrice: tokenDetail?.currentPrice || tokenDetail?.price || existingPlayer?.currentPrice || existingPlayer?.price || 0,
+              price: tokenDetail?.currentPrice || tokenDetail?.price || existingPlayer?.currentPrice || existingPlayer?.price || 0,
               points: existingPlayer?.points || 0,
               rarity: (existingPlayer?.rarity as 'common' | 'rare' | 'epic' | 'legendary') || 'common',
-              change_24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || existingPlayer?.change_24h || 0,
-              change_7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || existingPlayer?.change_7d || 0
+              priceChange24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || existingPlayer?.priceChange24h || existingPlayer?.change_24h || 0,
+              change_24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || existingPlayer?.priceChange24h || existingPlayer?.change_24h || 0,
+              priceChange7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || existingPlayer?.priceChange7d || existingPlayer?.change_7d || 0,
+              change_7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || existingPlayer?.priceChange7d || existingPlayer?.change_7d || 0
             };
           });
           
