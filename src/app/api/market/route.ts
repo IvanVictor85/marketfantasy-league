@@ -81,11 +81,13 @@ export async function GET(request: Request) {
     const tokens = competition.tokens.map(competitionToken => {
       const liveData = priceMap.get(competitionToken.tokenId);
 
+      const imageUrl = competitionToken.imageUrl || liveData?.image || '/icons/coinx.svg';
       return {
         id: competitionToken.tokenId,
         symbol: competitionToken.symbol,
         name: competitionToken.name,
-        image: competitionToken.imageUrl,
+        image: imageUrl,
+        logoUrl: imageUrl, // Compatibilidade com market-analysis.ts
         currentPrice: liveData?.current_price || 0,
         priceChange24h: liveData?.price_change_percentage_24h || 0,
         priceChange7d: liveData?.price_change_percentage_7d_in_currency || 0,
