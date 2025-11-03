@@ -11,6 +11,7 @@ import { RankingTable } from '@/components/dashboard/ranking-table';
 import { LocalizedLink } from '@/components/ui/localized-link';
 import { useTranslations } from 'next-intl';
 
+import { useRoundTimer } from '@/hooks/useRoundTimer';
 interface Team {
   id: string;
   teamName: string;
@@ -36,6 +37,56 @@ interface League {
   name: string;
   leagueType: string;
   isActive: boolean;
+}
+
+
+// Componente para exibir o timer da rodada
+function RoundTimerCard({ leagueId }: { leagueId: string }) {
+  const t = useTranslations('teams');
+  const tCommon = useTranslations('common');
+  const { formatTime, loading, isExpired } = useRoundTimer({ leagueId: leagueId || 'main-league' });
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center text-muted-foreground">
+            <Clock className="h-5 w-5 mr-2 animate-pulse" />
+            <span className="text-sm">{tCommon('loading')}</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isExpired) {
+    return (
+      <Card className="border-red-200 bg-red-50">
+        <CardContent className="p-4">
+          <div className="flex items-center text-red-700">
+            <Clock className="h-5 w-5 mr-2" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold">🔴 {t('roundInProgressTime')}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-green-200 bg-green-50">
+      <CardContent className="p-4">
+        <div className="flex items-center text-green-700">
+          <Clock className="h-5 w-5 mr-2" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">🟢 {t('nextRoundStartsIn')}</p>
+            <p className="text-lg font-bold">{formatTime()}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function RankingPage() {
@@ -251,6 +302,9 @@ export default function RankingPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Timer da Rodada */}
+          <RoundTimerCard leagueId={selectedLeagueId} />
 
           <Card>
             <CardHeader>
