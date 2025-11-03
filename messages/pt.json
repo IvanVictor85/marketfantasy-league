@@ -113,7 +113,7 @@
     "teamNameHelp": "O nome do time é baseado no seu nome de usuário. Você pode alterá-lo na página de perfil.",
     "paymentConfirmed": "Pagamento confirmado",
     "nextRoundStartsIn": "Próxima rodada inicia em:",
-    "roundInProgressTime": "Rodada em andamento (21:00-08:59)"
+    "roundInProgressTime": "Rodada em andamento (Dom 21h - Sex 21h BRT)"
   },
   "market": {
     "title": "Mercado de Tokens",
