@@ -5,11 +5,11 @@ import { prisma } from '@/lib/prisma';
  * POST /api/cron/competition-start
  *
  * Cron job otimizado para Vercel Hobby Plan (executa semanalmente):
- * - Executado todo domingo às 21:00 BRT
+ * - Executado toda segunda às 00:00 UTC (domingo 21:00 BRT)
  * - Inicia competições pendentes que devem começar
  * - Cria snapshot inicial dos preços dos tokens
  *
- * Schedule: "0 21 * * 0" (Todo domingo às 21:00 UTC)
+ * Schedule: "0 0 * * 1" (Segunda 00:00 UTC = Domingo 21:00 BRT)
  *
  * Vercel Hobby Plan: Permite apenas crons diários (1x/dia)
  * Solução: Usar cron semanal + polling no frontend
