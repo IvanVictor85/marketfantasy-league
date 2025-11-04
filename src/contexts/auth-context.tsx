@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import bs58 from 'bs58';
 // import { signIn, getSession } from 'next-auth/react'; // Temporariamente desabilitado
 import { SendCodeResponse, User, AuthContextType } from '@/types/auth';
 
@@ -248,71 +249,118 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setIsLoading(true);
     try {
-      console.log('🔗 [WALLET-LOGIN] Iniciando login com carteira:', publicKey.toString());
+      console.log('🔐 [SIWS] Iniciando Sign-In with Solana...');
+      console.log('   Carteira:', publicKey.toString());
+
+      // ==================================================
+      // ETAPA 1: OBTER NONCE DO BACKEND
+      // ==================================================
+      console.log('📝 [SIWS] Etapa 1: Solicitando nonce...');
       
-      // VALIDAR NO BACKEND se carteira já está em uso
-      const response = await fetch('/api/wallet/connect', {
+      const nonceResponse = await fetch('/api/auth/nonce');
+      if (!nonceResponse.ok) {
+        throw new Error('Falha ao obter nonce do servidor');
+      }
+
+      const { nonce } = await nonceResponse.json();
+      console.log('✅ [SIWS] Nonce recebido:', nonce);
+
+      // ==================================================
+      // ETAPA 2: CRIAR MENSAGEM DE ASSINATURA
+      // ==================================================
+      const walletAddress = publicKey.toString();
+      
+      // CRÍTICO: Esta mensagem DEVE SER IDÊNTICA à do backend!
+      const message = `Bem-vindo ao MFL!
+
+Clique para assinar e provar que você é o dono desta carteira.
+
+Isso não custará nenhum SOL.
+
+ID de Desafio (Nonce): ${nonce}
+Carteira: ${walletAddress}`;
+
+      console.log('📜 [SIWS] Etapa 2: Mensagem criada');
+      const encodedMessage = new TextEncoder().encode(message);
+
+      // ==================================================
+      // ETAPA 3: SOLICITAR ASSINATURA DO USUÁRIO
+      // ==================================================
+      console.log('✍️ [SIWS] Etapa 3: Solicitando assinatura da carteira...');
+      
+      // Verificar se a carteira suporta signMessage
+      if (!wallet.signMessage) {
+        throw new Error('Esta carteira não suporta assinatura de mensagens');
+      }
+
+      const signature = await wallet.signMessage(encodedMessage);
+      const signatureBase58 = bs58.encode(signature);
+      
+      console.log('✅ [SIWS] Assinatura obtida');
+
+      // ==================================================
+      // ETAPA 4: VERIFICAR ASSINATURA NO BACKEND
+      // ==================================================
+      console.log('🔐 [SIWS] Etapa 4: Verificando assinatura no servidor...');
+      
+      const verifyResponse = await fetch('/api/auth/verify-wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          publicKey: publicKey.toString()
+          nonce,
+          signature: signatureBase58,
+          publicKey: walletAddress
         })
       });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        if (response.status === 409) {
-          // Carteira em uso
-          console.error('❌ [WALLET-LOGIN] Carteira já em uso:', result);
-          throw new Error(result.error || 'Esta carteira já está conectada a outra conta');
-        }
-        throw new Error(result.error || 'Erro ao validar carteira');
-      }
-      
-      console.log('✅ [WALLET-LOGIN] Carteira validada com sucesso');
-      
-      // Se a carteira já está conectada a um usuário, usar os dados dele
-      if (result.user) {
-        console.log('✅ [WALLET-LOGIN] Carteira já conectada, usando dados existentes');
-        const userData: User = {
-          id: result.user.id,
-          email: result.user.email,
-          publicKey: result.user.publicKey,
-          name: result.user.name || `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`,
-          loginMethod: 'wallet',
-          avatar: result.user.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`,
-          twitter: result.user.twitter,
-          discord: result.user.discord,
-          bio: result.user.bio
-        };
-        
-        setUser(userData);
-        localStorage.setItem('mfl_user', JSON.stringify(userData));
-        
-        // Armazenar token se fornecido
-        if (result.token) {
-          localStorage.setItem('auth-token', result.token);
-        }
-      } else {
-        // Carteira nova - criar usuário temporário
-        console.log('✅ [WALLET-LOGIN] Carteira nova, criando usuário temporário');
-        const userData: User = {
-          id: `wallet_${publicKey.toString()}`,
-          publicKey: publicKey.toString(),
-          name: `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`,
-          loginMethod: 'wallet',
-          avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${publicKey.toString()}`
-        };
 
-        setUser(userData);
-        localStorage.setItem('mfl_user', JSON.stringify(userData));
+      const result = await verifyResponse.json();
+
+      if (!verifyResponse.ok) {
+        console.error('❌ [SIWS] Verificação falhou:', result);
+        throw new Error(result.error || 'Falha na verificação da assinatura');
+      }
+
+      console.log('✅ [SIWS] Assinatura verificada com sucesso!');
+
+      // ==================================================
+      // ETAPA 5: AUTENTICAÇÃO CONCLUÍDA - ATUALIZAR ESTADO
+      // ==================================================
+      const userData: User = {
+        id: result.user.id,
+        email: result.user.email,
+        publicKey: result.user.publicKey,
+        name: result.user.name || `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`,
+        loginMethod: 'wallet',
+        avatar: result.user.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${walletAddress}`,
+        twitter: result.user.twitter,
+        discord: result.user.discord,
+        bio: result.user.bio
+      };
+
+      setUser(userData);
+      localStorage.setItem('mfl_user', JSON.stringify(userData));
+
+      console.log('✅ [SIWS] Login concluído com sucesso!');
+      console.log('   Usuário:', userData.id);
+      console.log('   Carteira verificada:', userData.publicKey);
+
+    } catch (error) {
+      console.error('❌ [SIWS] Erro no login:', error);
+      
+      // Mensagens de erro mais amigáveis
+      let errorMessage = 'Falha no login com carteira';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('User rejected')) {
+          errorMessage = 'Você cancelou a assinatura';
+        } else if (error.message.includes('não suporta assinatura')) {
+          errorMessage = 'Sua carteira não suporta assinatura de mensagens. Use Phantom ou Solflare.';
+        } else {
+          errorMessage = error.message;
+        }
       }
       
-      console.log('✅ [WALLET-LOGIN] Login concluído com sucesso');
-    } catch (error) {
-      console.error('❌ [WALLET-LOGIN] Erro:', error);
-      throw new Error(error instanceof Error ? error.message : 'Falha no login com carteira');
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }

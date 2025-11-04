@@ -22,14 +22,15 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // 🔒 VERIFICAÇÃO DE SEGURANÇA
+    // 🔒 VERIFICAÇÃO DE SEGURANÇA - FAIL-FIRST
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      console.warn('⚠️ Tentativa de acesso não autorizado ao reset de competição');
+    // CRÍTICO: Bloquear se o secret não estiver configurado OU se o header não bater
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      console.warn('⚠️ Tentativa de acesso não autorizado - CRON_SECRET ausente ou inválido');
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - CRON_SECRET required' },
         { status: 401 }
       );
     }

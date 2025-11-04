@@ -186,3 +186,16 @@ model AuthToken {
   @@index([token])
   @@map("auth_tokens")
 }
+model WalletNonce {
+  id            String   @id @default(cuid())
+  nonce         String   @unique
+  expiresAt     DateTime
+  used          Boolean  @default(false)
+  usedAt        DateTime?
+  walletAddress String? // Wallet que usou o nonce (após verificação)
+  createdAt     DateTime @default(now())
+
+  @@index([nonce])
+  @@index([expiresAt])
+  @@map("wallet_nonces")
+}
