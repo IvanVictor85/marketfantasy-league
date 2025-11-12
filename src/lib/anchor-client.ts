@@ -10,9 +10,9 @@ import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { useMemo } from "react";
 
 // 1. Importa a IDL (o "mapa" do nosso contrato)
-// (Este arquivo foi gerado pelo 'anchor build' na pasta target/)
-import type { MflProgram } from "../../target/types/mfl_program";
-import IDL from "../../target/idl/mfl_program.json";
+// (Copiado da pasta target/ para src/lib/idl/ para deploy)
+import type { MflProgram } from "./idl/mfl_program";
+import IDL from "./idl/mfl_program.json";
 
 // 2. A ID do nosso programa (A QUE ACABAMOS DE FAZER DEPLOY)
 const PROGRAM_ID = "7QHMrTeoLTggAy11kTTEwtoRzcvK8rEeY1TRu4oUdgGP";

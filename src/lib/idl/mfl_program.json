@@ -1,0 +1,154 @@
+{
+  "address": "7QHMrTeoLTggAy11kTTEwtoRzcvK8rEeY1TRu4oUdgGP",
+  "metadata": {
+    "name": "mfl_program",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "CryptoFantasy League - Solana Fantasy Game Smart Contract"
+  },
+  "instructions": [
+    {
+      "name": "deposit_entry_fee",
+      "docs": [
+        "* Função 2: Deposit Entry Fee (JOGADOR)\n     * O jogador paga a taxa de 0.01 SOL para o cofre."
+      ],
+      "discriminator": [
+        41,
+        40,
+        167,
+        225,
+        14,
+        84,
+        207,
+        82
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  102,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_vault",
+      "docs": [
+        "* Função 1: Initialize Vault (ADMIN)\n     * Cria o PDA do cofre principal do MFL."
+      ],
+      "discriminator": [
+        48,
+        191,
+        163,
+        44,
+        71,
+        129,
+        63,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  102,
+                  108,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Overflow",
+      "msg": "Overflow ao adicionar ao cofre."
+    }
+  ],
+  "types": [
+    {
+      "name": "Vault",
+      "docs": [
+        "* Conta do Cofre (Vault)\n * Este é o PDA que armazena os fundos"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_pot",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}
