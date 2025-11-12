@@ -97,8 +97,18 @@
   @apply border-border;
 }
 
+html {
+  font-size: 16px; /* Força o tamanho base em 16px */
+  -webkit-text-size-adjust: 100%; /* Previne ajuste automático no iOS/Safari */
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   @apply bg-background text-foreground;
+  font-size: 1rem; /* 16px */
+  line-height: 1.5;
 }
 
 /* Garantir que light mode tenha fundo claro */
