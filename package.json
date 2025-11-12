@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && next build",
     "build:safe": "node build-script.js",
     "build:check": "npx tsc --noEmit",
     "start": "next start",
