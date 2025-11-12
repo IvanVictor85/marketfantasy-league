@@ -458,14 +458,14 @@ export function TeamsContent() {
 
       // 2. Verificar se o vault já foi inicializado
       try {
-        const vaultAccount = await program.account.vault.fetch(vaultPda);
+        const vaultAccount = await (program.account as any).vault.fetch(vaultPda);
         console.log("✅ Vault já existe:", vaultAccount);
       } catch (error) {
         // Vault não existe, precisamos inicializar primeiro
         console.log("⚠️ Vault não existe. Inicializando...");
 
         try {
-          const initTxHash = await program.methods
+          const initTxHash = await (program.methods as any)
             .initializeVault() // ✅ CORREÇÃO: Nome correto da função
             .accountsPartial({
               vault: vaultPda,
@@ -485,7 +485,7 @@ export function TeamsContent() {
 
       // 3. Agora sim, fazer o depósito
       console.log("Chamando 'depositEntryFee'...");
-      const txHash = await program.methods
+      const txHash = await (program.methods as any)
         .depositEntryFee()
         .accountsPartial({
           vault: vaultPda,
