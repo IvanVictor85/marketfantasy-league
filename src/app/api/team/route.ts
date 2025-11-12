@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
         name: team.teamName,
         tokens: JSON.parse(team.tokens),
         totalValue: teamValue,
-        performance: team.totalScore || 0,
+        totalScore: team.totalScore || 0,
         rank: team.rank || null,
         hasValidEntry: team.hasValidEntry,
         createdAt: team.createdAt,
@@ -401,8 +401,10 @@ export async function GET(request: NextRequest) {
           name: tokenData.name,
           image: tokenData.image || '/icons/coinx.svg', // Fallback para tokens sem imagem
           currentPrice: tokenData.current_price || 0,
+          priceChange1h: tokenData.price_change_percentage_1h_in_currency || 0,
           priceChange24h: tokenData.price_change_percentage_24h || 0,
           priceChange7d: tokenData.price_change_percentage_7d_in_currency || 0,
+          priceChange30d: tokenData.price_change_percentage_30d_in_currency || 0,
           marketCap: tokenData.market_cap || 0,
           totalVolume: tokenData.total_volume || 0,
           marketCapRank: tokenData.market_cap_rank || null
@@ -418,8 +420,10 @@ export async function GET(request: NextRequest) {
           name: symbol,
           image: '/icons/coinx.svg',
           currentPrice: 0,
+          priceChange1h: 0,
           priceChange24h: 0,
           priceChange7d: 0,
+          priceChange30d: 0,
           marketCap: 0,
           totalVolume: 0,
           marketCapRank: null
@@ -434,7 +438,7 @@ export async function GET(request: NextRequest) {
         name: team.teamName,
         tokens: teamTokens,
         totalValue: 0, // Calculate based on token prices if needed
-        performance: team.totalScore || 0,
+        totalScore: team.totalScore || 0,
         rank: team.rank || null,
         hasValidEntry: team.hasValidEntry,
         createdAt: team.createdAt,

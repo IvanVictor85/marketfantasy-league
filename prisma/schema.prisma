@@ -143,7 +143,7 @@ model PriceHistory {
 
 model User {
   id         String   @id @default(cuid())
-  email      String   @unique
+  email      String?  @unique // ✅ CORREÇÃO: Email agora é OPCIONAL (usuários de carteira podem não ter email)
   publicKey  String?  @unique // Carteira Solana (única por usuário)
   name       String   // Nome do Time
   username   String?  @unique // Nome de usuário único

@@ -77,7 +77,7 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
       console.log('✅ [MODAL] Carteira vinculada com sucesso');
 
       // Atualizar o contexto de autenticação
-      await connectWalletToUser(publicKey.toString());
+      await connectWalletToUser();
 
       setSuccess(true);
       toast.success('Carteira conectada com sucesso!');
@@ -117,7 +117,7 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5" />

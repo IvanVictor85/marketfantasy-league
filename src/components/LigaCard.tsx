@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button';
 import { LocalizedLink } from '@/components/ui/localized-link';
 import { Trophy, Users, Coins } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface LigaCardProps {
   id: string;
@@ -34,6 +35,7 @@ export function LigaCard({
   participants,
   maxParticipants
 }: LigaCardProps) {
+  const t = useTranslations("LeaguesPage");
   const isPrincipal = type === 'principal';
 
   // Define o logo padrão para a liga principal
@@ -46,7 +48,7 @@ export function LigaCard({
         isPrincipal ? 'border-accent border-2' : 'border-border hover:border-primary'
       }`}
     >
-      <CardHeader className="pb-2 pt-3 px-2 flex items-center justify-center">
+      <CardHeader className="pb-2 pt-3 px-2 flex items-center justify-center relative">
         <div className="relative w-56 h-56 bg-transparent flex items-center justify-center">
           {finalLogoUrl ? (
             <Image 
@@ -61,12 +63,12 @@ export function LigaCard({
         </div>
         {isPrincipal && (
           <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-full">
-            Oficial
+            {t("official")}
           </span>
         )}
         {type === 'comunidade' && (
           <span className="absolute top-2 right-2 bg-secondary text-secondary-foreground text-xs font-bold px-2 py-1 rounded-full">
-            Comunidade
+            {t("community")}
           </span>
         )}
       </CardHeader>
@@ -77,7 +79,7 @@ export function LigaCard({
         <div className="grid grid-cols-2 gap-2">
           <div className="flex items-center space-x-2">
             <Coins className="h-4 w-4 text-accent" />
-            <span className="text-sm text-muted-foreground">Entrada:</span>
+            <span className="text-sm text-muted-foreground">{t("entry")}:</span>
           </div>
           <div className="text-sm font-medium text-card-foreground">
             {entryFee.amount} {entryFee.currency}
@@ -85,7 +87,7 @@ export function LigaCard({
           
           <div className="flex items-center space-x-2">
             <Trophy className="h-4 w-4 text-accent" />
-            <span className="text-sm text-muted-foreground">Prêmio:</span>
+            <span className="text-sm text-muted-foreground">{t("totalPrize")}:</span>
           </div>
           <div className="text-sm font-medium text-card-foreground">
             {prizePool.amount} {prizePool.currency}
@@ -93,7 +95,7 @@ export function LigaCard({
           
           <div className="flex items-center space-x-2">
             <Users className="h-4 w-4 text-accent" />
-            <span className="text-sm text-muted-foreground">Participantes:</span>
+            <span className="text-sm text-muted-foreground">{t("participants")}:</span>
           </div>
           <div className="text-sm font-medium text-card-foreground">
             {participants} / {maxParticipants}
@@ -104,7 +106,7 @@ export function LigaCard({
       <CardFooter>
         <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
           <LocalizedLink href={`/teams?league=${id}`}>
-            Entrar na Liga
+            {t("joinLeague")}
           </LocalizedLink>
         </Button>
       </CardFooter>

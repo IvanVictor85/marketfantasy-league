@@ -262,7 +262,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   return (
     <>
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">
             Bem-vindo ao Market Fantasy League

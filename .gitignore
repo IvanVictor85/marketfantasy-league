@@ -43,3 +43,12 @@ next-env.d.ts
 .vercel
 prisma/dev.db
 prisma/dev.db-journal
+
+# Anchor / Solana
+.anchor/
+target/
+test-ledger/
+programs/*/target/
+programs/**/Cargo.lock
+**/.anchor
+**/build.log

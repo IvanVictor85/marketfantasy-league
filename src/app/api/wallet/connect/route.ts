@@ -1,121 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import nacl from 'tweetnacl';
+import bs58 from 'bs58';
+
+/**
+ * POST /api/wallet/connect
+ *
+ * Vincula uma carteira Solana a um usuário existente (logado por email).
+ * Implementa Sign-In with Solana (SIWS) para garantir que o usuário
+ * realmente possui a chave privada da carteira que está vinculando.
+ */
+
+function createSignInMessage(nonce: string, walletAddress: string): Uint8Array {
+  const message = `Bem-vindo ao MFL!
+
+Clique para assinar e provar que você é o dono desta carteira.
+
+Isso não custará nenhum SOL.
+
+ID de Desafio (Nonce): ${nonce}
+Carteira: ${walletAddress}`;
+
+  return new TextEncoder().encode(message);
+}
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
-    const { email, publicKey } = await request.json();
-    
-    console.log('🔗 [CONNECT-WALLET] Tentando conectar');
-    console.log('🔗 [CONNECT-WALLET] Email:', email);
-    console.log('🔗 [CONNECT-WALLET] PublicKey:', publicKey);
-    
-    if (!publicKey) {
-      return NextResponse.json({ 
-        error: 'PublicKey é obrigatório' 
-      }, { status: 400 });
+    const { email, nonce, signature, publicKey } = await request.json();
+
+    console.log('🔗 [WALLET-CONNECT] Iniciando vinculação de carteira');
+
+    if (!email || !nonce || !signature || !publicKey) {
+      return NextResponse.json(
+        { error: 'Campos obrigatórios: email, nonce, signature, publicKey' },
+        { status: 400 }
+      );
     }
-    
-    // Se email não foi fornecido, é login direto com carteira
-    if (!email) {
-      console.log('🔗 [CONNECT-WALLET] Login direto com carteira');
-      
-      // Verificar se carteira já está conectada
-      const existingUser = await prisma.user.findUnique({
-        where: { publicKey }
-      });
-      
-      if (existingUser) {
-        console.log('✅ [CONNECT-WALLET] Carteira já conectada:', existingUser.email);
-        return NextResponse.json({
-          success: true,
-          user: {
-            id: existingUser.id,
-            email: existingUser.email,
-            publicKey: existingUser.publicKey,
-            name: existingUser.name,
-            avatar: existingUser.avatar,
-            twitter: existingUser.twitter,
-            discord: existingUser.discord,
-            bio: existingUser.bio
-          }
-        });
-      }
-      
-      // Carteira não conectada - permitir login direto
-      return NextResponse.json({ 
-        success: true, 
-        user: null,
-        message: 'Carteira não conectada - pode fazer login direto'
-      });
-    }
-    
-    // Buscar usuário pelo email
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
-    
+
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      console.error('❌ [CONNECT-WALLET] Usuário não encontrado');
-      return NextResponse.json({ 
-        error: 'Usuário não encontrado' 
-      }, { status: 404 });
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
-    
-    console.log('🔍 [CONNECT-WALLET] Usuário encontrado:', {
-      id: user.id,
-      email: user.email,
-      currentPublicKey: user.publicKey
-    });
-    
-    // CRÍTICO: Verificar se carteira já está em uso por OUTRO usuário
-    const existingWallet = await prisma.user.findFirst({
-      where: {
-        publicKey: publicKey,
-        id: { not: user.id }
+
+    const dbNonce = await prisma.walletNonce.findUnique({ where: { nonce } });
+    if (!dbNonce || dbNonce.used || new Date(dbNonce.expiresAt) < new Date()) {
+      return NextResponse.json({ error: 'Nonce inválido ou expirado' }, { status: 403 });
+    }
+
+    try {
+      const message = createSignInMessage(nonce, publicKey);
+      const signatureUint8 = bs58.decode(signature);
+      const publicKeyUint8 = bs58.decode(publicKey);
+
+      const isVerified = nacl.sign.detached.verify(message, signatureUint8, publicKeyUint8);
+      if (!isVerified) {
+        return NextResponse.json({ error: 'Assinatura inválida' }, { status: 403 });
       }
+    } catch (error) {
+      return NextResponse.json({ error: 'Erro ao processar assinatura' }, { status: 400 });
+    }
+
+    await prisma.walletNonce.update({
+      where: { id: dbNonce.id },
+      data: { used: true, usedAt: new Date(), walletAddress: publicKey }
     });
-    
+
+    const existingWallet = await prisma.user.findFirst({
+      where: { publicKey, id: { not: user.id } }
+    });
     if (existingWallet) {
-      console.error('❌ [CONNECT-WALLET] Carteira já em uso por:', existingWallet.email);
       return NextResponse.json({
-        error: 'Esta carteira já está conectada a outra conta.',
-        hint: `Faça login com: ${existingWallet.email.substring(0, 5)}***`
+        error: 'Esta carteira já está conectada a outra conta'
       }, { status: 409 });
     }
-    
-    console.log('✅ [CONNECT-WALLET] Carteira disponível, atualizando usuário...');
-    
-    // Atualizar carteira do usuário
+
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: { publicKey }
     });
-    
-    console.log('✅ [CONNECT-WALLET] Sucesso:', {
-      userId: updated.id,
-      email: updated.email,
-      publicKey: updated.publicKey
-    });
-    
+
+    console.log('✅ [WALLET-CONNECT] Carteira vinculada com sucesso');
+
     return NextResponse.json({
       success: true,
-      user: {
-        id: updated.id,
-        email: updated.email,
-        publicKey: updated.publicKey,
-        name: updated.name,
-        avatar: updated.avatar,
-        twitter: updated.twitter,
-        discord: updated.discord,
-        bio: updated.bio
-      }
+      message: 'Carteira vinculada com sucesso!',
+      // ✅ CORREÇÃO: Retornar TODOS os campos do usuário
+      user: updated // Retorna o objeto completo
     });
-    
+
   } catch (error: any) {
-    console.error('❌ [CONNECT-WALLET] Erro:', error);
-    return NextResponse.json({ 
-      error: 'Erro ao conectar carteira',
-      details: error.message 
-    }, { status: 500 });
+    console.error('❌ [WALLET-CONNECT] Erro:', error);
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
   }
 }

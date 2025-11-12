@@ -160,7 +160,23 @@
     "upcoming": "Próxima",
     "leaderboard": "Classificação",
     "myPosition": "Minha Posição",
-    "noLeagues": "Nenhuma liga encontrada"
+    "noLeagues": "Nenhuma liga encontrada",
+    "mainLeagueName": "Liga Principal MarketFantasy",
+    "mainLeagueDescription": "Liga Principal do CryptoFantasy - Competição mensal de tokens",
+    "officialBadge": "Oficial",
+    "startsIn": "Inicia em",
+    "roundInProgress": "Em andamento",
+    "loading": "Carregando...",
+    "alreadyJoined": "Você já está participando desta liga!",
+    "transaction": "Transação",
+    "viewMyTeam": "Ver Meu Time",
+    "notFound": "Liga Principal não encontrada. Tente novamente mais tarde.",
+    "verifying": "Verificando...",
+    "processing": "Processando...",
+    "leagueFinished": "Liga Finalizada",
+    "connectWallet": "Conectar Carteira",
+    "linkWallet": "Vincular Carteira",
+    "linking": "Vinculando..."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -226,6 +242,8 @@
     "codeExpired": "Código expirado"
   },
   "LeaguesPage": {
+    "official": "Oficial",
+    "community": "Comunidade",
     "title": "Encontre Sua Competição",
     "subtitle": "Participe das ligas oficiais ou junte-se à sua comunidade para competir por prêmios incríveis.",
     "officialLeague": "Liga Oficial",
@@ -241,7 +259,8 @@
     "totalPrize": "Prêmio Total",
     "participants": "Participantes",
     "timeLeft": "Tempo Restante",
-    "connectWallet": "Conectar Carteira"
+    "connectWallet": "Conectar Carteira",
+    "nextRound": "Próxima Rodada"
   },
   "HomePage": {
     "heroTitle": "O Fantasy Game do Universo Cripto.",
@@ -277,7 +296,7 @@
     "nextRound": "Próxima rodada em:",
     "chartTitle": "Evolução da Carteira - Time Principal",
     "chartPlaceholder": "Gráfico de desempenho virá aqui",
-    "highlightsTitle": "Destaques do seu time em: Time Principal",
+    "highlightsTitle": "Destaques do Time (7d)",
     "gem": "Sua Gema da Rodada",
     "anchor": "Sua Âncora da Rodada",
     "balanceTitle": "Saldo e Depósito",
@@ -323,7 +342,6 @@
     "portfolioEvolutionDescription": "Acompanhe a valorização do seu portfólio ao longo do tempo",
     "comingSoonTitle": "Em Breve",
     "comingSoonText": "Esta funcionalidade estará disponível em breve. Estamos trabalhando para trazer análises detalhadas da evolução do seu portfólio.",
-    "highlightsTitle": "Destaques do Time (7d)",
     "bestPerformer": "Melhor Ativo",
     "worstPerformer": "Pior Ativo",
     "mostNeutral": "Mais Neutro",

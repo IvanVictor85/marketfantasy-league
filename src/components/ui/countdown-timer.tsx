@@ -4,6 +4,7 @@ import React from 'react';
 import { Clock } from 'lucide-react';
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useTranslations } from 'next-intl';
+import { isRodadaEmAndamento } from '@/lib/utils/timeCheck';
 
 interface CountdownTimerProps {
   leagueId?: string;
@@ -13,8 +14,10 @@ interface CountdownTimerProps {
 export function CountdownTimer({ leagueId = 'main-league', className = '' }: CountdownTimerProps) {
   const t = useTranslations('teams');
   const tCommon = useTranslations('common');
-  const { timeRemaining, loading, isExpired } = useRoundTimer({ leagueId });
+  const { timeRemaining, loading } = useRoundTimer({ leagueId });
 
+  // Usar a lógica correta de horário (Sáb/Dom = Mercado Aberto)
+  const rodadaAtiva = isRodadaEmAndamento();
   if (loading) {
     return (
       <div className={`flex items-center gap-2 text-gray-400 font-semibold ${className}`}>
@@ -24,7 +27,7 @@ export function CountdownTimer({ leagueId = 'main-league', className = '' }: Cou
     );
   }
 
-  if (isExpired) {
+  if (rodadaAtiva) {
     return (
       <div className={`flex items-center gap-2 text-red-600 font-semibold ${className}`}>
         <Clock className="h-4 w-4" />

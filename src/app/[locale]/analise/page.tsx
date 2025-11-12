@@ -113,9 +113,9 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
             </div>
             <div className="text-right">
               <p className={`font-bold ${type === 'gainers' ? 'text-[#2A9D8F] dark:text-green-400' : 'text-[#E76F51] dark:text-red-400'}`}>
-                {item.value || formatPercentageChange(item.priceChange24h || item.change_24h || 0)}
+                {item.value || formatPercentageChange(item.priceChange24h || item.priceChange24h || 0)}
               </p>
-              <p className="text-sm text-slate-500 dark:text-gray-400">{item.price || formatTokenPrice(item.currentPrice || item.price || 0)}</p>
+              <p className="text-sm text-slate-500 dark:text-gray-400">{item.currentPrice || formatTokenPrice(item.currentPrice || item.currentPrice || 0)}</p>
             </div>
           </div>
         )
@@ -329,15 +329,13 @@ export default function AnalisePage() {
               position: index + 1,
               name: tokenData.name || tokenData.symbol || data.team.tokens[index],
               symbol: tokenData.symbol || data.team.tokens[index],
-              token: tokenData.symbol || data.team.tokens[index],
-              image: tokenData.image,
+                            image: tokenData.image,
               currentPrice: tokenData.currentPrice || tokenData.current_price || 0,
               price: tokenData.currentPrice || tokenData.current_price || 0,
               points: 0,
               rarity: 'common' as const,
               priceChange24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
-              change_24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
-              priceChange7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
+                            priceChange7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
               change_7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0
             };
           });
@@ -376,7 +374,7 @@ export default function AnalisePage() {
 Estamos atualizando nossa integração com o Gemini AI para trazer análises ainda melhores para você!
 
 **Seu Time:**
-${mainTeam.map((p, i) => `${i + 1}. ${p.symbol || p.token || '?'} - ${(p.priceChange24h || p.change_24h) !== undefined ? ((p.priceChange24h || p.change_24h || 0) >= 0 ? '+' : '') + (p.priceChange24h || p.change_24h || 0).toFixed(2) + '% (24h)' : 'N/A'}`).join('\n')}
+${mainTeam.map((p, i) => `${i + 1}. ${p.symbol || p.symbol || '?'} - ${(p.priceChange24h || p.priceChange24h) !== undefined ? ((p.priceChange24h || p.priceChange24h || 0) >= 0 ? '+' : '') + (p.priceChange24h || p.priceChange24h || 0).toFixed(2) + '% (24h)' : 'N/A'}`).join('\n')}
 
 **Em breve você poderá:**
 ✅ Receber análise detalhada do seu portfólio
@@ -553,22 +551,22 @@ Agradecemos sua compreensão! 🙏`)
                                 const parent = target.parentElement;
                                 if (parent) {
                                   parent.className = "w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm";
-                                  parent.textContent = (player.symbol || player.token || '?').slice(0, 2);
+                                  parent.textContent = (player.symbol || player.symbol || '?').slice(0, 2);
                                 }
                               }}
                             />
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
-                              {(player.symbol || player.token || '?').slice(0, 2)}
+                              {(player.symbol || player.symbol || '?').slice(0, 2)}
                             </div>
                           )}
                         </div>
                         <p className="text-sm font-medium text-slate-900 dark:text-white text-center truncate w-full">
-                          {player.symbol || player.token || '?'}
+                          {player.symbol || player.symbol || '?'}
                         </p>
-                        {((player.priceChange24h || player.change_24h) !== undefined && (player.priceChange24h || player.change_24h || 0) !== 0) && (
-                          <p className={`text-xs font-semibold ${(player.priceChange24h || player.change_24h || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {(player.priceChange24h || player.change_24h || 0) > 0 ? '+' : ''}{(player.priceChange24h || player.change_24h || 0).toFixed(1)}%
+                        {((player.priceChange24h || player.priceChange24h) !== undefined && (player.priceChange24h || player.priceChange24h || 0) !== 0) && (
+                          <p className={`text-xs font-semibold ${(player.priceChange24h || player.priceChange24h || 0) > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {(player.priceChange24h || player.priceChange24h || 0) > 0 ? '+' : ''}{(player.priceChange24h || player.priceChange24h || 0).toFixed(1)}%
                           </p>
                         )}
                       </div>
@@ -743,7 +741,7 @@ Agradecemos sua compreensão! 🙏`)
 
         {/* Modal de Análise do Time */}
         <Dialog open={teamAnalysisModalOpen} onOpenChange={setTeamAnalysisModalOpen}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto" onCloseAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <Brain className="h-6 w-6 text-purple-600" />
@@ -769,10 +767,10 @@ Agradecemos sua compreensão! 🙏`)
                       {mainTeam.map((player, index) => (
                         <div key={index} className="flex items-center space-x-2 bg-white rounded p-2 border border-slate-200">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                            {(player.symbol || player.token || '?').slice(0, 2)}
+                            {(player.symbol || player.symbol || '?').slice(0, 2)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-900 truncate">{player.symbol || player.token || '?'}</p>
+                            <p className="text-xs font-medium text-slate-900 truncate">{player.symbol || player.symbol || '?'}</p>
                           </div>
                         </div>
                       ))}
@@ -799,7 +797,7 @@ Agradecemos sua compreensão! 🙏`)
 
         {/* Modal de Análise de Protocolo DeFi */}
         <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl" onCloseAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <Brain className="h-6 w-6 text-purple-600" />

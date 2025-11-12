@@ -7,19 +7,15 @@ export interface TeamPlayer {
   id: string;
   position: number;
   name: string;
-  token: string;
-  symbol?: string; // NEW standardized field
+  symbol: string;
   image: string;
-  // NEW standardized field names
-  currentPrice?: number;
-  priceChange24h?: number;
-  priceChange7d?: number;
-  // OLD field names (for compatibility)
-  price: number;
+  currentPrice: number;
+  priceChange24h: number;
+  priceChange7d: number;
+  marketCap: number;
+  marketCapRank: number | null;
   points: number;
   rarity: string;
-  change_24h: number;
-  change_7d: number;
 }
 
 export interface TeamData {
@@ -79,19 +75,14 @@ export function useTeamData(leagueId?: string) {
             league: data.league || null,
           });
         } else {
-          // Map tokenDetails to ensure both old and new field names are present
           const mappedPlayers = (data.tokenDetails || data.team.tokenDetails || []).map((token: any) => ({
             ...token,
-            // Ensure new standardized field names
             symbol: token.symbol || token.token,
             currentPrice: token.currentPrice || token.price || 0,
             priceChange24h: token.priceChange24h || token.change_24h || 0,
             priceChange7d: token.priceChange7d || token.change_7d || 0,
-            // Ensure old field names for backward compatibility
-            token: token.token || token.symbol,
-            price: token.price || token.currentPrice || 0,
-            change_24h: token.change_24h || token.priceChange24h || 0,
-            change_7d: token.change_7d || token.priceChange7d || 0,
+            marketCap: token.marketCap || token.market_cap || 0,
+            marketCapRank: token.marketCapRank || token.market_cap_rank || null,
           }));
 
           const teamDataObject = {
@@ -117,7 +108,6 @@ export function useTeamData(leagueId?: string) {
 
   return { teamData, loading, error, refetch: () => {
     if (isAuthenticated && user) {
-      // Re-trigger the effect
       setTeamData(null);
     }
   }};

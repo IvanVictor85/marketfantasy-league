@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: 'Liga Principal',
         leagueType: 'MAIN',
-        entryFee: 0.005, // 0.005 SOL
+        entryFee: 0.01, // 0.01 SOL
         maxPlayers: null, // Unlimited
         startDate: new Date(), // Starts immediately
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now

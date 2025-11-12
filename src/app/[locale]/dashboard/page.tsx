@@ -100,16 +100,16 @@ const mockUserData: UserData = {
     createdAt: new Date(),
     updatedAt: new Date(),
     players: [
-      { id: "sol", position: 1, name: "Solana", symbol: "SOL", token: "SOL", image: "", currentPrice: 100, price: 100, points: 85, rarity: "legendary", priceChange24h: 12.5, change_24h: 12.5, priceChange7d: 0, change_7d: 0 },
-      { id: "btc", position: 2, name: "Bitcoin", symbol: "BTC", token: "BTC", image: "", currentPrice: 45000, price: 45000, points: 92, rarity: "legendary", priceChange24h: 5.2, change_24h: 5.2, priceChange7d: 0, change_7d: 0 },
-      { id: "eth", position: 3, name: "Ethereum", symbol: "ETH", token: "ETH", image: "", currentPrice: 2500, price: 2500, points: 88, rarity: "epic", priceChange24h: 3.8, change_24h: 3.8, priceChange7d: 0, change_7d: 0 },
-      { id: "ada", position: 4, name: "Cardano", symbol: "ADA", token: "ADA", image: "", currentPrice: 0.5, price: 0.5, points: 75, rarity: "rare", priceChange24h: 1.5, change_24h: 1.5, priceChange7d: 0, change_7d: 0 },
-      { id: "dot", position: 5, name: "Polkadot", symbol: "DOT", token: "DOT", image: "", currentPrice: 7, price: 7, points: 78, rarity: "rare", priceChange24h: 2.7, change_24h: 2.7, priceChange7d: 0, change_7d: 0 },
-      { id: "link", position: 6, name: "Chainlink", symbol: "LINK", token: "LINK", image: "", currentPrice: 15, price: 15, points: 82, rarity: "epic", priceChange24h: 4.3, change_24h: 4.3, priceChange7d: 0, change_7d: 0 },
-      { id: "avax", position: 7, name: "Avalanche", symbol: "AVAX", token: "AVAX", image: "", currentPrice: 35, price: 35, points: 80, rarity: "rare", priceChange24h: 6.1, change_24h: 6.1, priceChange7d: 0, change_7d: 0 },
-      { id: "matic", position: 8, name: "Polygon", symbol: "MATIC", token: "MATIC", image: "", currentPrice: 1, price: 1, points: 76, rarity: "common", priceChange24h: 3.2, change_24h: 3.2, priceChange7d: 0, change_7d: 0 },
-      { id: "doge", position: 9, name: "Dogecoin", symbol: "DOGE", token: "DOGE", image: "", currentPrice: 0.08, price: 0.08, points: 65, rarity: "common", priceChange24h: -4.2, change_24h: -4.2, priceChange7d: 0, change_7d: 0 },
-      { id: "uni", position: 10, name: "Uniswap", symbol: "UNI", token: "UNI", image: "", currentPrice: 6, price: 6, points: 72, rarity: "rare", priceChange24h: 0.8, change_24h: 0.8, priceChange7d: 0, change_7d: 0 }
+      { id: "sol", position: 1, name: "Solana", symbol: "SOL", image: "", currentPrice: 100, points: 85, rarity: "legendary", priceChange24h: 12.5, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "btc", position: 2, name: "Bitcoin", symbol: "BTC", image: "", currentPrice: 45000, points: 92, rarity: "legendary", priceChange24h: 5.2, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "eth", position: 3, name: "Ethereum", symbol: "ETH", image: "", currentPrice: 2500, points: 88, rarity: "epic", priceChange24h: 3.8, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "ada", position: 4, name: "Cardano", symbol: "ADA", image: "", currentPrice: 0.5, points: 75, rarity: "rare", priceChange24h: 1.5, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "dot", position: 5, name: "Polkadot", symbol: "DOT", image: "", currentPrice: 7, points: 78, rarity: "rare", priceChange24h: 2.7, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "link", position: 6, name: "Chainlink", symbol: "LINK", image: "", currentPrice: 15, points: 82, rarity: "epic", priceChange24h: 4.3, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "avax", position: 7, name: "Avalanche", symbol: "AVAX", image: "", currentPrice: 35, points: 80, rarity: "rare", priceChange24h: 6.1, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "matic", position: 8, name: "Polygon", symbol: "MATIC", image: "", currentPrice: 1, points: 76, rarity: "common", priceChange24h: 3.2, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "doge", position: 9, name: "Dogecoin", symbol: "DOGE", image: "", currentPrice: 0.08, points: 65, rarity: "common", priceChange24h: -4.2, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+      { id: "uni", position: 10, name: "Uniswap", symbol: "UNI", image: "", currentPrice: 6, points: 72, rarity: "rare", priceChange24h: 0.8, priceChange7d: 0, marketCap: 0, marketCapRank: null }
     ]
   },
   leagueTeams: [
@@ -122,16 +122,16 @@ const mockUserData: UserData = {
       createdAt: new Date(),
       updatedAt: new Date(),
       players: [
-        { id: "sol", position: 1, name: "Solana", symbol: "SOL", token: "SOL", image: "", currentPrice: 100, price: 100, points: 85, rarity: "legendary", priceChange24h: 12.5, change_24h: 12.5, priceChange7d: 0, change_7d: 0 },
-        { id: "btc", position: 2, name: "Bitcoin", symbol: "BTC", token: "BTC", image: "", currentPrice: 45000, price: 45000, points: 92, rarity: "legendary", priceChange24h: 5.2, change_24h: 5.2, priceChange7d: 0, change_7d: 0 },
-        { id: "eth", position: 3, name: "Ethereum", symbol: "ETH", token: "ETH", image: "", currentPrice: 2500, price: 2500, points: 88, rarity: "epic", priceChange24h: 3.8, change_24h: 3.8, priceChange7d: 0, change_7d: 0 },
-        { id: "ada", position: 4, name: "Cardano", symbol: "ADA", token: "ADA", image: "", currentPrice: 0.5, price: 0.5, points: 75, rarity: "rare", priceChange24h: 1.5, change_24h: 1.5, priceChange7d: 0, change_7d: 0 },
-        { id: "dot", position: 5, name: "Polkadot", symbol: "DOT", token: "DOT", image: "", currentPrice: 7, price: 7, points: 78, rarity: "rare", priceChange24h: 2.7, change_24h: 2.7, priceChange7d: 0, change_7d: 0 },
-        { id: "link", position: 6, name: "Chainlink", symbol: "LINK", token: "LINK", image: "", currentPrice: 15, price: 15, points: 82, rarity: "epic", priceChange24h: 4.3, change_24h: 4.3, priceChange7d: 0, change_7d: 0 },
-        { id: "avax", position: 7, name: "Avalanche", symbol: "AVAX", token: "AVAX", image: "", currentPrice: 35, price: 35, points: 80, rarity: "rare", priceChange24h: 6.1, change_24h: 6.1, priceChange7d: 0, change_7d: 0 },
-        { id: "matic", position: 8, name: "Polygon", symbol: "MATIC", token: "MATIC", image: "", currentPrice: 1, price: 1, points: 76, rarity: "common", priceChange24h: 3.2, change_24h: 3.2, priceChange7d: 0, change_7d: 0 },
-        { id: "doge", position: 9, name: "Dogecoin", symbol: "DOGE", token: "DOGE", image: "", currentPrice: 0.08, price: 0.08, points: 65, rarity: "common", priceChange24h: -4.2, change_24h: -4.2, priceChange7d: 0, change_7d: 0 },
-        { id: "uni", position: 10, name: "Uniswap", symbol: "UNI", token: "UNI", image: "", currentPrice: 6, price: 6, points: 72, rarity: "rare", priceChange24h: 0.8, change_24h: 0.8, priceChange7d: 0, change_7d: 0 }
+        { id: "sol", position: 1, name: "Solana", symbol: "SOL", image: "", currentPrice: 100, points: 85, rarity: "legendary", priceChange24h: 12.5, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "btc", position: 2, name: "Bitcoin", symbol: "BTC", image: "", currentPrice: 45000, points: 92, rarity: "legendary", priceChange24h: 5.2, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "eth", position: 3, name: "Ethereum", symbol: "ETH", image: "", currentPrice: 2500, points: 88, rarity: "epic", priceChange24h: 3.8, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "ada", position: 4, name: "Cardano", symbol: "ADA", image: "", currentPrice: 0.5, points: 75, rarity: "rare", priceChange24h: 1.5, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "dot", position: 5, name: "Polkadot", symbol: "DOT", image: "", currentPrice: 7, points: 78, rarity: "rare", priceChange24h: 2.7, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "link", position: 6, name: "Chainlink", symbol: "LINK", image: "", currentPrice: 15, points: 82, rarity: "epic", priceChange24h: 4.3, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "avax", position: 7, name: "Avalanche", symbol: "AVAX", image: "", currentPrice: 35, points: 80, rarity: "rare", priceChange24h: 6.1, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "matic", position: 8, name: "Polygon", symbol: "MATIC", image: "", currentPrice: 1, points: 76, rarity: "common", priceChange24h: 3.2, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "doge", position: 9, name: "Dogecoin", symbol: "DOGE", image: "", currentPrice: 0.08, points: 65, rarity: "common", priceChange24h: -4.2, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "uni", position: 10, name: "Uniswap", symbol: "UNI", image: "", currentPrice: 6, points: 72, rarity: "rare", priceChange24h: 0.8, priceChange7d: 0, marketCap: 0, marketCapRank: null }
       ]
     },
     {
@@ -143,16 +143,16 @@ const mockUserData: UserData = {
       createdAt: new Date(),
       updatedAt: new Date(),
       players: [
-        { id: "btc", position: 1, name: "Bitcoin", symbol: "BTC", token: "BTC", image: "", currentPrice: 45000, price: 45000, points: 92, rarity: "legendary", priceChange24h: 5.2, change_24h: 5.2, priceChange7d: 0, change_7d: 0 },
-        { id: "eth", position: 2, name: "Ethereum", symbol: "ETH", token: "ETH", image: "", currentPrice: 2500, price: 2500, points: 88, rarity: "epic", priceChange24h: 3.8, change_24h: 3.8, priceChange7d: 0, change_7d: 0 },
-        { id: "bnb", position: 3, name: "Binance Coin", symbol: "BNB", token: "BNB", image: "", currentPrice: 300, price: 300, points: 85, rarity: "epic", priceChange24h: 7.1, change_24h: 7.1, priceChange7d: 0, change_7d: 0 },
-        { id: "xrp", position: 4, name: "Ripple", symbol: "XRP", token: "XRP", image: "", currentPrice: 0.6, price: 0.6, points: 70, rarity: "common", priceChange24h: 2.3, change_24h: 2.3, priceChange7d: 0, change_7d: 0 },
-        { id: "ada", position: 5, name: "Cardano", symbol: "ADA", token: "ADA", image: "", currentPrice: 0.5, price: 0.5, points: 75, rarity: "rare", priceChange24h: 1.5, change_24h: 1.5, priceChange7d: 0, change_7d: 0 },
-        { id: "sol", position: 6, name: "Solana", symbol: "SOL", token: "SOL", image: "", currentPrice: 100, price: 100, points: 85, rarity: "legendary", priceChange24h: 12.5, change_24h: 12.5, priceChange7d: 0, change_7d: 0 },
-        { id: "dot", position: 7, name: "Polkadot", symbol: "DOT", token: "DOT", image: "", currentPrice: 7, price: 7, points: 78, rarity: "rare", priceChange24h: 2.7, change_24h: 2.7, priceChange7d: 0, change_7d: 0 },
-        { id: "doge", position: 8, name: "Dogecoin", symbol: "DOGE", token: "DOGE", image: "", currentPrice: 0.08, price: 0.08, points: 65, rarity: "common", priceChange24h: -4.2, change_24h: -4.2, priceChange7d: 0, change_7d: 0 },
-        { id: "avax", position: 9, name: "Avalanche", symbol: "AVAX", token: "AVAX", image: "", currentPrice: 35, price: 35, points: 80, rarity: "rare", priceChange24h: 6.1, change_24h: 6.1, priceChange7d: 0, change_7d: 0 },
-        { id: "shib", position: 10, name: "Shiba Inu", symbol: "SHIB", token: "SHIB", image: "", currentPrice: 0.00001, price: 0.00001, points: 60, rarity: "common", priceChange24h: -2.5, change_24h: -2.5, priceChange7d: 0, change_7d: 0 }
+        { id: "btc", position: 1, name: "Bitcoin", symbol: "BTC", image: "", currentPrice: 45000, points: 92, rarity: "legendary", priceChange24h: 5.2, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "eth", position: 2, name: "Ethereum", symbol: "ETH", image: "", currentPrice: 2500, points: 88, rarity: "epic", priceChange24h: 3.8, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "bnb", position: 3, name: "Binance Coin", symbol: "BNB", image: "", currentPrice: 300, points: 85, rarity: "epic", priceChange24h: 7.1, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "xrp", position: 4, name: "Ripple", symbol: "XRP", image: "", currentPrice: 0.6, points: 70, rarity: "common", priceChange24h: 2.3, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "ada", position: 5, name: "Cardano", symbol: "ADA", image: "", currentPrice: 0.5, points: 75, rarity: "rare", priceChange24h: 1.5, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "sol", position: 6, name: "Solana", symbol: "SOL", image: "", currentPrice: 100, points: 85, rarity: "legendary", priceChange24h: 12.5, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "dot", position: 7, name: "Polkadot", symbol: "DOT", image: "", currentPrice: 7, points: 78, rarity: "rare", priceChange24h: 2.7, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "doge", position: 8, name: "Dogecoin", symbol: "DOGE", image: "", currentPrice: 0.08, points: 65, rarity: "common", priceChange24h: -4.2, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "avax", position: 9, name: "Avalanche", symbol: "AVAX", image: "", currentPrice: 35, points: 80, rarity: "rare", priceChange24h: 6.1, priceChange7d: 0, marketCap: 0, marketCapRank: null },
+        { id: "shib", position: 10, name: "Shiba Inu", symbol: "SHIB", image: "", currentPrice: 0.00001, points: 60, rarity: "common", priceChange24h: -2.5, priceChange7d: 0, marketCap: 0, marketCapRank: null }
       ]
     }
   ],
@@ -605,7 +605,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
                       {isDepositingReal ? t('depositing') : `💰 ${t('depositSol')}`}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent onCloseAutoFocus={(e) => e.preventDefault()}>
                     <DialogHeader>
                       <DialogTitle>{t('depositSolTitle')}</DialogTitle>
                       <DialogDescription>
@@ -656,7 +656,7 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
                         {isWithdrawing ? t('withdrawing') : `💸 ${t('withdrawSol')}`}
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent onCloseAutoFocus={(e) => e.preventDefault()}>
                       <DialogHeader>
                         <DialogTitle>{t('withdrawSolTitle')}</DialogTitle>
                         <DialogDescription>
@@ -789,7 +789,7 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
   // Encontrar o melhor, pior e mais neutro token do time (baseado em 7d se disponível, senão 24h)
   const teamPlayers = selectedTeamData.team?.players || [];
 
-  const getChange = (player: any) => player.priceChange7d || player.change_7d || player.priceChange24h || player.change_24h || 0;
+  const getChange = (player: any) => player.priceChange7d || player.priceChange7d || player.priceChange24h || 0;
 
   const bestToken = teamPlayers.length > 0 ? teamPlayers.reduce((best, current) =>
     getChange(current) > getChange(best) ? current : best
@@ -871,12 +871,12 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
                     <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {(bestToken.symbol || bestToken.token || '?').substring(0, 1)}
+                      {(bestToken.symbol || bestToken.symbol || '?').substring(0, 1)}
                     </div>
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{bestToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{bestToken.symbol || bestToken.token}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{bestToken.symbol || bestToken.symbol}</p>
                     <p className="text-green-600 dark:text-green-400 font-bold">
                       {getChange(bestToken) >= 0 ? '+' : ''}{getChange(bestToken).toFixed(1)}%
                     </p>
@@ -893,12 +893,12 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
                     <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {(worstToken.symbol || worstToken.token || '?').substring(0, 1)}
+                      {(worstToken.symbol || worstToken.symbol || '?').substring(0, 1)}
                     </div>
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{worstToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{worstToken.symbol || worstToken.token}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{worstToken.symbol || worstToken.symbol}</p>
                     <p className="text-red-600 dark:text-red-400 font-bold">
                       {getChange(worstToken) >= 0 ? '+' : ''}{getChange(worstToken).toFixed(1)}%
                     </p>
@@ -915,12 +915,12 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
                     <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {(neutralToken.symbol || neutralToken.token || '?').substring(0, 1)}
+                      {(neutralToken.symbol || neutralToken.symbol || '?').substring(0, 1)}
                     </div>
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{neutralToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{neutralToken.symbol || neutralToken.token}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{neutralToken.symbol || neutralToken.symbol}</p>
                     <p className="text-blue-600 dark:text-blue-400 font-bold">
                       {getChange(neutralToken) >= 0 ? '+' : ''}{getChange(neutralToken).toFixed(1)}%
                     </p>
@@ -951,9 +951,9 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 {teamPlayers.map((player) => {
                   const change = getChange(player);
                   return (
-                    <TableRow key={player.symbol || player.token}>
+                    <TableRow key={player.symbol || ''}>
                       <TableCell className="font-medium">{player.name}</TableCell>
-                      <TableCell>{player.symbol || player.token}</TableCell>
+                      <TableCell>{player.symbol || ''}</TableCell>
                       <TableCell className={`text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {change >= 0 ? '+' : ''}{change.toFixed(1)}%
                       </TableCell>
@@ -1046,20 +1046,19 @@ export default function Dashboard() {
         createdAt: new Date(),
         updatedAt: new Date(),
         players: mainTeamData.players.map((player, index) => ({
-          id: (player.symbol || player.token || '').toLowerCase(),
+          id: (player.symbol || '' || '').toLowerCase(),
           position: index + 1,
           name: player.name,
-          symbol: player.symbol || player.token,
-          token: player.symbol || player.token, // Manter para compatibilidade
+          symbol: player.symbol || '', // Manter para compatibilidade
           image: player.image || '/icons/coinx.svg',
-          currentPrice: player.currentPrice || player.price || 0,
-          price: player.currentPrice || player.price || 0, // Manter para compatibilidade
+          currentPrice: player.currentPrice || 0, // Manter para compatibilidade
+          
+          marketCap: player.marketCap || 0,
+          marketCapRank: player.marketCapRank || null,
           points: player.points || 0,
           rarity: (player.rarity || "common") as "common" | "legendary" | "epic" | "rare",
-          priceChange24h: player.priceChange24h || player.change_24h || 0,
-          change_24h: player.priceChange24h || player.change_24h || 0, // Manter para compatibilidade
-          priceChange7d: player.priceChange7d || player.change_7d || 0,
-          change_7d: player.priceChange7d || player.change_7d || 0 // Manter para compatibilidade
+          priceChange24h: player.priceChange24h || 0, // Manter para compatibilidade
+          priceChange7d: player.priceChange7d || 0 // Manter para compatibilidade
         }))
       } : undefined;
 

@@ -22,6 +22,8 @@ import { CountdownTimer } from '@/components/ui/countdown-timer';
 import { isRodadaEmAndamento } from '@/lib/utils/timeCheck';
 import { useTranslations } from 'next-intl';
 
+import { useMflProgram, getVaultPda } from '@/lib/anchor-client';
+import { SystemProgram } from '@solana/web3.js';
 import {
   Users,
   Trophy,
@@ -57,6 +59,8 @@ export function TeamsContent() {
   const { user, isAuthenticated } = useAuth();
   const { canExecuteAction } = useGuardedActionHook();
   const { openModal: openWalletModal } = useWalletModal();
+  // Hook para interagir com o smart contract
+  const program = useMflProgram();
   
   console.log('DEBUG TeamsContent: Estado inicial', {
     connected,
@@ -90,8 +94,6 @@ export function TeamsContent() {
     competitionId: selectedLeagueId === 'main' ? 'main-league' : selectedLeagueId,
     enabled: !!selectedLeagueId
   });
-  
-  // Estados para verificação de pagamento e carregamento
   const [hasValidEntry, setHasValidEntry] = useState<boolean | null>(null);
   const [isLoadingTeam, setIsLoadingTeam] = useState(false);
   const [isSavingTeam, setIsSavingTeam] = useState(false);
@@ -165,7 +167,7 @@ export function TeamsContent() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          'Authorization': `Bearer ${localStorage.getItem('auth-symbol')}`
         },
         body: JSON.stringify({ 
           leagueId: selectedLeagueId === 'main' ? undefined : selectedLeagueId
@@ -205,23 +207,21 @@ export function TeamsContent() {
           if (teamData.tokenDetails && teamData.team.tokens) {
             console.log('DEBUG checkPaymentAndLoadTeam: Carregando players do time existente');
             const loadedPlayers: Player[] = teamData.team.tokens.map((symbol: string, index: number) => {
-              const tokenDetail = teamData.tokenDetails.find((t: any) => t.token === symbol || t.symbol === symbol);
+              const tokenDetail = teamData.tokenDetails.find((t: any) => t.symbol === symbol || t.symbol === symbol);
               return {
                 id: symbol, // Usar símbolo como ID para consistência
                 position: index + 1,
                 name: tokenDetail?.name || symbol,
                 symbol: symbol,
-                token: symbol,
-                image: tokenDetail?.image || '/icons/coinx.svg',
-                currentPrice: tokenDetail?.currentPrice || tokenDetail?.price || 0,
-                price: tokenDetail?.currentPrice || tokenDetail?.price || 0,
+                                image: tokenDetail?.image || '/icons/coinx.svg',
+                currentPrice: tokenDetail?.currentPrice || tokenDetail?.currentPrice || 0,
                 points: 0,
                 rarity: 'common' as const,
-                priceChange24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || 0,
-                change_24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || 0,
-                priceChange7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || 0,
-                change_7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || 0
-              };
+                priceChange24h: tokenDetail?.priceChange24h || tokenDetail?.priceChange24h || 0,
+                                priceChange7d: tokenDetail?.priceChange7d || tokenDetail?.priceChange7d || 0,
+              marketCap: 0,
+              marketCapRank: null
+                };
             });
             console.log('DEBUG checkPaymentAndLoadTeam: Players carregados:', loadedPlayers);
             setPlayers(loadedPlayers);
@@ -345,7 +345,7 @@ export function TeamsContent() {
         setPlayers(prevPlayers => {
           return prevPlayers.map(player => {
             const tokenData = allTokens.find((token: any) =>
-              token.symbol.toUpperCase() === (player.symbol || player.token || '').toUpperCase()
+              token.symbol.toUpperCase() === (player.symbol || player.symbol || '').toUpperCase()
             );
             
             if (tokenData) {
@@ -354,12 +354,9 @@ export function TeamsContent() {
                 image: tokenData.image,
                 name: tokenData.name,
                 currentPrice: tokenData.currentPrice || tokenData.current_price || 0,
-                price: tokenData.currentPrice || tokenData.current_price || 0,
                 priceChange24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
-                change_24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
-                priceChange7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
-                change_7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
-                points: Math.round(((tokenData.currentPrice || tokenData.current_price || 0) * 0.1) + ((tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0) * 0.5)) // Recalcular pontos
+                                priceChange7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
+                                points: Math.round(((tokenData.currentPrice || tokenData.current_price || 0) * 0.1) + ((tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0) * 0.5)) // Recalcular pontos
               };
             }
             
@@ -381,7 +378,7 @@ export function TeamsContent() {
     console.log('🎯 Adicionando token ao campo:', { token: token.symbol, position });
     
     // Verificar se o token já está sendo usado em outra posição
-    const isTokenAlreadyUsed = players.some(p => (p.symbol || p.token) === token.symbol && p.position !== position);
+    const isTokenAlreadyUsed = players.some(p => (p.symbol || p.symbol) === token.symbol && p.position !== position);
     if (isTokenAlreadyUsed) {
       setPaymentError(`O token ${token.symbol} já está sendo usado em outra posição.`);
       setTimeout(() => setPaymentError(null), 3000);
@@ -393,17 +390,15 @@ export function TeamsContent() {
       position,
       name: token.name,
       symbol: token.symbol,
-      token: token.symbol,
-      image: token.image,
-      currentPrice: token.currentPrice || token.price || 0,
-      price: token.currentPrice || token.price || 0,
-      points: Math.round(((token.currentPrice || token.price || 0) * 0.1) + ((token.priceChange24h || token.change_24h || 0) * 0.5)), // Calcular pontos baseado no preço e performance
+            image: token.image,
+      currentPrice: token.currentPrice || token.currentPrice || 0,
+      points: Math.round(((token.currentPrice || token.currentPrice || 0) * 0.1) + ((token.priceChange24h || token.priceChange24h || 0) * 0.5)), // Calcular pontos baseado no preço e performance
       rarity: 'common',
-      priceChange24h: token.priceChange24h || token.change_24h || 0,
-      change_24h: token.priceChange24h || token.change_24h || 0,
-      priceChange7d: token.priceChange7d || token.change_7d || 0,
-      change_7d: token.priceChange7d || token.change_7d || 0
-    };
+      priceChange24h: token.priceChange24h || token.priceChange24h || 0,
+            priceChange7d: token.priceChange7d || token.priceChange7d || 0,
+              marketCap: 0,
+              marketCapRank: null
+      };
 
     setPlayers(prev => {
       const filtered = prev.filter(p => p.position !== position);
@@ -442,6 +437,124 @@ export function TeamsContent() {
   };
 
   // ✅ REMOVIDO: Função isEditingAllowed() movida para useEffect acima para evitar hydration mismatch
+  // Função para pagar a taxa de entrada via smart contract
+  const handlePayEntryFee = async () => {
+    if (!program || !publicKey) {
+      console.error("Programa Anchor ou carteira não estão prontos.");
+      setPaymentError("Por favor, conecte sua carteira primeiro.");
+      return;
+    }
+
+    try {
+      setIsLoadingTeam(true);
+      setPaymentError(null);
+
+      // 1. Encontrar o endereço do nosso cofre (PDA)
+      const vaultPda = getVaultPda();
+
+      console.log("Verificando se vault existe...");
+      console.log("Cofre (PDA):", vaultPda.toBase58());
+      console.log("Usuário:", publicKey.toBase58());
+
+      // 2. Verificar se o vault já foi inicializado
+      try {
+        const vaultAccount = await program.account.vault.fetch(vaultPda);
+        console.log("✅ Vault já existe:", vaultAccount);
+      } catch (error) {
+        // Vault não existe, precisamos inicializar primeiro
+        console.log("⚠️ Vault não existe. Inicializando...");
+
+        try {
+          const initTxHash = await program.methods
+            .initializeVault() // ✅ CORREÇÃO: Nome correto da função
+            .accountsPartial({
+              vault: vaultPda,
+              authority: publicKey, // ✅ CORREÇÃO: Parâmetro correto
+              systemProgram: SystemProgram.programId,
+            })
+            .rpc();
+
+          console.log("✅ Vault inicializado! Hash:", initTxHash);
+          await program.provider.connection.confirmTransaction(initTxHash, "confirmed");
+          console.log("✅ Inicialização confirmada!");
+        } catch (initError) {
+          console.error("❌ Erro ao inicializar vault:", initError);
+          throw new Error("Falha ao inicializar o vault. Tente novamente.");
+        }
+      }
+
+      // 3. Agora sim, fazer o depósito
+      console.log("Chamando 'depositEntryFee'...");
+      const txHash = await program.methods
+        .depositEntryFee()
+        .accountsPartial({
+          vault: vaultPda,
+          user: publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log("Transação enviada! Hash:", txHash);
+
+      // 4. Confirmar a transação e aguardar mais tempo
+      console.log("Aguardando confirmação da transação...");
+      const confirmation = await program.provider.connection.confirmTransaction(txHash, "confirmed");
+      console.log("Confirmação recebida:", confirmation);
+
+      // Aguardar mais um pouco para garantir que a transação está na blockchain
+      console.log("Aguardando 3 segundos adicionais para garantir propagação...");
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      console.log("Pagamento confirmado on-chain!");
+
+      // 5. Registrar o pagamento no banco de dados
+      console.log("Registrando pagamento no banco de dados...");
+      console.log("selectedLeagueId:", selectedLeagueId);
+
+      // Se leagueId for 'main', não enviar (API vai buscar a liga principal)
+      const confirmBody: any = {
+        transactionHash: txHash
+      };
+
+      // Só enviar leagueId se for um ID específico (não 'main')
+      if (selectedLeagueId && selectedLeagueId !== 'main') {
+        confirmBody.leagueId = selectedLeagueId;
+      }
+
+      console.log("Enviando para confirm-entry:", confirmBody);
+
+      const confirmResponse = await fetch('/api/league/confirm-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(confirmBody)
+      });
+
+      const confirmData = await confirmResponse.json();
+
+      if (!confirmResponse.ok) {
+        console.error("❌ Erro ao confirmar entrada no banco:", confirmData);
+        console.error("❌ Detalhes da validação:", JSON.stringify(confirmData.details, null, 2));
+        throw new Error(confirmData.error || 'Erro ao registrar pagamento');
+      }
+
+      console.log("✅ Pagamento registrado no banco:", confirmData);
+
+      // 6. Atualizar a UI
+      setHasValidEntry(true);
+      setSuccessMessage("Pagamento de 0.01 SOL confirmado! Você já pode escalar seu time.");
+
+      // 7. Recarregar dados do time para refletir hasValidEntry
+      await checkPaymentAndLoadTeam();
+
+    } catch (error) {
+      console.error("Erro ao pagar a taxa de entrada:", error);
+      setPaymentError(`Erro ao processar pagamento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    } finally {
+      setIsLoadingTeam(false);
+    }
+  };
+
 
   // Função para salvar escalação
   const handleSaveTeam = async () => {
@@ -498,7 +611,7 @@ export function TeamsContent() {
     try {
       const tokens = players
         .sort((a, b) => a.position - b.position)
-        .map(player => player.symbol || player.token || '');
+        .map(player => player.symbol || player.symbol || '');
 
       console.log('📋 handleSaveTeam: Tokens preparados:', tokens);
 
@@ -547,25 +660,23 @@ export function TeamsContent() {
           console.log('🔄 handleSaveTeam: Atualizando players com dados da API');
           
           const updatedPlayers: Player[] = data.team.tokens.map((symbol: string, index: number) => {
-            const tokenDetail = data.tokenDetails.find((t: any) => t.symbol === symbol || t.token === symbol);
-            const existingPlayer = players.find(p => (p.symbol || p.token) === symbol);
+            const tokenDetail = data.tokenDetails.find((t: any) => t.symbol === symbol || t.symbol === symbol);
+            const existingPlayer = players.find(p => (p.symbol || p.symbol) === symbol);
 
             return {
               id: symbol, // Usar símbolo como ID para consistência
               position: index + 1,
               name: tokenDetail?.name || existingPlayer?.name || symbol,
               symbol: symbol,
-              token: symbol,
-              image: existingPlayer?.image || tokenDetail?.image || '/icons/coinx.svg', // Preservar imagem existente
-              currentPrice: tokenDetail?.currentPrice || tokenDetail?.price || existingPlayer?.currentPrice || existingPlayer?.price || 0,
-              price: tokenDetail?.currentPrice || tokenDetail?.price || existingPlayer?.currentPrice || existingPlayer?.price || 0,
+                            image: existingPlayer?.image || tokenDetail?.image || '/icons/coinx.svg', // Preservar imagem existente
+              currentPrice: tokenDetail?.currentPrice || tokenDetail?.currentPrice || existingPlayer?.currentPrice || existingPlayer?.currentPrice || 0,
               points: existingPlayer?.points || 0,
               rarity: (existingPlayer?.rarity as 'common' | 'rare' | 'epic' | 'legendary') || 'common',
-              priceChange24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || existingPlayer?.priceChange24h || existingPlayer?.change_24h || 0,
-              change_24h: tokenDetail?.priceChange24h || tokenDetail?.change_24h || existingPlayer?.priceChange24h || existingPlayer?.change_24h || 0,
-              priceChange7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || existingPlayer?.priceChange7d || existingPlayer?.change_7d || 0,
-              change_7d: tokenDetail?.priceChange7d || tokenDetail?.change_7d || existingPlayer?.priceChange7d || existingPlayer?.change_7d || 0
-            };
+              priceChange24h: tokenDetail?.priceChange24h || tokenDetail?.priceChange24h || existingPlayer?.priceChange24h || existingPlayer?.priceChange24h || 0,
+                            priceChange7d: tokenDetail?.priceChange7d || tokenDetail?.priceChange7d || existingPlayer?.priceChange7d || existingPlayer?.priceChange7d || 0,
+              marketCap: 0,
+              marketCapRank: null
+              };
           });
           
           console.log('👥 handleSaveTeam: Players atualizados:', updatedPlayers);
@@ -614,7 +725,7 @@ export function TeamsContent() {
   };
 
   // Obter tokens já utilizados
-  const usedTokens = players.map(p => p.symbol || p.token || '');
+  const usedTokens = players.map(p => p.symbol || p.symbol || '');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
@@ -715,6 +826,7 @@ export function TeamsContent() {
           </Alert>
         )}
 
+        {/* Alerta de pagamento reativado */}
         {connected && hasValidEntry === false && paymentError && (
           <Alert className="mb-6 border-orange-200 bg-orange-50">
             <AlertCircle className="h-4 w-4 text-orange-600" />
@@ -724,16 +836,14 @@ export function TeamsContent() {
                 {selectedLeagueId === 'main' && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm">Pague a taxa de entrada na Liga Principal:</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      asChild
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePayEntryFee}
+                      disabled={isLoadingTeam}
                       className="text-orange-600 border-orange-300 hover:bg-orange-100"
                     >
-                      <LocalizedLink href="/ligas" className="flex items-center gap-1">
-                        Ir para Liga Principal
-                        <ExternalLink className="w-3 h-3" />
-                      </LocalizedLink>
+                      {isLoadingTeam ? "Processando..." : "Pagar 0.01 SOL e Entrar"}
                     </Button>
                   </div>
                 )}
@@ -787,22 +897,23 @@ export function TeamsContent() {
 
         {/* Layout Principal */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* 🚧 TEMPORÁRIO: Modal de pagamento desabilitado até implementar smart contract */}
           {/* Overlay para bloquear interação quando pagamento não confirmado */}
-          {connected && hasValidEntry === false && (
+          {/* {connected && hasValidEntry === false && (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center">
               <Card className="max-w-md mx-4">
                 <CardContent className="p-6 text-center">
                   <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2 dark:text-white">Pagamento Necessário</h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-4">
-                    {currentLeague?.type === 'main' 
+                    {currentLeague?.type === 'main'
                       ? 'Você precisa pagar a taxa de entrada da Liga Principal para criar seu time.'
                       : `Você precisa pagar a taxa de entrada da ${currentLeague?.name} para criar seu time.`
                     }
                   </p>
                   <Button asChild>
                     <LocalizedLink href={currentLeague?.type === 'main' ? "/ligas" : `/ligas?highlight=${selectedLeagueId}`}>
-                      {currentLeague?.type === 'main' 
+                      {currentLeague?.type === 'main'
                         ? 'Ir para Liga Principal'
                         : `Pagar ${currentLeague?.name}`
                       }
@@ -811,7 +922,7 @@ export function TeamsContent() {
                 </CardContent>
               </Card>
             </div>
-          )}
+          )} */}
           {/* Campo de Futebol */}
           <div>
             <Card>
@@ -831,18 +942,6 @@ export function TeamsContent() {
                     {/* ✅ CONTADOR UNIFICADO DA RODADA */}
                     <CountdownTimer leagueId={selectedLeagueId === 'main' ? 'main-league' : selectedLeagueId} className="text-xs" />
 
-                    {/* Indicador de Status da Rodada (consistente com Badge do topo) */}
-                    {editingAllowed ? (
-                      <span className="text-green-600 font-medium flex items-center gap-1 text-xs md:text-sm">
-                        <Clock className="w-3 h-3" />
-                        {t('roundOpen')}
-                      </span>
-                    ) : (
-                      <span className="text-red-600 font-medium flex items-center gap-1 text-xs md:text-sm">
-                        <Clock className="w-3 h-3" />
-                        {t('roundInProgress')}
-                      </span>
-                    )}
                   </div>
 
                   {/* GRUPO DIREITA - Botões (alinhados à direita no mobile) */}
@@ -933,15 +1032,15 @@ export function TeamsContent() {
                         );
                       }
                       const best = players.reduce((prev, current) =>
-                        ((current.priceChange7d || current.change_7d || 0) > (prev.priceChange7d || prev.change_7d || 0)) ? current : prev
+                        ((current.priceChange7d || current.priceChange7d || 0) > (prev.priceChange7d || prev.priceChange7d || 0)) ? current : prev
                       );
                       return (
                         <>
                           <div className="text-lg font-bold text-green-600">
-                            {best.symbol || best.token || '?'}
+                            {best.symbol || best.symbol || '?'}
                           </div>
                           <div className="text-xs text-green-600 dark:text-green-400">
-                            +{(best.priceChange7d || best.change_7d || 0).toFixed(1)}%
+                            +{(best.priceChange7d || best.priceChange7d || 0).toFixed(1)}%
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-300">{t('bestAsset')}</div>
                         </>
@@ -961,15 +1060,15 @@ export function TeamsContent() {
                         );
                       }
                       const worst = players.reduce((prev, current) =>
-                        ((current.priceChange7d || current.change_7d || 0) < (prev.priceChange7d || prev.change_7d || 0)) ? current : prev
+                        ((current.priceChange7d || current.priceChange7d || 0) < (prev.priceChange7d || prev.priceChange7d || 0)) ? current : prev
                       );
                       return (
                         <>
                           <div className="text-lg font-bold text-red-600">
-                            {worst.symbol || worst.token || '?'}
+                            {worst.symbol || worst.symbol || '?'}
                           </div>
                           <div className="text-xs text-red-600">
-                            {(worst.priceChange7d || worst.change_7d || 0).toFixed(1)}%
+                            {(worst.priceChange7d || worst.priceChange7d || 0).toFixed(1)}%
                           </div>
                           <div className="text-sm text-gray-600">{t('worstAsset')}</div>
                         </>
@@ -981,7 +1080,7 @@ export function TeamsContent() {
                   <div className="text-center">
                     {(() => {
                       const performance7d = players.length > 0
-                        ? (players.reduce((sum, p) => sum + (p.priceChange7d || p.change_7d || 0), 0) / players.length)
+                        ? (players.reduce((sum, p) => sum + (p.priceChange7d || p.priceChange7d || 0), 0) / players.length)
                         : 0;
                       const getPerformanceColor = (value: number) => {
                         if (value > 5) return 'text-green-600';

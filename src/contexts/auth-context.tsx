@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import bs58 from 'bs58';
 // import { signIn, getSession } from 'next-auth/react'; // Temporariamente desabilitado
@@ -22,13 +23,18 @@ function generateUserIdFromEmail(email: string): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+
+  // ✅ CORREÇÃO: Ref para prevenir múltiplas tentativas de login com a mesma carteira
+  const loginAttemptRef = useRef<string | null>(null);
   
   // Always call useWallet, but handle client-side logic inside
   const wallet = useWallet();
-  const { publicKey, connected, disconnect } = wallet;
+  const { publicKey, connected, disconnect, signMessage } = wallet;
 
   const isAuthenticated = !!user;
 
@@ -69,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const updatedUser = { ...userData, ...result.data };
                 setUser(updatedUser);
                 localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
+
               }
             } else {
               console.log('⚠️ [AUTH] Não foi possível buscar perfil atualizado');
@@ -89,44 +96,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkExistingSession();
   }, [isClient]);
 
+  // 🚀 useEffect para Redirecionamento Pós-Login e Onboarding
+  useEffect(() => {
+    // Só roda no cliente E se o usuário ESTIVER logado E não estiver carregando
+    if (isClient && user && !isLoading) {
+
+      // Define os caminhos de perfil (para evitar loop)
+      const profilePathPt = '/pt/perfil';
+      const profilePathEn = '/en/profile';
+
+      // REGRA 1: ONBOARDING
+      // Se o usuário logou com Carteira E o perfil está incompleto...
+      if (user.loginMethod === 'wallet' && (!user.email || !user.username)) {
+        // E ele NÃO está na página de perfil...
+        if (pathname !== profilePathPt && pathname !== profilePathEn) {
+          console.log('[AUTH] Perfil incompleto. Redirecionando para /perfil...');
+          router.push(profilePathPt);
+        }
+        return; // Para aqui.
+      }
+
+      // REGRA 2: REDIRECIONAMENTO PÓS-LOGIN
+      // Se o usuário está logado (e o perfil está completo)
+      // E ele ainda está na Homepage...
+      const homePathPt = '/pt';
+      const homePathEn = '/en';
+
+      if (pathname === homePathPt || pathname === homePathEn || pathname === '/') {
+        console.log('[AUTH] Usuário logado na home. Redirecionando para /dashboard...');
+        // Redireciona para o dashboard no idioma correto
+        const targetDashboard = pathname.startsWith('/en') ? '/en/dashboard' : '/pt/dashboard';
+        router.push(targetDashboard);
+      }
+    }
+  }, [user, isClient, isLoading, router, pathname]);
+
   const logout = useCallback(() => {
-    console.log('🚪 [LOGOUT] Iniciando logout:', { 
-      user: user?.email, 
-      loginMethod: user?.loginMethod, 
-      connected, 
-      publicKey: publicKey?.toString() 
+    console.log('🚪 [LOGOUT] Iniciando logout:', {
+      user: user?.email,
+      loginMethod: user?.loginMethod,
+      connected,
+      publicKey: publicKey?.toString()
     });
-    
+
     setUser(null);
     localStorage.removeItem('mfl_user');
     localStorage.removeItem('auth-token');
-    
+
     // SEMPRE desconectar carteira no logout, independente do método de login
     if (connected) {
       console.log('🔌 [LOGOUT] Desconectando carteira:', publicKey?.toString());
       disconnect();
     }
-    
+
     console.log('✅ [LOGOUT] Logout concluído');
-  }, [user?.email, user?.loginMethod, connected, publicKey, disconnect]);
-
-  useEffect(() => {
-    // A única coisa que este hook deve fazer é
-    // forçar o logout se a carteira for DESCONECTADA.
-
-    if (!connected && user?.loginMethod === 'wallet') {
-      console.log('🔌 [WALLET-DISCONNECT] Carteira desconectada. Forçando logout.');
-      logout(); // Apenas lida com desconexão
-    }
-
-    // A verificação de MISMATCH (carteira trocada)
-    // é 100% responsabilidade do useAppWalletStatus.ts.
-    // Este arquivo NÃO DEVE MAIS FAZER ISSO.
-
-    // A publicKey do usuário é definida APENAS no login
-    // e NUNCA deve ser atualizada por este useEffect.
-
-  }, [connected, user?.loginMethod, logout]);
+  }, [user, connected, publicKey, disconnect]); // Manter user para garantir closure correta
 
   const sendVerificationCode = async (email: string): Promise<SendCodeResponse> => {
     try {
@@ -185,17 +209,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(result.error || 'Código inválido');
       }
 
-      // Usar o ID do usuário retornado pela API (que foi criado no banco)
+      // ✅ CORREÇÃO: Usar spread operator para garantir que TODOS os campos sejam incluídos
       const userData: User = {
-        id: result.user.id, // ID real do banco de dados
-        email: result.user.email,
-        name: result.user.name || name || email.split('@')[0],
+        ...result.user, // Pegar TODOS os campos do usuário do banco
         loginMethod: 'email',
-        avatar: result.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-        publicKey: result.user.publicKey,
-        twitter: result.user.twitter,
-        discord: result.user.discord,
-        bio: result.user.bio
+        // Fallbacks apenas para campos que podem estar ausentes
+        name: result.user.name || name || email.split('@')[0],
+        avatar: result.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
       };
 
       console.log('✅ [VERIFY-CODE] Usuário criado/encontrado:', userData);
@@ -242,9 +262,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginWithWallet = async () => {
-    if (!connected || !publicKey) {
-      throw new Error('Carteira não conectada');
+  const loginWithWallet = useCallback(async () => {
+    // A verificação correta é se a função 'signMessage' existe
+    if (!publicKey || !signMessage) {
+      console.error('[SIWS] Erro: Carteira não conectada ou não suporta assinatura.');
+      throw new Error('Carteira não conectada ou não suporta assinatura.');
     }
 
     setIsLoading(true);
@@ -288,12 +310,12 @@ Carteira: ${walletAddress}`;
       // ==================================================
       console.log('✍️ [SIWS] Etapa 3: Solicitando assinatura da carteira...');
       
-      // Verificar se a carteira suporta signMessage
-      if (!wallet.signMessage) {
-        throw new Error('Esta carteira não suporta assinatura de mensagens');
+      // Double-check signMessage exists before calling
+      if (!signMessage) {
+        throw new Error('Carteira não suporta assinatura de mensagens');
       }
 
-      const signature = await wallet.signMessage(encodedMessage);
+      const signature = await signMessage(encodedMessage);
       const signatureBase58 = bs58.encode(signature);
       
       console.log('✅ [SIWS] Assinatura obtida');
@@ -325,16 +347,13 @@ Carteira: ${walletAddress}`;
       // ==================================================
       // ETAPA 5: AUTENTICAÇÃO CONCLUÍDA - ATUALIZAR ESTADO
       // ==================================================
+      // ✅ CORREÇÃO: Usar spread operator para garantir que TODOS os campos sejam incluídos
       const userData: User = {
-        id: result.user.id,
-        email: result.user.email,
-        publicKey: result.user.publicKey,
-        name: result.user.name || `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`,
+        ...result.user, // Pegar TODOS os campos do usuário do banco
         loginMethod: 'wallet',
-        avatar: result.user.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${walletAddress}`,
-        twitter: result.user.twitter,
-        discord: result.user.discord,
-        bio: result.user.bio
+        // Fallbacks apenas para campos que podem estar ausentes
+        name: result.user.name || `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`,
+        avatar: result.user.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${walletAddress}`
       };
 
       setUser(userData);
@@ -364,7 +383,138 @@ Carteira: ${walletAddress}`;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [publicKey, signMessage]); // ✅ CORREÇÃO: Remover setIsLoading e setUser (são estáveis)
+
+  // Conecta carteira a um usuário já logado por email
+  // Conecta e VERIFICA (SIWS) uma carteira a um usuário já logado por email
+  const connectWalletToUser = useCallback(async () => {
+    if (!user || user.loginMethod !== 'email') {
+      console.error('[SIWS-LINK] Usuário não está logado com email.');
+      return;
+    }
+    if (!publicKey || !signMessage) {
+      console.error('[SIWS-LINK] Carteira não conectada ou não suporta assinatura.');
+      throw new Error('Carteira não conectada ou não suporta assinatura.');
+    }
+
+    console.log('🔗 [SIWS-LINK] Iniciando vínculo de carteira com conta de email...');
+    setIsLoading(true);
+
+    try {
+      // 1. Obter o Nonce
+      const nonceRes = await fetch('/api/auth/nonce');
+      if (!nonceRes.ok) throw new Error('Falha ao buscar nonce');
+      const { nonce } = await nonceRes.json();
+      
+      const walletAddress = publicKey.toString();
+
+      // 2. Criar a Mensagem
+      const message = `Bem-vindo ao MFL!
+
+Clique para assinar e provar que você é o dono desta carteira.
+
+Isso não custará nenhum SOL.
+
+ID de Desafio (Nonce): ${nonce}
+Carteira: ${walletAddress}`;
+      const encodedMessage = new TextEncoder().encode(message);
+
+      // 3. Pedir Assinatura
+      // Double-check signMessage exists before calling
+      if (!signMessage) {
+        throw new Error('Carteira não suporta assinatura de mensagens');
+      }
+      const signature = await signMessage(encodedMessage);
+      const signatureBase58 = bs58.encode(signature);
+
+      // 4. Verificar Assinatura E Vincular no Backend
+      const verifyRes = await fetch('/api/wallet/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email, // Vincula ao email logado
+          nonce,
+          signature: signatureBase58,
+          publicKey: walletAddress,
+        }),
+      });
+
+      const result = await verifyRes.json();
+      if (!verifyRes.ok) {
+        throw new Error(result.error || 'Falha ao verificar e vincular carteira');
+      }
+
+      // 5. Sucesso! Atualizar o estado local
+      console.log('✅ [SIWS-LINK] Carteira vinculada com sucesso!');
+      const updatedUser = { ...user, publicKey: walletAddress };
+      setUser(updatedUser);
+      localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
+
+    } catch (error: any) {
+      console.error('❌ [SIWS-LINK] Erro ao vincular carteira:', error.message);
+      throw new Error(error.message || 'Falha ao vincular carteira');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, publicKey, signMessage]); // ✅ CORREÇÃO: Remover setIsLoading e setUser (são estáveis)
+
+  // useEffect para gerenciar conexão/desconexão de carteira
+  useEffect(() => {
+
+    // REGRA 1: INICIAR LOGIN (O GATILHO QUE FALTAVA)
+    // Se a carteira acabou de conectar (connected=true, publicKey existe)
+    // E o usuário AINDA NÃO está logado (!user)
+    // E não estamos no meio de um login (!isLoading)
+    // E a carteira suporta assinatura (signMessage existe)
+    if (isClient && connected && publicKey && signMessage && !user && !isLoading) {
+      const walletAddress = publicKey.toString();
+
+      // ✅ CORREÇÃO: Prevenir múltiplas tentativas de login com a mesma carteira
+      if (loginAttemptRef.current === walletAddress) {
+        console.log('⏭️ [AUTH] Já tentamos login com esta carteira, pulando...');
+        return;
+      }
+
+      console.log('🔌 [AUTH] Carteira conectada, mas sem sessão. Iniciando fluxo SIWS...');
+      loginAttemptRef.current = walletAddress;
+
+      // Chama a função que tem as 5 etapas (a que já confirmamos que existe)
+      loginWithWallet().catch((error) => {
+        console.error('❌ [AUTH] Erro ao iniciar login automático:', error);
+        // NÃO resetar loginAttemptRef aqui - queremos evitar loops mesmo em caso de erro
+      });
+    }
+
+    // ✅ CORREÇÃO: Resetar ref quando usuário faz login com sucesso ou desconecta
+    if (user && user.publicKey) {
+      loginAttemptRef.current = null;
+    }
+    if (!connected) {
+      loginAttemptRef.current = null;
+    }
+
+    // REGRA 2: FORÇAR LOGOUT POR DESCONEXÃO (A que já funciona)
+    // Se a carteira foi desconectada (!connected)
+    // E o usuário ESTAVA logado com carteira (user?.loginMethod === 'wallet')
+    if (isClient && !connected && user?.loginMethod === 'wallet') {
+      console.log('🔌 [AUTH] Carteira desconectada. Forçando logout.');
+      logout();
+    }
+
+    // REGRA 3: INICIAR VÍNCULO (O GATILHO QUE FALTAVA)
+    // Se o usuário está logado (com email) E conectou uma carteira
+    // E a conta dele AINDA NÃO TEM uma carteira vinculada
+    if (isClient && connected && publicKey && signMessage && user && user.loginMethod === 'email' && !user.publicKey && !isLoading) {
+      console.log('🔗 [AUTH] Usuário de email conectou carteira. Iniciando fluxo de VÍNCULO (SIWS)...');
+      connectWalletToUser().catch((error) => {
+        console.error('❌ [AUTH] Erro ao iniciar vínculo automático:', error);
+      });
+    }
+
+    // A verificação de MISMATCH (troca de carteira) é feita
+    // pelo 'useAppWalletStatus.ts', então não precisamos dela aqui.
+
+  }, [isClient, connected, publicKey, signMessage, user, isLoading, loginWithWallet, logout, connectWalletToUser]);
 
   const loginWithGoogle = async () => {
     setIsLoading(true);
@@ -429,54 +579,6 @@ Carteira: ${walletAddress}`;
     }
   };
 
-  // Conecta carteira a um usuário já logado por email
-  const connectWalletToUser = async (publicKey: string) => {
-    if (!user || !user.email) {
-      throw new Error('Usuário não autenticado ou sem email');
-    }
-
-    try {
-      console.log('🔗 [CONNECT-WALLET-USER] Conectando carteira ao usuário:', {
-        userId: user.id,
-        email: user.email,
-        publicKey
-      });
-
-      // VALIDAR NO BACKEND se carteira já está em uso
-      const response = await fetch('/api/wallet/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user.email,
-          publicKey: publicKey
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        if (response.status === 409) {
-          // Carteira em uso
-          console.error('❌ [CONNECT-WALLET-USER] Carteira já em uso:', result);
-          throw new Error(result.error || 'Esta carteira já está conectada a outra conta');
-        }
-        throw new Error(result.error || 'Erro ao conectar carteira');
-      }
-      
-      console.log('✅ [CONNECT-WALLET-USER] Carteira conectada com sucesso');
-      
-      // Atualizar usuário local com a carteira
-      const updatedUser = { ...user, publicKey: publicKey };
-      setUser(updatedUser);
-      localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
-      
-      return result.user;
-    } catch (error) {
-      console.error('❌ [CONNECT-WALLET-USER] Erro:', error);
-      throw error;
-    }
-  };
-
   // Atualiza perfil do usuário no banco E localmente
   const updateUserProfile = async (updates: Partial<User>) => {
     if (!user) {
@@ -496,6 +598,7 @@ Carteira: ${walletAddress}`;
       const payload = {
         userId: user.id,
         name: updates.name,
+        username: updates.username,
         avatar: updates.avatar,
         twitter: updates.twitter,
         discord: updates.discord,

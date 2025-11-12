@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Interface para os dados de atualização do perfil
+// ✅ CORREÇÃO DE SEGURANÇA: Interface apenas com campos NÃO-IDENTIDADE permitidos
+// Esta API não deve atualizar 'email' ou 'publicKey' para prevenir corrupção de dados
 interface ProfileUpdateData {
   name?: string;
   username?: string;
@@ -9,6 +10,8 @@ interface ProfileUpdateData {
   twitter?: string;
   discord?: string;
   bio?: string;
+  // NOTA: 'email', 'publicKey', 'walletAddress' NÃO SÃO PERMITIDOS aqui
+  // Use APIs específicas para vincular identidades: /api/user/link-email, /api/user/link-wallet
 }
 
 // Função para validar os dados de entrada
@@ -148,7 +151,26 @@ export async function PUT(request: NextRequest) {
     console.log('🔍 [PROFILE] userId recebido:', body.userId);
     console.log('🔍 [PROFILE] Tipo do userId:', typeof body.userId);
 
-    const { userId: bodyUserId, ...updateData }: ProfileUpdateData & { userId?: string } = body;
+    // ✅ CORREÇÃO: Extrair APENAS os campos seguros e permitidos
+    // Ignorar 'email', 'publicKey', 'walletAddress' intencionalmente para prevenir corrupção
+    const {
+      userId: bodyUserId,
+      name,
+      username,
+      avatar,
+      twitter,
+      discord,
+      bio
+    } = body;
+
+    // Construir objeto de dados apenas com campos permitidos
+    const updateData: ProfileUpdateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (username !== undefined) updateData.username = username;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (twitter !== undefined) updateData.twitter = twitter;
+    if (discord !== undefined) updateData.discord = discord;
+    if (bio !== undefined) updateData.bio = bio;
 
     // Tentar pegar userId do body OU do token
     let userId = bodyUserId;
@@ -233,9 +255,9 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Atualizar perfil no banco
-    console.log('💾 [PROFILE] Executando update no banco...');
-    const updatedUser = await prisma.user.update({
+    // ✅ CORREÇÃO: Atualizar apenas com os campos seguros construídos acima
+    console.log('💾 [PROFILE] Executando update no banco com campos seguros:', Object.keys(updateData));
+    await prisma.user.update({
       where: { id: userId },
       data: updateData
     });
@@ -250,15 +272,27 @@ export async function PUT(request: NextRequest) {
       console.log(`✅ [PROFILE] ${teamsUpdated.count} time(s) atualizado(s) com novo mascote`);
     }
 
+    // ✅ CORREÇÃO: Fazer refetch completo do usuário para garantir que retornamos todos os campos
+    const completeUser = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!completeUser) {
+      return NextResponse.json(
+        { error: 'Erro ao buscar usuário atualizado' },
+        { status: 500 }
+      );
+    }
+
     console.log('✅ [PROFILE-UPDATE] Perfil atualizado com sucesso:', {
       userId,
-      email: updatedUser.email,
-      name: updatedUser.name
+      email: completeUser.email,
+      name: completeUser.name
     });
 
     return NextResponse.json({
       success: true,
-      data: updatedUser,
+      data: completeUser, // Retorna o usuário completo
       message: 'Perfil atualizado com sucesso'
     });
 

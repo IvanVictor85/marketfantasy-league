@@ -160,15 +160,16 @@ export async function POST(request: NextRequest) {
     if (user) {
       console.log(`✅ [VERIFY-WALLET] Usuário existente encontrado: ${user.id}`);
     } else {
-      // Criar novo usuário com a carteira
+      // ✅ CORREÇÃO: Criar novo usuário SEM email fake
+      // O email deve ser null até o usuário verificar um email real via /perfil
       user = await prisma.user.create({
         data: {
-          email: `${publicKey}@wallet.mfl`, // Email temporário baseado na wallet
+          email: null, // ❌ NÃO criar email fake @wallet.mfl
           publicKey: publicKey,
           name: `Usuário ${publicKey.substring(0, 8)}`, // Nome temporário
         }
       });
-      console.log(`✅ [VERIFY-WALLET] Novo usuário criado: ${user.id}`);
+      console.log(`✅ [VERIFY-WALLET] Novo usuário criado (sem email): ${user.id}`);
     }
 
     // ============================================
@@ -195,12 +196,10 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       message: 'Carteira verificada e autenticada com sucesso!',
+      // ✅ CORREÇÃO: Retornar TODOS os campos do usuário
       user: {
-        id: user.id,
-        publicKey: user.publicKey,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
+        ...user,
+        loginMethod: 'wallet' // Adicionar campo extra para indicar método de login
       }
     });
 

@@ -73,6 +73,7 @@
     "selectPlayers": "Select Players",
     "players": "Players",
     "formation": "Formation",
+    "attack": "Attack",
     "budget": "Budget",
     "totalValue": "Total Value",
     "performance": "Performance",
@@ -112,7 +113,7 @@
     "teamNameHelp": "The team name is based on your username. You can change it on your profile page.",
     "paymentConfirmed": "Payment confirmed",
     "nextRoundStartsIn": "Next round starts in:",
-    "roundInProgressTime": "Round in progress (Sun 9pm - Fri 9pm BRT)"
+    "roundInProgressTime": "Round in progress (Sun 9pm - Fri 9pm BRT | Mon 00:00 - Sat 00:00 UTC)"
   },
   "market": {
     "title": "Token Market",
@@ -159,7 +160,23 @@
     "upcoming": "Upcoming",
     "leaderboard": "Leaderboard",
     "myPosition": "My Position",
-    "noLeagues": "No leagues found"
+    "noLeagues": "No leagues found",
+    "mainLeagueName": "MarketFantasy Main League",
+    "mainLeagueDescription": "CryptoFantasy Main League - Monthly token competition",
+    "officialBadge": "Official",
+    "startsIn": "Starts in",
+    "roundInProgress": "In Progress",
+    "loading": "Loading...",
+    "alreadyJoined": "You're already participating in this league!",
+    "transaction": "Transaction",
+    "viewMyTeam": "View My Team",
+    "notFound": "Main League not found. Please try again later.",
+    "verifying": "Verifying...",
+    "processing": "Processing...",
+    "leagueFinished": "League Finished",
+    "connectWallet": "Connect Wallet",
+    "linkWallet": "Link Wallet",
+    "linking": "Linking..."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -225,6 +242,8 @@
     "codeExpired": "Expired code"
   },
   "LeaguesPage": {
+    "official": "Official",
+    "community": "Community",
     "title": "Find Your Competition",
     "subtitle": "Join official leagues or unite with your community to compete for incredible prizes.",
     "officialLeague": "Official League",
@@ -240,7 +259,8 @@
     "totalPrize": "Total Prize",
     "participants": "Participants",
     "timeLeft": "Time Left",
-    "connectWallet": "Connect Wallet"
+    "connectWallet": "Connect Wallet",
+    "nextRound": "Next Round"
   },
   "HomePage": {
     "heroTitle": "The Crypto Universe Fantasy Game.",

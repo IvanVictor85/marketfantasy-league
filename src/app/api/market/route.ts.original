@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getMarketDataByTokenIds, getTop100Tokens } from '@/lib/services/coingecko.service';
+import { getMarketDataByTokenIds } from '@/lib/services/coingecko.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,9 +41,29 @@ export async function GET(request: Request) {
       }
     });
 
-    // MODO 1: Competição ativa com tokens cadastrados
-    if (competition && competition.tokens && competition.tokens.length > 0) {
-      console.log(`✅ Competição encontrada: ${competition.id} (status: ${competition.status})`);
+    if (!competition) {
+      console.warn('⚠️ Nenhuma competição ativa ou pendente encontrada');
+      return NextResponse.json({
+        tokens: [],
+        count: 0,
+        error: 'Nenhuma competição ativa no momento',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`✅ Competição encontrada: ${competition.id} (status: ${competition.status})`);
+
+    // Verificar se há tokens cadastrados
+    if (!competition.tokens || competition.tokens.length === 0) {
+      console.warn('⚠️ Competição sem tokens cadastrados');
+      return NextResponse.json({
+        tokens: [],
+        count: 0,
+        error: 'Cardápio de tokens ainda não foi definido para esta competição',
+        competitionId: competition.id,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     console.log(`🔒 Cardápio TRAVADO: ${competition.tokens.length} tokens`);
 
@@ -69,10 +89,8 @@ export async function GET(request: Request) {
         image: imageUrl,
         logoUrl: imageUrl, // Compatibilidade com market-analysis.ts
         currentPrice: liveData?.current_price || 0,
-        priceChange1h: liveData?.price_change_percentage_1h_in_currency || 0,
         priceChange24h: liveData?.price_change_percentage_24h || 0,
         priceChange7d: liveData?.price_change_percentage_7d_in_currency || 0,
-        priceChange30d: liveData?.price_change_percentage_30d_in_currency || 0,
         marketCap: liveData?.market_cap || 0,
         totalVolume: liveData?.total_volume || 0,
         marketCapRank: competitionToken.marketCapRank || liveData?.market_cap_rank || null
@@ -100,47 +118,6 @@ export async function GET(request: Request) {
     }, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
-      }
-    });
-    }
-
-    // MODO 2: Fallback - Top 100 da CoinGecko
-    console.warn("⚠️ Nenhuma competição com tokens encontrada");
-    console.log("🌐 FALLBACK: Buscando Top 100 tokens da CoinGecko...");
-
-    const top100Tokens = await getTop100Tokens();
-
-    const tokens = top100Tokens.map(token => ({
-      id: token.id,
-      symbol: token.symbol,
-      name: token.name,
-      image: token.image,
-      logoUrl: token.image,
-      currentPrice: token.current_price,
-      priceChange1h: token.price_change_percentage_1h_in_currency || 0,
-      priceChange24h: token.price_change_percentage_24h || 0,
-      priceChange7d: token.price_change_percentage_7d_in_currency || 0,
-      priceChange30d: token.price_change_percentage_30d_in_currency || 0,
-      marketCap: token.market_cap,
-      totalVolume: token.total_volume,
-      marketCapRank: token.market_cap_rank
-    }));
-
-    const duration = Date.now() - startTime;
-
-    console.log(`✅ API /api/market (MODO FALLBACK): ${tokens.length} tokens em ${duration}ms`);
-
-    return NextResponse.json({
-      tokens,
-      competition: null,
-      count: tokens.length,
-      mode: "fallback",
-      warning: "Nenhuma competição ativa. Exibindo Top 100 tokens.",
-      duration,
-      timestamp: new Date().toISOString()
-    }, {
-      headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300"
       }
     });
 

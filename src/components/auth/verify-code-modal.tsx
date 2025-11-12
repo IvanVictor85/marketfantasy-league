@@ -150,7 +150,7 @@ export function VerifyCodeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-center">Verificar Código</DialogTitle>
           <DialogDescription className="text-center">

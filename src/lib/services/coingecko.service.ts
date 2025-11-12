@@ -16,8 +16,10 @@ export interface CoinGeckoTokenData {
   name: string;
   image: string;
   current_price: number;
+  price_change_percentage_1h_in_currency: number | null;
   price_change_percentage_24h: number | null;
   price_change_percentage_7d_in_currency: number | null;
+  price_change_percentage_30d_in_currency: number | null;
   market_cap: number;
   total_volume: number;
   market_cap_rank: number | null;
@@ -137,7 +139,7 @@ export async function getMarketDataByTokenIds(
     const url = new URL('https://api.coingecko.com/api/v3/coins/markets');
     url.searchParams.set('vs_currency', 'usd');
     url.searchParams.set('ids', idsString);
-    url.searchParams.set('price_change_percentage', '24h,7d');
+    url.searchParams.set('price_change_percentage', '1h,24h,7d,30d');
 
     // Chamada à API (SEM CACHE - dados frescos)
     const response = await fetch(url.toString(), {
@@ -163,8 +165,10 @@ export async function getMarketDataByTokenIds(
       name: token.name,
       image: token.image,
       current_price: token.current_price || 0,
+      price_change_percentage_1h_in_currency: token.price_change_percentage_1h_in_currency,
       price_change_percentage_24h: token.price_change_percentage_24h,
       price_change_percentage_7d_in_currency: token.price_change_percentage_7d_in_currency,
+      price_change_percentage_30d_in_currency: token.price_change_percentage_30d_in_currency,
       market_cap: token.market_cap || 0,
       total_volume: token.total_volume || 0,
       market_cap_rank: token.market_cap_rank,
@@ -221,8 +225,10 @@ export function createGhostToken(
     name: 'Token Não Encontrado',
     image: '/icons/coinx.svg',
     current_price: 0,
+    price_change_percentage_1h_in_currency: 0,
     price_change_percentage_24h: 0,
     price_change_percentage_7d_in_currency: 0,
+    price_change_percentage_30d_in_currency: 0,
     market_cap: 0,
     total_volume: 0,
     market_cap_rank: null,
@@ -310,7 +316,7 @@ export async function getTop100Tokens(): Promise<CoinGeckoTokenData[]> {
     url.searchParams.set('order', 'market_cap_desc');
     url.searchParams.set('per_page', '100');
     url.searchParams.set('page', '1');
-    url.searchParams.set('price_change_percentage', '24h,7d');
+    url.searchParams.set('price_change_percentage', '1h,24h,7d,30d');
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -334,8 +340,10 @@ export async function getTop100Tokens(): Promise<CoinGeckoTokenData[]> {
       name: token.name,
       image: token.image,
       current_price: token.current_price || 0,
+      price_change_percentage_1h_in_currency: token.price_change_percentage_1h_in_currency,
       price_change_percentage_24h: token.price_change_percentage_24h,
       price_change_percentage_7d_in_currency: token.price_change_percentage_7d_in_currency,
+      price_change_percentage_30d_in_currency: token.price_change_percentage_30d_in_currency,
       market_cap: token.market_cap || 0,
       total_volume: token.total_volume || 0,
       market_cap_rank: token.market_cap_rank,

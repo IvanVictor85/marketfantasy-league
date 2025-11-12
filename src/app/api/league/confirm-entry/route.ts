@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { Connection, PublicKey } from '@solana/web3.js'
 
 const confirmEntrySchema = z.object({
-  userWallet: z.string().min(32, 'Invalid wallet address'),
   transactionHash: z.string().min(64, 'Invalid transaction hash'),
   leagueId: z.string().optional()
+  // userWallet removido - será obtido do banco de dados via sessão
 })
 
 // Função para obter o usuário autenticado
@@ -114,17 +114,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify transaction on-chain
-    const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com'
-    )
+    const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+    console.log('🔍 [CONFIRM-ENTRY] RPC URL:', rpcUrl);
+    const connection = new Connection(rpcUrl)
 
     let transaction
     try {
+      console.log('🔍 [CONFIRM-ENTRY] Buscando transação:', transactionHash);
       transaction = await connection.getTransaction(transactionHash, {
-        maxSupportedTransactionVersion: 0
+        maxSupportedTransactionVersion: 0,
+        commitment: 'confirmed'
       })
+      console.log('🔍 [CONFIRM-ENTRY] Transação encontrada:', transaction ? 'SIM' : 'NÃO');
+      if (transaction) {
+        console.log('🔍 [CONFIRM-ENTRY] Meta existe:', transaction.meta ? 'SIM' : 'NÃO');
+      }
     } catch (error) {
-      console.error('Error fetching transaction:', error)
+      console.error('❌ [CONFIRM-ENTRY] Error fetching transaction:', error)
       return NextResponse.json(
         { error: 'Transação não encontrada na blockchain' },
         { status: 404 }
@@ -132,6 +138,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!transaction || !transaction.meta) {
+      console.error('❌ [CONFIRM-ENTRY] Transação inválida ou sem meta');
+      console.error('   transaction:', !!transaction);
+      console.error('   meta:', !!transaction?.meta);
       return NextResponse.json(
         { error: 'Transação inválida ou não confirmada' },
         { status: 400 }

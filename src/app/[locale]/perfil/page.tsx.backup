@@ -75,15 +75,13 @@ export default function PerfilPage() {
       setTwitter(user.twitter || '');
       setDiscord(user.discord || '');
       setBio(user.bio || '');
-      setEmail(user.email || ''); // ✅ CORREÇÃO: Carregar email do banco após F5
 
       console.log('✅ [PERFIL] Estados setados:', {
         name: user.name,
         username: user.username,
         twitter: user.twitter,
         discord: user.discord,
-        bio: user.bio,
-        email: user.email
+        bio: user.bio
       });
     }
 
@@ -157,23 +155,14 @@ export default function PerfilPage() {
     } catch (error: any) {
       console.error('[PERFIL] Erro ao enviar código:', error);
       alert(`Erro ao enviar código: ${error.message || 'Erro desconhecido'}`);
-    } finally {
-      // ✅ CORREÇÃO: Sempre limpar o estado de loading, mesmo no sucesso
       setIsVerifyingEmail(false);
     }
   };
 
   // Função para verificar código e vincular email
   const handleVerifyEmail = async () => {
-    // ✅ CORREÇÃO: Validações primeiro, antes de setar loading
     if (!email || !emailVerificationCode) {
       alert('Por favor, preencha o email e o código de verificação.');
-      return;
-    }
-
-    // ✅ CORREÇÃO: Prevenir múltiplas chamadas simultâneas
-    if (isVerifyingEmail) {
-      console.log('[PERFIL] Já está verificando, aguarde...');
       return;
     }
 
@@ -185,10 +174,8 @@ export default function PerfilPage() {
       const response = await fetch('/api/user/link-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // ✅ CORREÇÃO: Enviar cookies (auth-token) na requisição
         body: JSON.stringify({
-          // ✅ NOVA LÓGICA: Enviar APENAS email e código
-          // Os outros dados já foram salvos no handleSubmit
+          userId: user?.id,
           email: email,
           code: emailVerificationCode
         })
@@ -202,13 +189,8 @@ export default function PerfilPage() {
 
       console.log('[PERFIL] Email verificado e vinculado com sucesso!');
 
-      // ✅ NOVA LÓGICA: Atualizar o contexto com o usuário retornado
-      // A API retorna o usuário completo com o email atualizado
-      if (result.user) {
-        // Forçar atualização do contexto chamando updateUserProfile com dados vazios
-        // Isso vai fazer o contexto buscar os dados atualizados do backend
-        await updateUserProfile({});
-      }
+      // Atualizar user no contexto
+      await updateUserProfile({ email });
 
       setShowEmailVerification(false);
       setEmailVerificationCode('');
@@ -220,7 +202,6 @@ export default function PerfilPage() {
       console.error('[PERFIL] Erro ao verificar código:', error);
       alert(`Erro ao verificar código: ${error.message || 'Código inválido'}`);
     } finally {
-      // ✅ GARANTIA: Sempre limpar o estado de loading
       setIsVerifyingEmail(false);
     }
   };
@@ -259,45 +240,30 @@ export default function PerfilPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    
     // 🔍 LOGS CRÍTICOS
     console.log('🔍 [PROFILE-FRONTEND] ===================');
     console.log('🔍 [PROFILE-FRONTEND] User completo:', JSON.stringify(user, null, 2));
     console.log('🔍 [PROFILE-FRONTEND] user.id:', user?.id);
     console.log('🔍 [PROFILE-FRONTEND] Tipo:', typeof user?.id);
-    console.log('🔍 [PROFILE-FRONTEND] FormData:', { name, username, twitter, discord, bio, email });
+    console.log('🔍 [PROFILE-FRONTEND] FormData:', { name, twitter, discord, bio });
     console.log('🔍 [PROFILE-FRONTEND] ===================');
-
-    if (!user) return;
-
+    
     try {
-      // ✅ NOVA LÓGICA: SEMPRE salvar os dados do perfil PRIMEIRO (exceto email se for novo)
-      const isWalletUser = user.loginMethod === 'wallet' || (user.publicKey && !user.email);
-      const isAddingNewEmail = email && email !== user.email;
-
-      // 1️⃣ SEMPRE salvar dados do perfil (name, username, twitter, discord, bio, avatar)
+      // Salva dados do perfil e mascote gerado (se houver)
       const profileData: any = { name, username, twitter, discord, bio };
       if (generatedMascot) {
         profileData.generatedMascot = generatedMascot;
       }
 
-      console.log('💾 [PERFIL] Salvando dados do perfil primeiro...');
+      console.log('📡 [PROFILE-FRONTEND] ProfileData:', JSON.stringify(profileData, null, 2));
+
       await updateUserProfile(profileData);
-      console.log('✅ [PERFIL] Dados do perfil salvos com sucesso!');
-
-      // 2️⃣ SE for usuário de carteira E estiver adicionando novo email
-      // ENTÃO enviar código de verificação (email será salvo na verificação)
-      if (isWalletUser && isAddingNewEmail) {
-        console.log('📧 [PERFIL] Usuário de carteira adicionando email. Enviando código...');
-        await handleSendEmailVerification();
-        return; // Parar aqui - email será salvo após verificação
-      }
-
-      // 3️⃣ Se não está adicionando email novo, apenas mostrar mensagem de sucesso
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (error) {
       console.error('❌ [PROFILE-FRONTEND] Erro:', error);
+      // Você pode adicionar um estado de erro aqui se quiser mostrar uma mensagem de erro
       alert('Erro ao salvar perfil. Tente novamente.');
     }
   };
@@ -367,17 +333,13 @@ export default function PerfilPage() {
         // 2. Salvar no localStorage também
         const key = `savedMascot_${user.id}`;
         localStorage.setItem(key, JSON.stringify(generatedMascot));
-
+        
         // 3. Atualizar estado local
         setSavedMascot(generatedMascot);
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
-
-        // 4. ✅ CORREÇÃO: Atualizar o contexto do usuário para refletir o novo avatar
-        console.log('🔄 Atualizando contexto do usuário...');
-        await updateUserProfile({ avatar: generatedMascot.imageUrl });
-
-        console.log('✅ Mascote salvo no banco, localStorage e contexto atualizado');
+        
+        console.log('✅ Mascote salvo no banco e localStorage');
       } catch (error) {
         console.error('Erro ao salvar mascote:', error);
         alert('Erro ao salvar mascote. Tente novamente.');
@@ -568,42 +530,6 @@ export default function PerfilPage() {
 
                   />
 
-                  {/* ✅ CORREÇÃO: Campo de verificação de código de email */}
-                  {showEmailVerification && (
-                    <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-md space-y-3">
-                      <Label htmlFor="emailVerificationCode" className="text-sm font-semibold">
-                        Digite o código enviado para {email}
-                      </Label>
-                      <Input
-                        id="emailVerificationCode"
-                        type="text"
-                        placeholder="123456"
-                        value={emailVerificationCode}
-                        onChange={(e) => setEmailVerificationCode(e.target.value)}
-                        maxLength={6}
-                        className="font-mono text-center text-lg"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleVerifyEmail}
-                        disabled={isVerifyingEmail || !emailVerificationCode || emailVerificationCode.length !== 6}
-                        className="w-full"
-                      >
-                        {isVerifyingEmail ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Verificando...
-                          </>
-                        ) : (
-                          <>✅ Verificar Código</>
-                        )}
-                      </Button>
-                      <p className="text-xs text-muted-foreground text-center">
-                        Não recebeu o código? Verifique sua caixa de spam ou tente novamente.
-                      </p>
-                    </div>
-                  )}
 
                 </div>
 

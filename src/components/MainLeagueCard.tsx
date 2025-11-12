@@ -15,6 +15,7 @@ import { LocalizedLink } from '@/components/ui/localized-link';
 import { useAuth } from '@/contexts/auth-context';
 import { useLocaleNavigation } from '@/hooks/useLocaleNavigation';
 import { useRoundTimer } from '@/hooks/useRoundTimer';
+import { useTranslations } from 'next-intl';
 
 interface MainLeagueData {
   id: string;
@@ -45,17 +46,20 @@ interface EntryStatus {
 
 // Componente inline para exibir o timer da rodada
 function RoundTimerInline() {
+  const tLeagues = useTranslations('leagues');
   const { formatTime, loading, isExpired } = useRoundTimer({ leagueId: 'main-league' });
 
-  if (loading) return <span className="text-gray-400">Carregando...</span>;
-  if (isExpired) return <span className="text-red-600">🔴 Em andamento</span>;
+  if (loading) return <span className="text-gray-400">{tLeagues('loading')}</span>;
+  if (isExpired) return <span className="text-red-600">🔴 {tLeagues('roundInProgress')}</span>;
   
-  return <span className="text-green-600">🟢 Inicia em {formatTime()}</span>;
+  return <span className="text-green-600">🟢 {tLeagues('startsIn')} {formatTime()}</span>;
 }
 
 export function MainLeagueCard() {
   const { publicKey, connected, sendTransaction, isMismatched, canExecuteAction } = useGuardedActionHook();
   const { profileWallet, isProfileLoading } = useAppWalletStatus();
+  const t = useTranslations('LeaguesPage');
+  const tLeagues = useTranslations('leagues');
   const { user, isAuthenticated, connectWalletToUser } = useAuth();
   const { setVisible } = useWalletModal();
   const { push } = useLocaleNavigation();
@@ -125,9 +129,9 @@ export function MainLeagueCard() {
       
       const fallbackData = {
         id: 'main-league-fallback',
-        name: 'Liga Principal',
-        description: 'Liga Principal do CryptoFantasy - Competição mensal de tokens',
-        entryFee: 0.005,
+        name: tLeagues('mainLeagueName'),
+        description: tLeagues('mainLeagueDescription'),
+        entryFee: 0.01, // ✅ Padronizado para 0.01 SOL
         totalPrizePool: 0.01,
         participantCount: 0,
         startDate: new Date().toISOString(),
@@ -310,7 +314,7 @@ export function MainLeagueCard() {
       console.log('✅ [LINK-WALLET] Carteira vinculada com sucesso');
 
       // 2. Atualizar o contexto de autenticação
-      await connectWalletToUser(publicKey.toString());
+      await connectWalletToUser();
 
       // 3. Revalidar status de entrada
       if (leagueData) {
@@ -555,7 +559,7 @@ export function MainLeagueCard() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Liga Principal não encontrada. Tente novamente mais tarde.
+              {tLeagues('notFound')}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -570,14 +574,14 @@ export function MainLeagueCard() {
           <div className="relative w-16 h-16 bg-transparent flex items-center justify-center">
             <Image 
               src="/league-logos/main-league-trophy.png" 
-              alt="Liga Principal" 
+              alt={tLeagues('mainLeagueName')} 
               width={64}
               height={64}
               className="object-contain"
             />
           </div>
           <Badge className="bg-secondary text-secondary-foreground font-bold">
-            Oficial
+            {tLeagues("officialBadge")}
           </Badge>
         </div>
       </CardHeader>
@@ -592,7 +596,7 @@ export function MainLeagueCard() {
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="flex items-center space-x-2">
             <Coins className="h-4 w-4 text-accent" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Entrada:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('entry')}</span>
           </div>
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
             {leagueData.entryFee} SOL
@@ -600,7 +604,7 @@ export function MainLeagueCard() {
           
           <div className="flex items-center space-x-2">
             <Trophy className="h-4 w-4 text-accent" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Prêmio Total:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('totalPrize')}</span>
           </div>
           <div className="text-sm font-bold text-accent">
             {leagueData.totalPrizePool} SOL
@@ -608,7 +612,7 @@ export function MainLeagueCard() {
           
           <div className="flex items-center space-x-2">
             <Users className="h-4 w-4 text-accent" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Participantes:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('participants')}</span>
           </div>
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
             {leagueData.participantCount}
@@ -616,7 +620,7 @@ export function MainLeagueCard() {
           
           <div className="flex items-center space-x-2">
             <Clock className="h-4 w-4 text-accent" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Próxima Rodada:</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('nextRound')}</span>
           </div>
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
             <RoundTimerInline />
@@ -628,9 +632,9 @@ export function MainLeagueCard() {
           <Alert className="mb-4 border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              Você já está participando desta liga! 
+              {tLeagues('alreadyJoined')} 
               <span className="font-medium ml-1">
-                Transação: {entryStatus.entry?.transactionHash.slice(0, 8)}...
+                {tLeagues('transaction')}: {entryStatus.entry?.transactionHash.slice(0, 8)}...
               </span>
             </AlertDescription>
           </Alert>
@@ -668,7 +672,7 @@ export function MainLeagueCard() {
             disabled
             className="w-full bg-gray-500 text-white cursor-not-allowed"
           >
-            Verificando...
+            {tLeagues('verifying')}
           </Button>
         )
 
@@ -679,7 +683,7 @@ export function MainLeagueCard() {
             className="w-full bg-green-600 hover:bg-green-700 text-white"
           >
             <LocalizedLink href="/teams?league=main">
-              Ver Meu Time
+              {tLeagues("viewMyTeam")}
             </LocalizedLink>
           </Button>
         )
@@ -706,12 +710,12 @@ export function MainLeagueCard() {
             {transactionLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processando...
+                {tLeagues('processing')}
               </>
             ) : !leagueData.round.isActive ? (
-              'Liga Finalizada'
+              tLeagues('leagueFinished')
             ) : (
-              `Entrar na Liga (${leagueData.entryFee} SOL)`
+              `${tLeagues("joinLeague")} (${leagueData.entryFee} SOL)`
             )}
           </Button>
         )
@@ -722,7 +726,7 @@ export function MainLeagueCard() {
             onClick={handleActionClick}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Conectar Carteira
+            {tLeagues('connectWallet')}
           </Button>
         )
 
@@ -736,10 +740,10 @@ export function MainLeagueCard() {
             {isLinking ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Vinculando...
+                {tLeagues('linking')}
               </>
             ) : (
-              'Vincular Carteira'
+              tLeagues('linkWallet')
             )}
           </Button>
         )
@@ -750,7 +754,7 @@ export function MainLeagueCard() {
             onClick={() => setVisible(true)}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Conectar Carteira
+            {tLeagues('connectWallet')}
           </Button>
         )}
       </CardFooter>

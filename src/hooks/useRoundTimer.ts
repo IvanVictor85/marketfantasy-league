@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useCompetitionStatus } from './useCompetitionStatus';
+import { getNextRoundStart } from '@/lib/utils/timeCheck';
 
 interface TimeRemaining {
   days: number;
@@ -18,7 +19,7 @@ interface UseRoundTimerOptions {
 
 /**
  * Hook unificado para gerenciar o timer da rodada
- * Usa a data de início da próxima rodada (startTime) como referência
+ * Calcula dinamicamente o tempo até o próximo Domingo 21:00 BRT (Segunda 00:00 UTC)
  */
 export function useRoundTimer({ leagueId = 'main-league', enabled = true }: UseRoundTimerOptions = {}) {
   const { competition, loading, error } = useCompetitionStatus({
@@ -35,14 +36,14 @@ export function useRoundTimer({ leagueId = 'main-league', enabled = true }: UseR
   });
 
   useEffect(() => {
-    if (!enabled || !competition?.startTime) return;
+    if (!enabled) return;
 
     const calculateTimeRemaining = (): TimeRemaining => {
       const now = new Date();
-      
-      // 🎯 USA A DATA DO BANCO (startTime da competição)
-      const nextRoundStart = new Date(competition.startTime);
-      
+
+      // 🎯 CALCULA DINAMICAMENTE o próximo Domingo 21:00 BRT (Segunda 00:00 UTC)
+      const nextRoundStart = getNextRoundStart(now);
+
       // Calcular diferença
       const difference = nextRoundStart.getTime() - now.getTime();
 
@@ -68,30 +69,30 @@ export function useRoundTimer({ leagueId = 'main-league', enabled = true }: UseR
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [enabled, competition?.startTime]);
+  }, [enabled]);
 
   // Formata o tempo para exibição
   const formatTime = (includeSeconds = false): string => {
     const { days, hours, minutes, seconds } = timeRemaining;
-    
+
     if (days > 0) {
-      return includeSeconds 
+      return includeSeconds
         ? `${days}d ${hours}h ${minutes}m ${seconds}s`
         : `${days}d ${hours}h ${minutes}m`;
     }
-    
+
     if (hours > 0) {
       return includeSeconds
         ? `${hours}h ${minutes}m ${seconds}s`
         : `${hours}h ${minutes}m`;
     }
-    
+
     if (minutes > 0) {
       return includeSeconds
         ? `${minutes}m ${seconds}s`
         : `${minutes}m`;
     }
-    
+
     return `${seconds}s`;
   };
 
@@ -104,4 +105,3 @@ export function useRoundTimer({ leagueId = 'main-league', enabled = true }: UseR
     isExpired: timeRemaining.totalMs <= 0
   };
 }
-

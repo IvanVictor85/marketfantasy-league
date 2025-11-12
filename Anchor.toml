@@ -1,18 +1,21 @@
+[toolchain]
+anchor_version = "0.32.1"
+
 [features]
 seeds = false
 skip-lint = false
 
 [programs.devnet]
-cryptofantasy = "11111111111111111111111111111112"
+cryptofantasy = "7QHMrTeoLTggAy11kTTEwtoRzcvK8rEeY1TRu4oUdgGP"
 
 [programs.localnet]
-cryptofantasy = "11111111111111111111111111111112"
+cryptofantasy = "7QHMrTeoLTggAy11kTTEwtoRzcvK8rEeY1TRu4oUdgGP"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet"
+cluster = "https://devnet.helius-rpc.com/?api-key=0ef6f1af-3077-456d-8df0-21e8b74a9382"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -22,3 +25,6 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 members = [
     "programs/cryptofantasy"
 ]
+
+[test]
+startup_wait = 30000

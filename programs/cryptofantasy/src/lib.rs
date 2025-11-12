@@ -1,300 +1,140 @@
+// Conteúdo para: src/lib.rs
+
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
+use anchor_lang::system_program::{self, Transfer};
 
-declare_id!("11111111111111111111111111111112"); // Placeholder - will be updated after deployment
+// 1. ID do Programa (Placeholder - será atualizado após deploy)
+declare_id!("7QHMrTeoLTggAy11kTTEwtoRzcvK8rEeY1TRu4oUdgGP");
 
+// ===================================================================
+// PROGRAMA PRINCIPAL (MFL)
+// ===================================================================
 #[program]
-pub mod cryptofantasy {
+pub mod mfl_program {
     use super::*;
 
-    /// Initializes the Main League (Liga Principal)
-    pub fn initialize_league(
-        ctx: Context<InitializeLeague>,
-        entry_fee: u64,
-        start_time: i64,
-        end_time: i64,
-    ) -> Result<()> {
-        let league = &mut ctx.accounts.league;
-        let clock = Clock::get()?;
+    // Constante para a taxa de entrada (0.01 SOL = 10,000,000 Lamports)
+    const ENTRY_FEE_LAMPORTS: u64 = 10_000_000;
 
-        league.admin = ctx.accounts.admin.key();
-        league.protocol_treasury = ctx.accounts.protocol_treasury.key();
-        league.entry_fee = entry_fee; // 0.005 SOL = 5_000_000 lamports
-        league.max_players = None; // Unlimited for Main League
-        league.current_players = 0;
-        league.start_time = start_time;
-        league.end_time = end_time;
-        league.is_active = true;
-        league.total_pool = 0;
-        league.is_distributed = false;
-        league.created_at = clock.unix_timestamp;
-        league.bump = ctx.bumps.league;
-        league.treasury_bump = ctx.bumps.treasury_pda;
-        league.league_type = LeagueType::Main;
+    /**
+     * Função 1: Initialize Vault (ADMIN)
+     * Cria o PDA do cofre principal do MFL.
+     */
+    pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
+        msg!("Inicializando o cofre MFL...");
 
-        msg!("Main League initialized with entry fee: {} lamports", entry_fee);
+        // Grava quem é a autoridade (o admin que criou)
+        ctx.accounts.vault.authority = ctx.accounts.authority.key();
+        // Zera o total de prêmios
+        ctx.accounts.vault.total_pot = 0;
+
+        msg!("Cofre inicializado. Autoridade: {}", ctx.accounts.vault.authority);
         Ok(())
     }
 
-    /// Allows a user to enter the Main League by paying the entry fee in SOL
-    pub fn enter_league(ctx: Context<EnterLeague>) -> Result<()> {
-        let league = &mut ctx.accounts.league;
-        let clock = Clock::get()?;
+    /**
+     * Função 2: Deposit Entry Fee (JOGADOR)
+     * O jogador paga a taxa de 0.01 SOL para o cofre.
+     */
+    pub fn deposit_entry_fee(ctx: Context<DepositEntryFee>) -> Result<()> {
+        msg!("Recebendo depósito de 0.01 SOL...");
 
-        // Validate league is active
-        require!(league.is_active, ErrorCode::LeagueNotActive);
-        // Ensure league has started
-        require!(clock.unix_timestamp >= league.start_time, ErrorCode::LeagueNotStarted);
-        require!(clock.unix_timestamp < league.end_time, ErrorCode::LeagueEnded);
+        // 1. Preparar a transferência de SOL
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.user.to_account_info(),
+            to: ctx.accounts.vault.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.system_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
-        // For Main League, no player limit
-        if let Some(max_players) = league.max_players {
-            require!(league.current_players < max_players, ErrorCode::LeagueFull);
-        }
+        // 2. Executar a transferência (chamando o programa do sistema Solana)
+        system_program::transfer(cpi_ctx, ENTRY_FEE_LAMPORTS)?;
 
-        // Transfer entry fee from user to treasury PDA
-        let transfer_ctx = CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.user.to_account_info(),
-                to: ctx.accounts.treasury_pda.to_account_info(),
-            },
-        );
-        system_program::transfer(transfer_ctx, league.entry_fee)?;
+        // 3. Atualizar o total no cofre
+        ctx.accounts.vault.total_pot = ctx
+            .accounts
+            .vault
+            .total_pot
+            .checked_add(ENTRY_FEE_LAMPORTS)
+            .ok_or(ErrorCode::Overflow)?; // Proteção contra overflow
 
-        // Update league state
-        league.current_players = league
-            .current_players
-            .checked_add(1)
-            .ok_or(ErrorCode::MathOverflow)?;
-        league.total_pool = league
-            .total_pool
-            .checked_add(league.entry_fee)
-            .ok_or(ErrorCode::MathOverflow)?;
-
-        msg!("User {} entered league. Total players: {}, Total pool: {} lamports", 
-             ctx.accounts.user.key(), 
-             league.current_players,
-             league.total_pool);
-        Ok(())
-    }
-
-    /// Distributes prizes to winners (called by admin/oracle)
-    pub fn distribute_prizes(
-        ctx: Context<DistributePrizes>,
-        winner1: Pubkey,
-        winner2: Pubkey,
-        winner3: Pubkey,
-    ) -> Result<()> {
-        let league = &mut ctx.accounts.league;
-        let clock = Clock::get()?;
-
-        // Validate only admin can call this
-        require!(ctx.accounts.admin.key() == league.admin, ErrorCode::Unauthorized);
-        require!(!league.is_distributed, ErrorCode::AlreadyDistributed);
-        require!(clock.unix_timestamp > league.end_time, ErrorCode::LeagueNotEnded);
-
-        // Ensure distinct winners
-        require!(winner1 != winner2 && winner1 != winner3 && winner2 != winner3, ErrorCode::DuplicateWinners);
-
-        let total_pool = league.total_pool;
-        
-        // Calculate prize distribution (50%, 30%, 20%)
-        let first_prize = total_pool * 50 / 100;   // 50%
-        let second_prize = total_pool * 30 / 100;  // 30%
-        let third_prize = total_pool * 20 / 100;   // 20%
-
-        // Ensure treasury has sufficient funds
-        let required_total = first_prize
-            .checked_add(second_prize)
-            .and_then(|v| v.checked_add(third_prize))
-            .ok_or(ErrorCode::MathOverflow)?;
-        require!(ctx.accounts.treasury_pda.to_account_info().lamports() >= required_total, ErrorCode::InsufficientTreasuryFunds);
-
-        // Create seeds for PDA signing (treasury PDA)
-        let league_key = league.key();
-        let seeds = &[
-            b"treasury".as_ref(),
-            league_key.as_ref(),
-            &[league.treasury_bump],
-        ];
-        let signer = &[&seeds[..]];
-
-        // Transfer first prize
-        if first_prize > 0 {
-            let transfer_ctx = CpiContext::new_with_signer(
-                ctx.accounts.system_program.to_account_info(),
-                system_program::Transfer {
-                    from: ctx.accounts.treasury_pda.to_account_info(),
-                    to: ctx.accounts.winner1.to_account_info(),
-                },
-                signer,
-            );
-            system_program::transfer(transfer_ctx, first_prize)?;
-        }
-
-        // Transfer second prize
-        if second_prize > 0 {
-            let transfer_ctx = CpiContext::new_with_signer(
-                ctx.accounts.system_program.to_account_info(),
-                system_program::Transfer {
-                    from: ctx.accounts.treasury_pda.to_account_info(),
-                    to: ctx.accounts.winner2.to_account_info(),
-                },
-                signer,
-            );
-            system_program::transfer(transfer_ctx, second_prize)?;
-        }
-
-        // Transfer third prize
-        if third_prize > 0 {
-            let transfer_ctx = CpiContext::new_with_signer(
-                ctx.accounts.system_program.to_account_info(),
-                system_program::Transfer {
-                    from: ctx.accounts.treasury_pda.to_account_info(),
-                    to: ctx.accounts.winner3.to_account_info(),
-                },
-                signer,
-            );
-            system_program::transfer(transfer_ctx, third_prize)?;
-        }
-
-        league.is_distributed = true;
-
-        msg!("Prizes distributed: 1st: {} lamports, 2nd: {} lamports, 3rd: {} lamports", 
-             first_prize, second_prize, third_prize);
+        msg!("Depósito recebido! Novo total do cofre: {}", ctx.accounts.vault.total_pot);
         Ok(())
     }
 }
 
+// ===================================================================
+// DEFINIÇÕES DAS CONTAS (O "MOLDE" DO COFRE)
+// ===================================================================
+
+/**
+ * Conta do Cofre (Vault)
+ * Este é o PDA que armazena os fundos
+ */
+#[account]
+pub struct Vault {
+    pub authority: Pubkey, // A chave (admin) que pode sacar os prêmios
+    pub total_pot: u64,    // O total de SOL acumulado (em lamports)
+}
+
+// ===================================================================
+// CONTEXTOS DAS FUNÇÕES (A "LISTA DE ITENS" QUE CADA FUNÇÃO PRECISA)
+// ===================================================================
+
+/**
+ * Contexto para `initialize_vault`
+ */
 #[derive(Accounts)]
-pub struct InitializeLeague<'info> {
+pub struct InitializeVault<'info> {
+    // 1. A conta do cofre (PDA) que estamos criando
+    // O Anchor cuida de criar este PDA usando a "seed" (semente)
     #[account(
-        init,
-        payer = admin,
-        space = League::LEN,
-        seeds = [b"league", admin.key().as_ref()],
+        init, // 'init' = inicializar esta conta
+        payer = authority, // Quem paga pelo aluguel da conta é a 'authority'
+        space = 8 + 32 + 8, // 8 (discriminator) + 32 (Pubkey) + 8 (u64)
+        seeds = [b"mfl-vault"], // A "semente" do nosso PDA. O endereço será derivado disto.
         bump
     )]
-    pub league: Account<'info, League>,
+    pub vault: Account<'info, Vault>,
 
-    #[account(
-        init,
-        payer = admin,
-        seeds = [b"treasury", league.key().as_ref()],
-        bump,
-        space = 0
-    )]
-    /// Treasury PDA for holding entry fees
-    pub treasury_pda: SystemAccount<'info>,
-
+    // 2. O admin (nós) que está chamando a função
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub authority: Signer<'info>,
 
-    /// CHECK: Protocol treasury wallet address
-    pub protocol_treasury: AccountInfo<'info>,
-
+    // 3. O Programa do Sistema Solana (necessário para criar contas)
     pub system_program: Program<'info, System>,
 }
 
+/**
+ * Contexto para `deposit_entry_fee`
+ */
 #[derive(Accounts)]
-pub struct EnterLeague<'info> {
-    #[account(mut)]
-    pub league: Account<'info, League>,
+pub struct DepositEntryFee<'info> {
+    // 1. O cofre (PDA) que receberá o dinheiro
+    // 'mut' = mutável (porque vamos alterar o 'total_pot')
+    // A 'seed' deve ser a mesma da inicialização
+    #[account(
+        mut,
+        seeds = [b"mfl-vault"],
+        bump
+    )]
+    pub vault: Account<'info, Vault>,
 
+    // 2. O jogador que está pagando a taxa
+    // 'mut' = mutável (o SOL sairá dele)
+    // 'signer' = ele deve assinar (provar que é ele)
     #[account(mut)]
     pub user: Signer<'info>,
 
-    #[account(
-        mut,
-        seeds = [b"treasury", league.key().as_ref()],
-        bump = league.treasury_bump
-    )]
-    /// Treasury PDA for holding entry fees
-    pub treasury_pda: SystemAccount<'info>,
-
+    // 3. O Programa do Sistema Solana (necessário para transferir SOL)
     pub system_program: Program<'info, System>,
 }
 
-#[derive(Accounts)]
-pub struct DistributePrizes<'info> {
-    #[account(mut)]
-    pub league: Account<'info, League>,
-
-    #[account(mut)]
-    pub admin: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [b"treasury", league.key().as_ref()],
-        bump = league.treasury_bump
-    )]
-    /// Treasury PDA for holding entry fees
-    pub treasury_pda: SystemAccount<'info>,
-
-    #[account(mut)]
-    /// First place winner wallet
-    pub winner1: SystemAccount<'info>,
-
-    #[account(mut)]
-    /// Second place winner wallet
-    pub winner2: SystemAccount<'info>,
-
-    #[account(mut)]
-    /// Third place winner wallet
-    pub winner3: SystemAccount<'info>,
-
-    pub system_program: Program<'info, System>,
-}
-
-#[account]
-pub struct League {
-    pub admin: Pubkey,              // 32
-    pub protocol_treasury: Pubkey,  // 32
-    pub entry_fee: u64,             // 8
-    pub max_players: Option<u16>,   // 1 + 2 = 3 (Option enum)
-    pub current_players: u16,       // 2
-    pub start_time: i64,            // 8
-    pub end_time: i64,              // 8
-    pub is_active: bool,            // 1
-    pub total_pool: u64,            // 8
-    pub is_distributed: bool,       // 1
-    pub created_at: i64,            // 8
-    pub bump: u8,                   // 1
-    pub treasury_bump: u8,          // 1
-    pub league_type: LeagueType,    // 1
-}
-
-impl League {
-    pub const LEN: usize = 8 + 32 + 32 + 8 + 3 + 2 + 8 + 8 + 1 + 8 + 1 + 8 + 1 + 1 + 1; // 122 bytes
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
-pub enum LeagueType {
-    Main,
-    Community,
-}
-
+// ===================================================================
+// ERROS CUSTOMIZADOS
+// ===================================================================
 #[error_code]
 pub enum ErrorCode {
-    #[msg("League is not active")]
-    LeagueNotActive,
-    #[msg("League is full")]
-    LeagueFull,
-    #[msg("League has ended")]
-    LeagueEnded,
-    #[msg("League has not started yet")]
-    LeagueNotStarted,
-    #[msg("Unauthorized access")]
-    Unauthorized,
-    #[msg("Prizes already distributed")]
-    AlreadyDistributed,
-    #[msg("League has not ended yet")]
-    LeagueNotEnded,
-    #[msg("Duplicate winners are not allowed")]
-    DuplicateWinners,
-    #[msg("Math overflow occurred")]
-    MathOverflow,
-    #[msg("Insufficient treasury funds to distribute prizes")]
-    InsufficientTreasuryFunds,
+    #[msg("Overflow ao adicionar ao cofre.")]
+    Overflow,
 }

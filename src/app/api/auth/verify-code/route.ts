@@ -165,16 +165,10 @@ export async function POST(request: NextRequest) {
     // Criar resposta com cookie de sessão
     const response = NextResponse.json({
       message: 'Autenticação realizada com sucesso',
+      // ✅ CORREÇÃO: Retornar TODOS os campos do usuário
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-        twitter: user.twitter,
-        discord: user.discord,
-        bio: user.bio,
-        publicKey: user.publicKey,
-        loginMethod: 'email'
+        ...user,
+        loginMethod: 'email' // Apenas adicionar este campo extra
       },
       token: sessionToken
     });
