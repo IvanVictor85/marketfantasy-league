@@ -11,7 +11,6 @@ import { useMemo } from "react";
 
 // 1. Importa a IDL (o "mapa" do nosso contrato)
 // (Copiado da pasta target/ para src/lib/idl/ para deploy)
-import type { MflProgram } from "./idl/mfl_program";
 import IDL from "./idl/mfl_program.json";
 
 // 2. A ID do nosso programa (A QUE ACABAMOS DE FAZER DEPLOY)
@@ -26,9 +25,9 @@ const RPC_URL =
 /**
  * Hook customizado para obter o programa Anchor no frontend
  *
- * @returns {Program<MflProgram> | null} O programa Anchor pronto para uso
+ * @returns {Program<any> | null} O programa Anchor pronto para uso
  */
-export function useMflProgram(): Program<MflProgram> | null {
+export function useMflProgram(): Program<any> | null {
   const wallet = useAnchorWallet();
 
   const provider = useMemo(() => {
@@ -63,7 +62,7 @@ export function useMflProgram(): Program<MflProgram> | null {
     const program = new Program(
       IDL as Idl, // O "mapa" (já contém o address)
       provider      // A conexão (Helius) e a carteira
-    ) as unknown as Program<MflProgram>; // Cast para o nosso tipo
+    );
 
     return program;
   }, [provider]);
