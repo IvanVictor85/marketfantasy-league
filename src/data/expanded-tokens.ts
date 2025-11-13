@@ -14,6 +14,7 @@ export interface TokenMarketData {
 
   // Campos legados/extras (para compatibilidade com xStocks e outros componentes)
   price?: number; // Alias para currentPrice
+  priceChange1h?: number; // Alias para change_1h
   change_5m?: number;
   change_15m?: number;
   change_30m?: number;
@@ -25,6 +26,7 @@ export interface TokenMarketData {
   change_1w?: number;
   change_7d?: number; // Alias para priceChange7d
   change_30d?: number;
+  priceChange30d?: number; // Alias para change_30d
   market_cap?: number; // Alias para marketCap
   volume_24h?: number; // Alias para totalVolume
   circulating_supply?: number;
