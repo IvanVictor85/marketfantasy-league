@@ -31,6 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ✅ CORREÇÃO: Ref para prevenir múltiplas tentativas de login com a mesma carteira
   const loginAttemptRef = useRef<string | null>(null);
+
+  // ✅ Flag para identificar se acabou de fazer login (para redirecionamento)
+  const justLoggedInRef = useRef<boolean>(false);
   
   // Always call useWallet, but handle client-side logic inside
   const wallet = useWallet();
@@ -119,14 +122,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // REGRA 2: REDIRECIONAMENTO PÓS-LOGIN
       // Se o usuário está logado (e o perfil está completo)
       // E ele ainda está na Homepage...
+      // MAS SÓ redireciona se acabou de fazer login (justLoggedInRef = true)
       const homePathPt = '/pt';
       const homePathEn = '/en';
 
-      if (pathname === homePathPt || pathname === homePathEn || pathname === '/') {
-        console.log('[AUTH] Usuário logado na home. Redirecionando para /dashboard...');
+      if ((pathname === homePathPt || pathname === homePathEn || pathname === '/') && justLoggedInRef.current) {
+        console.log('[AUTH] Usuário acabou de logar na home. Redirecionando para /dashboard...');
         // Redireciona para o dashboard no idioma correto
         const targetDashboard = pathname.startsWith('/en') ? '/en/dashboard' : '/pt/dashboard';
         router.push(targetDashboard);
+        // Resetar a flag após redirecionar
+        justLoggedInRef.current = false;
       }
     }
   }, [user, isClient, isLoading, router, pathname]);
@@ -142,6 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('mfl_user');
     localStorage.removeItem('auth-token');
+
+    // ✅ Resetar flag de login
+    justLoggedInRef.current = false;
 
     // SEMPRE desconectar carteira no logout, independente do método de login
     if (connected) {
@@ -254,6 +263,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(userData);
       localStorage.setItem('mfl_user', JSON.stringify(userData));
+
+      // ✅ Marcar que acabou de fazer login (para redirecionamento)
+      justLoggedInRef.current = true;
     } catch (error) {
       console.error('Email login error:', error);
       throw new Error('Falha no login. Verifique suas credenciais.');
@@ -358,6 +370,9 @@ Carteira: ${walletAddress}`;
 
       setUser(userData);
       localStorage.setItem('mfl_user', JSON.stringify(userData));
+
+      // ✅ Marcar que acabou de fazer login (para redirecionamento)
+      justLoggedInRef.current = true;
 
       console.log('✅ [SIWS] Login concluído com sucesso!');
       console.log('   Usuário:', userData.id);

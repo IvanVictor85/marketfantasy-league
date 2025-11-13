@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 // Função para gerar token de sessão
 function generateSessionToken(): string {
@@ -15,16 +17,22 @@ interface VerifyCodeRequest {
 
 
 export async function POST(request: NextRequest) {
+  // 🔒 RATE LIMITING: Prevenir ataques de força bruta
+  const rateLimitResult = await rateLimit(request, RATE_LIMITS.AUTH);
+  if (!rateLimitResult.success) {
+    logger.security('Tentativa de força bruta em verificação de código bloqueada');
+    return rateLimitResponse(rateLimitResult.reset);
+  }
+
   try {
     const body: VerifyCodeRequest = await request.json();
     const { email, code } = body;
 
-    console.log(`🔍 [VERIFY] Tentativa de verificação para: ${email}`);
-    console.log(`🔍 [VERIFY] Código recebido: ${code}`);
+    logger.info('Tentativa de verificação de código', { email, hasCode: !!code });
 
     // Validação dos dados
     if (!email || !code) {
-      console.error(`❌ [VERIFY] Dados faltando - email: ${!!email}, code: ${!!code}`);
+      logger.warn('Dados faltando na verificação', { hasEmail: !!email, hasCode: !!code });
       return NextResponse.json(
         { error: 'Email e código são obrigatórios' },
         { status: 400 }

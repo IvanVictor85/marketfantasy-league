@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/verify-wallet
@@ -43,13 +44,15 @@ export async function POST(request: NextRequest) {
   try {
     const { nonce, signature, publicKey } = await request.json();
 
-    console.log('🔐 [VERIFY-WALLET] Iniciando verificação de assinatura');
-    console.log(`   PublicKey: ${publicKey?.substring(0, 8)}...`);
-    console.log(`   Nonce: ${nonce}`);
+    logger.info('Iniciando verificação de assinatura SIWS', {
+      publicKeyPrefix: publicKey?.substring(0, 8),
+      hasNonce: !!nonce,
+      hasSignature: !!signature,
+    });
 
     // Validação de campos obrigatórios
     if (!nonce || !signature || !publicKey) {
-      console.error('❌ [VERIFY-WALLET] Campos obrigatórios faltando');
+      logger.warn('Campos obrigatórios faltando na verificação de wallet');
       return NextResponse.json(
         { error: 'Campos obrigatórios: nonce, signature, publicKey' },
         { status: 400 }
@@ -59,14 +62,14 @@ export async function POST(request: NextRequest) {
     // ============================================
     // ETAPA 1: VERIFICAR O NONCE NO BANCO DE DADOS
     // ============================================
-    console.log('🔍 [VERIFY-WALLET] Verificando nonce no banco...');
+    logger.debug('Verificando nonce no banco de dados');
 
     const dbNonce = await prisma.walletNonce.findUnique({
       where: { nonce: nonce },
     });
 
     if (!dbNonce) {
-      console.error('❌ [VERIFY-WALLET] Nonce não encontrado');
+      logger.security('Tentativa de autenticação com nonce inválido', { publicKey });
       return NextResponse.json(
         { error: 'Nonce inválido ou não encontrado' },
         { status: 403 }
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (dbNonce.used) {
-      console.error('❌ [VERIFY-WALLET] Nonce já foi utilizado');
+      logger.security('Tentativa de reutilizar nonce já usado', { publicKey });
       return NextResponse.json(
         { error: 'Este nonce já foi utilizado. Solicite um novo.' },
         { status: 403 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateNonce } from 'siwe';
 import { prisma } from '@/lib/prisma';
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/auth/nonce
@@ -16,6 +18,13 @@ import { prisma } from '@/lib/prisma';
  * 5. Servidor verifica a assinatura e autentica o usuário
  */
 export async function GET(request: NextRequest) {
+  // 🔒 RATE LIMITING: Prevenir spam de geração de nonces
+  const rateLimitResult = await rateLimit(request, RATE_LIMITS.AUTH);
+  if (!rateLimitResult.success) {
+    logger.security('Tentativa de spam de nonces bloqueada');
+    return rateLimitResponse(rateLimitResult.reset);
+  }
+
   try {
     // Gerar nonce seguro usando a biblioteca SIWE
     const nonce = generateNonce();
@@ -23,9 +32,7 @@ export async function GET(request: NextRequest) {
     // Definir expiração do nonce (5 minutos)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    console.log('🔐 [NONCE] Gerando nonce para autenticação de carteira');
-    console.log(`   Nonce: ${nonce}`);
-    console.log(`   Expira em: ${expiresAt.toISOString()}`);
+    logger.debug('Gerando nonce para autenticação SIWS', { expiresAt });
 
     // Salvar nonce no banco de dados com expiração
     // NOTA: Precisaremos criar a tabela WalletNonce no schema do Prisma
@@ -37,7 +44,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    console.log('✅ [NONCE] Nonce salvo no banco de dados');
+    logger.info('Nonce gerado e salvo com sucesso');
 
     // Retornar nonce para o cliente
     return NextResponse.json({
@@ -47,7 +54,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ [NONCE] Erro ao gerar nonce:', error);
+    logger.error('Erro ao gerar nonce', error);
 
     return NextResponse.json(
       {

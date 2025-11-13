@@ -17,7 +17,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-4">
-            <LocalizedLink href="/" className="flex items-center space-x-2">
+            <LocalizedLink href="/" className="flex items-center space-x-2" prefetch={false}>
               <div className="w-8 h-8 bg-white dark:bg-[#16a34a] rounded-lg flex items-center justify-center shadow-md">
                 <span className="text-[#f97316] dark:text-white font-bold text-sm">MFL</span>
               </div>

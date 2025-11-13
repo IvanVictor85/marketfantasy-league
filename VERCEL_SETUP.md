@@ -25,7 +25,7 @@ Para que a geração de mascotes funcione corretamente no Vercel, você precisa 
 3. Clique em "Settings" → "Environment Variables"
 4. Adicione cada variável:
    - **Name**: `GEMINI_API_KEY`
-   - **Value**: `AIzaSyDkztqc3ioUFNOo8PuvgTcl2HJj9dYZpo0`
+   - **Value**: `[SUA_CHAVE_GEMINI_AQUI]`
    - **Environments**: Production, Preview, Development
 5. Repita para as outras variáveis necessárias
 
@@ -47,11 +47,13 @@ vercel env add NEXTAUTH_URL
 ## Valores Recomendados
 
 ```env
-GEMINI_API_KEY=AIzaSyDkztqc3ioUFNOo8PuvgTcl2HJj9dYZpo0
+GEMINI_API_KEY=[SUA_CHAVE_GEMINI_AQUI]
 AI_IMAGE_PROVIDER=nano-banana
-NEXTAUTH_SECRET=your-secret-key-here
+NEXTAUTH_SECRET=[GERAR_SEGREDO_ALEATORIO]
 NEXTAUTH_URL=https://seu-projeto.vercel.app
 ```
+
+⚠️ **IMPORTANTE**: Nunca commite valores reais de API keys no repositório!
 
 ## Logs de Debug
 

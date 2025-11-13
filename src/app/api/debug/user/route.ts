@@ -5,6 +5,23 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  // 🔒 SEGURANÇA: Verificar autenticação de admin
+  const authHeader = request.headers.get('authorization');
+  const debugSecret = process.env.DEBUG_SECRET;
+
+  // ⚠️ Se DEBUG_SECRET não estiver configurado, bloquear completamente em produção
+  if (process.env.NODE_ENV === 'production' && !debugSecret) {
+    return NextResponse.json({
+      error: 'Debug endpoint desabilitado em produção sem DEBUG_SECRET'
+    }, { status: 403 });
+  }
+
+  // Verificar token de autenticação
+  if (!authHeader || authHeader !== `Bearer ${debugSecret}`) {
+    console.warn('🚨 Tentativa de acesso não autorizado ao endpoint de debug');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');

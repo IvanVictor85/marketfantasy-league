@@ -52,3 +52,4 @@ programs/*/target/
 programs/**/Cargo.lock
 **/.anchor
 **/build.log
+*.backup

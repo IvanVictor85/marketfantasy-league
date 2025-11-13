@@ -687,14 +687,22 @@ const createDevelopmentTreasuryKeypair = (): Keypair => {
   return Keypair.fromSeed(seed);
 };
 
-// Create a simple treasury account that can be used with SystemProgram.transfer
+// 🔴 AVISO DE SEGURANÇA CRÍTICO:
+// Esta função NÃO DEVE SER USADA EM PRODUÇÃO COM FUNDOS REAIS!
+// A seed é determinística e pode ser calculada por qualquer pessoa
+// que tenha acesso ao código-fonte.
+//
+// ⚠️ USO APENAS PARA DESENVOLVIMENTO/TESTE (Devnet)
+//
+// Em produção, você DEVE:
+// 1. Usar um Anchor Program com PDAs (Program Derived Addresses)
+// 2. Ou armazenar a keypair de forma segura (AWS Secrets, Vault, etc.)
+// 3. Nunca usar seeds determinísticas para contas com fundos reais
 const createSimpleTreasuryKeypair = (): Keypair => {
-  // Use a completely different approach - generate a random keypair for clean account
-  // In development, we'll use a deterministic but different seed
+  // ⚠️ DEVNET ONLY - Seed determinística para testes
   const seed = new Uint8Array(32);
-  // Use a pattern that ensures a clean account
   for (let i = 0; i < 32; i++) {
-    seed[i] = (i * 7 + 89) % 256; // Mathematical pattern for deterministic but clean account
+    seed[i] = (i * 7 + 89) % 256;
   }
   return Keypair.fromSeed(seed);
 };

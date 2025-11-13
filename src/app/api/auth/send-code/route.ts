@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 
 // Função para validar email
 function isValidEmail(email: string): boolean {
@@ -79,6 +80,13 @@ async function sendEmail(email: string, code: string): Promise<boolean> {
 }
 
 export async function POST(request: NextRequest) {
+  // 🔒 RATE LIMITING: Prevenir spam de emails
+  const rateLimitResult = await rateLimit(request, RATE_LIMITS.EMAIL);
+  if (!rateLimitResult.success) {
+    console.warn('🚨 [RATE-LIMIT] Tentativa de spam de email bloqueada');
+    return rateLimitResponse(rateLimitResult.reset);
+  }
+
   try {
     const body: SendCodeRequest = await request.json();
     const { email } = body;

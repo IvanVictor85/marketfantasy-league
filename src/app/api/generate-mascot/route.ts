@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 
 // Interface para os dados do formulário de mascote
 interface MascotFormData {
@@ -239,6 +240,13 @@ function generateId(): string {
 }
 
 export async function POST(request: NextRequest) {
+  // 🔒 RATE LIMITING: Prevenir abuso de geração de IA
+  const rateLimitResult = await rateLimit(request, RATE_LIMITS.AI_GENERATION);
+  if (!rateLimitResult.success) {
+    console.warn('🚨 [RATE-LIMIT] Tentativa de abuso de geração de IA bloqueada');
+    return rateLimitResponse(rateLimitResult.reset);
+  }
+
   try {
     // Log de debug para ambiente
     console.log('=== DEBUG MASCOT GENERATION ===');
