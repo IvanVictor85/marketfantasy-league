@@ -53,3 +53,7 @@ programs/**/Cargo.lock
 **/.anchor
 **/build.log
 *.backup
+
+# Anchor tests (não incluir no build do Next.js)
+tests/
+Anchor.toml
