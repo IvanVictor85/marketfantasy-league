@@ -14,13 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SoccerField } from '@/components/field/soccer-field';
 import { TokenMarket } from '@/components/market/token-market';
+import { RoundSelector } from '@/components/rounds/round-selector';
+import { CompetitionNavigator } from '@/components/rounds/competition-navigator';
 import { type TokenMarketData } from '@/data/expanded-tokens';
 import { type Player } from '@/types/teams';
 import { validateTokens } from '@/lib/valid-tokens';
 import { LocalizedLink } from '@/components/ui/localized-link';
 import { CountdownTimer } from '@/components/ui/countdown-timer';
 import { isRodadaEmAndamento } from '@/lib/utils/timeCheck';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 
 import { useMflProgram, getVaultPda } from '@/lib/anchor-client';
 import { SystemProgram } from '@solana/web3.js';
@@ -40,19 +42,23 @@ import {
   Clock
 } from 'lucide-react';
 
-// Mock data para ligas
-const mockLeagues = [
-  { id: 'main', name: 'Time Principal', type: 'main' },
-  { id: '1', name: 'Liga Principal', type: 'league' },
-  { id: '2', name: 'Liga de Ações Tokenizadas', type: 'xstocks' },
-  { id: '3', name: 'Liga DeFi', type: 'defi' },
-  { id: '4', name: 'Liga Meme', type: 'meme' },
-  { id: '5', name: 'Liga Gaming', type: 'gaming' }
-];
+// Interface para ligas da API
+interface League {
+  id: string;
+  name: string;
+  description: string | null;
+  entryFee: number;
+  emblemUrl: string | null;
+  badgeUrl: string | null;
+  bannerUrl: string | null;
+  competitionsCount: number;
+  allowedTokensCount: number;
+}
 
 export function TeamsContent() {
   const t = useTranslations('teams');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { publicKey, connected } = useWallet();
@@ -61,38 +67,33 @@ export function TeamsContent() {
   const { openModal: openWalletModal } = useWalletModal();
   // Hook para interagir com o smart contract
   const program = useMflProgram();
-  
-  console.log('DEBUG TeamsContent: Estado inicial', {
-    connected,
-    publicKey: publicKey?.toString(),
-    user,
-    userExists: !!user,
-    userName: user?.name
-  });
-  
-  // Inicializar selectedLeagueId com o valor da URL ou 'main' como fallback
-  const getInitialLeagueId = () => {
-    if (searchParams) {
-      const urlLeagueId = searchParams.get('league');
-      if (urlLeagueId && mockLeagues.find(league => league.id === urlLeagueId)) {
-        return urlLeagueId;
-      }
-    }
-    return 'main';
-  };
+
+  // console.log('DEBUG TeamsContent: Estado inicial', {
+  //   connected,
+  //   publicKey: publicKey?.toString(),
+  //   user,
+  //   userExists: !!user,
+  //   userName: user?.name
+  // });
   
   // Estados principais
   const [formation, setFormation] = useState<'433' | '442' | '352'>('433');
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
   const [selectedToken, setSelectedToken] = useState<TokenMarketData | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedLeagueId, setSelectedLeagueId] = useState<string>(getInitialLeagueId());
-  const [isEditingMainTeam, setIsEditingMainTeam] = useState(getInitialLeagueId() === 'main');
-  
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [isLoadingLeagues, setIsLoadingLeagues] = useState(true);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string>('');
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | undefined>(undefined);
+  const [selectedCompetitionStatus, setSelectedCompetitionStatus] = useState<string | undefined>(undefined);
+  const [isEditingMainTeam, setIsEditingMainTeam] = useState(false);
+
   // Buscar dados da competição para a liga selecionada
+  // ✅ CORREÇÃO: Mapear leagueId para slug correto
+  const competitionSlug = selectedLeagueId === 'cmh3qcrw80000cjvdrwtvt65i' ? 'main-league' : selectedLeagueId;
   const { competition: competitionData, loading: isCompetitionLoading } = useCompetitionStatus({
-    competitionId: selectedLeagueId === 'main' ? 'main-league' : selectedLeagueId,
-    enabled: !!selectedLeagueId
+    competitionId: competitionSlug,
+    enabled: !!selectedLeagueId && !isLoadingLeagues && selectedLeagueId !== 'main_template'
   });
   const [hasValidEntry, setHasValidEntry] = useState<boolean | null>(null);
   const [isLoadingTeam, setIsLoadingTeam] = useState(false);
@@ -101,34 +102,222 @@ export function TeamsContent() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [editingAllowed, setEditingAllowed] = useState(false);
+  const [leagueStats, setLeagueStats] = useState<{totalScore: number; rank: number | null} | null>(null);
+  const [competitionRefreshTrigger, setCompetitionRefreshTrigger] = useState(0);
 
   // 🛡️ SAFEGUARD: Prevent duplicate calls
   const lastCheckRef = useRef<string | null>(null);
   const checkInProgressRef = useRef<boolean>(false);
+  const isChangingLeagueRef = useRef<boolean>(false);
   
-  // ✅ Verificação de horário de edição (client-side only para evitar hydration mismatch)
+  // 🏆 Buscar ligas disponíveis da API
   useEffect(() => {
-    // Esta verificação agora roda com segurança no cliente após a hidratação
-    const allowed = !isRodadaEmAndamento();
+    const fetchLeagues = async () => {
+      try {
+        setIsLoadingLeagues(true);
+        const response = await fetch('/api/leagues');
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.leagues) {
+            setLeagues(data.leagues);
+
+            // Inicializar liga selecionada da URL ou template por padrão
+            const urlLeagueParam = searchParams?.get('league');
+
+            // Map URL slug to actual league ID
+            let resolvedLeagueId = urlLeagueParam;
+
+            // Special case: "main" slug maps to the main league
+            if (urlLeagueParam === 'main') {
+              // Find the main league (Liga Principal MarketFantasy)
+              const mainLeague = data.leagues.find((l: League) =>
+                l.name === 'Liga Principal MarketFantasy' ||
+                l.id === 'cmh3qcrw80000cjvdrwtvt65i'
+              );
+              resolvedLeagueId = mainLeague?.id || urlLeagueParam;
+            }
+
+            // Check if the resolved league ID exists
+            if (resolvedLeagueId && data.leagues.find((l: League) => l.id === resolvedLeagueId)) {
+              console.log('🎯 Selecionando liga da URL:', { urlParam: urlLeagueParam, resolvedId: resolvedLeagueId });
+              setSelectedLeagueId(resolvedLeagueId);
+            } else {
+              // Padrão: Meu Time Principal (Template)
+              console.log('📋 Liga não encontrada na URL, usando template');
+              setSelectedLeagueId('main_template');
+              // ✅ CORREÇÃO: Não carregar manualmente - deixar a API buscar com dados do CoinGecko
+              // O useEffect de checkPaymentAndLoadTeam vai cuidar de buscar os dados completos
+            }
+          }
+        } else {
+          console.error('Erro ao buscar ligas:', await response.text());
+        }
+      } catch (error) {
+        console.error('Erro ao buscar ligas:', error);
+      } finally {
+        setIsLoadingLeagues(false);
+      }
+    };
+
+    fetchLeagues();
+  }, [searchParams, user?.mainTeam]);
+
+  // 🔍 Buscar status da rodada SELECIONADA (se houver)
+  useEffect(() => {
+    async function fetchSelectedCompetitionStatus() {
+      if (!selectedCompetitionId) {
+        setSelectedCompetitionStatus(undefined);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/competitions/${selectedCompetitionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSelectedCompetitionStatus(data.status);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar status da rodada selecionada:', error);
+      }
+    }
+
+    fetchSelectedCompetitionStatus();
+  }, [selectedCompetitionId]);
+
+  // ✅ Verificação de edição: combina horário + status da competição
+  useEffect(() => {
+    // Verificação de horário (client-side only para evitar hydration mismatch)
+    const timeAllowed = !isRodadaEmAndamento();
+
+    // ✅ NOVA LÓGICA: Também verificar se a competição está ACTIVE
+    // Para template (main_template), sempre permitir edição (desde que no horário correto)
+    // Para ligas reais, bloquear se a competição estiver ACTIVE
+    let competitionAllowed = true;
+    if (selectedLeagueId !== 'main_template') {
+      // ✅ PRIORIZAR status da rodada SELECIONADA se existir
+      const statusToCheck = selectedCompetitionStatus || competitionData?.status;
+
+      if (statusToCheck) {
+        // Se a competição estiver ACTIVE, bloquear edição (comparação case-insensitive)
+        competitionAllowed = statusToCheck.toUpperCase() !== 'ACTIVE';
+      }
+    }
+
+    const allowed = timeAllowed && competitionAllowed;
     setEditingAllowed(allowed);
 
-    // Mover o log de depuração que estava em isEditingAllowed() para aqui
-    console.log('DEBUG useEditWindow: Verificando horário de edição', {
-      rodadaEmAndamento: !allowed,
-      editingAllowed: allowed,
-      horarioBloqueado: '21:00-09:00 BRT',
-      horarioPermitido: '09:00-20:59 BRT'
-    });
-  }, []);
-  
+    // console.log('DEBUG useEditWindow: Verificando permissões de edição', {
+    //   selectedLeagueId,
+    //   isTemplate: selectedLeagueId === 'main_template',
+    //   timeAllowed,
+    //   selectedCompetitionId,
+    //   selectedCompetitionStatus,
+    //   currentCompetitionStatus: competitionData?.status,
+    //   statusUsed: selectedCompetitionStatus || competitionData?.status,
+    //   competitionAllowed,
+    //   editingAllowed: allowed,
+    //   horarioBloqueado: '21:00-09:00 BRT',
+    //   horarioPermitido: '09:00-20:59 BRT'
+    // });
+  }, [selectedLeagueId, selectedCompetitionId, selectedCompetitionStatus, competitionData]);
+
+  // 📊 Buscar estatísticas acumuladas da liga
+  useEffect(() => {
+    const fetchLeagueStats = async () => {
+      if (!isAuthenticated || !selectedLeagueId || selectedLeagueId === 'main_template') {
+        setLeagueStats(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/user/league-stats?leagueId=${selectedLeagueId}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          setLeagueStats({
+            totalScore: data.totalScore || 0,
+            rank: data.rank
+          });
+        } else {
+          setLeagueStats(null);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas da liga:', error);
+        setLeagueStats(null);
+      }
+    };
+
+    fetchLeagueStats();
+  }, [isAuthenticated, selectedLeagueId]);
+
   // Obter o nome do time a partir do nome do usuário
   const teamName = user?.name || 'Meu Time';
-  
-  console.log('DEBUG teamName:', { 
-    userName: user?.name, 
-    teamName, 
-    userExists: !!user 
-  });
+
+  // console.log('DEBUG teamName:', {
+  //   userName: user?.name,
+  //   teamName,
+  //   userExists: !!user
+  // });
+
+  // 📋 Função NOVA para carregar template (sem verificação de pagamento)
+  const loadMainTemplate = useCallback(async () => {
+    console.log('📋 loadMainTemplate: Carregando time principal (template)');
+
+    if (!user || !isAuthenticated) {
+      console.log('❌ loadMainTemplate: Usuário não autenticado');
+      return;
+    }
+
+    setIsLoadingTeam(true);
+
+    try {
+      console.log('📋 loadMainTemplate: Buscando time principal da API');
+      const teamResponse = await fetch('/api/team?leagueId=main_template');
+
+      if (teamResponse.ok) {
+        const teamData = await teamResponse.json();
+        console.log('📋 loadMainTemplate: Dados recebidos:', teamData);
+
+        if (teamData.hasTeam && teamData.tokenDetails && teamData.team.tokens) {
+          setExistingTeam(teamData.team);
+          setHasValidEntry(true); // Template sempre válido
+
+          // Carregar jogadores com dados do CoinGecko
+          const loadedPlayers: Player[] = teamData.team.tokens.map((symbol: string, index: number) => {
+            const tokenDetail = teamData.tokenDetails.find((t: any) => t.symbol === symbol);
+            return {
+              id: symbol,
+              position: index + 1,
+              name: tokenDetail?.name || symbol,
+              symbol: symbol,
+              image: tokenDetail?.image || '',
+              currentPrice: tokenDetail?.currentPrice || 0,
+              points: 0,
+              rarity: 'common' as const,
+              priceChange24h: tokenDetail?.priceChange24h || 0,
+              priceChange7d: tokenDetail?.priceChange7d || 0,
+              marketCap: 0,
+              marketCapRank: null
+            };
+          });
+
+          console.log('📋 loadMainTemplate: Players carregados:', loadedPlayers);
+          setPlayers(loadedPlayers);
+        } else {
+          console.log('📋 loadMainTemplate: Nenhum time encontrado');
+          setExistingTeam(null);
+          setPlayers([]);
+          setHasValidEntry(true); // Template sempre válido
+        }
+      }
+    } catch (error) {
+      console.error('❌ loadMainTemplate: Erro:', error);
+      setPaymentError('Erro ao carregar time principal');
+    } finally {
+      setIsLoadingTeam(false);
+    }
+  }, [user, isAuthenticated]);
 
   // Função para verificar status de pagamento e carregar time existente
   const checkPaymentAndLoadTeam = useCallback(async () => {
@@ -161,48 +350,82 @@ export function TeamsContent() {
     setPaymentError(null);
 
     try {
-      // Primeiro, verificar se o usuário pagou a taxa de entrada
-      console.log('DEBUG checkPaymentAndLoadTeam: Verificando entrada na liga');
-      const entryResponse = await fetch('/api/league/check-entry', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-symbol')}`
-        },
-        body: JSON.stringify({ 
-          leagueId: selectedLeagueId === 'main' ? undefined : selectedLeagueId
-        })
+      // 🎯 CORREÇÃO CRÍTICA: Buscar time vinculado à rodada específica
+      console.log('DEBUG checkPaymentAndLoadTeam: Buscando time existente');
+
+      // Construir URL com competitionId se disponível
+      // Priorizar selectedCompetitionId (escolha manual do usuário) sobre competitionData.competitionId
+      const effectiveCompetitionId = selectedCompetitionId || competitionData?.competitionId;
+
+      console.log('DEBUG checkPaymentAndLoadTeam: IDs disponíveis:', {
+        selectedCompetitionId,
+        competitionDataId: competitionData?.competitionId,
+        effectiveCompetitionId
       });
 
-      let hasValidPayment = false;
-      if (entryResponse.ok) {
-        const entryData = await entryResponse.json();
-        hasValidPayment = entryData.hasPaid;
-        console.log('DEBUG checkPaymentAndLoadTeam: Status de pagamento:', hasValidPayment);
+      let teamUrl = `/api/team?leagueId=${selectedLeagueId}`;
+      if (effectiveCompetitionId) {
+        teamUrl += `&competitionId=${effectiveCompetitionId}`;
+        console.log('DEBUG checkPaymentAndLoadTeam: URL da API:', teamUrl);
       } else {
-        console.log('DEBUG checkPaymentAndLoadTeam: Erro ao verificar entrada na liga');
+        console.log('⚠️ checkPaymentAndLoadTeam: Nenhum competitionId disponível!');
       }
 
-      // Depois, verificar se há time existente
-      console.log('DEBUG checkPaymentAndLoadTeam: Buscando time existente');
-      const teamResponse = await fetch(
-        `/api/team?leagueId=${selectedLeagueId === 'main' ? '' : selectedLeagueId}`
-      );
+      const teamResponse = await fetch(teamUrl);
 
       console.log('DEBUG checkPaymentAndLoadTeam: Resposta da busca de time:', {
         status: teamResponse.status,
         ok: teamResponse.ok
       });
 
+      // Variável para armazenar o status de pagamento
+      let hasValidPayment = false;
+
+      // ✅ Verificar entrada na competição SOMENTE se tivermos competitionId
+      // Priorizar selectedCompetitionId (escolha manual do usuário) sobre competitionData.competitionId
+      const effectiveCompetitionIdForEntry = selectedCompetitionId || competitionData?.competitionId;
+
+      if (effectiveCompetitionIdForEntry) {
+        console.log('DEBUG checkPaymentAndLoadTeam: Verificando entrada na competição:', effectiveCompetitionIdForEntry);
+        const entryResponse = await fetch('/api/league/check-entry', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          },
+          body: JSON.stringify({
+            competitionId: effectiveCompetitionIdForEntry
+          })
+        });
+
+        if (entryResponse.ok) {
+          const entryData = await entryResponse.json();
+          hasValidPayment = entryData.hasPaid;
+          console.log('DEBUG checkPaymentAndLoadTeam: Status de pagamento:', hasValidPayment);
+        } else {
+          console.log('DEBUG checkPaymentAndLoadTeam: Erro ao verificar entrada na liga');
+        }
+      } else {
+        console.log('⏳ checkPaymentAndLoadTeam: competitionId não disponível, pulando verificação de entrada');
+        // Se não temos competitionId, assumir válido para permitir edição do time
+        hasValidPayment = true;
+      }
+
+      // Processar resposta do time
       if (teamResponse.ok) {
         const teamData = await teamResponse.json();
         console.log('DEBUG checkPaymentAndLoadTeam: Dados do time:', teamData);
-        
+
         if (teamData.hasTeam) {
           console.log('DEBUG checkPaymentAndLoadTeam: Time existente encontrado');
           setExistingTeam(teamData.team);
           setHasValidEntry(hasValidPayment); // Usar o status de pagamento real
-          
+
+          // ✅ Se tem time mas não tem pagamento, mostrar alerta
+          if (!hasValidPayment) {
+            setPaymentError('Seu time foi criado mas você ainda precisa pagar a taxa de entrada para confirmar sua participação nesta rodada.');
+          }
+
           // Carregar jogadores do time existente
           if (teamData.tokenDetails && teamData.team.tokens) {
             console.log('DEBUG checkPaymentAndLoadTeam: Carregando players do time existente');
@@ -213,7 +436,7 @@ export function TeamsContent() {
                 position: index + 1,
                 name: tokenDetail?.name || symbol,
                 symbol: symbol,
-                                image: tokenDetail?.image || '/icons/coinx.svg',
+                                image: tokenDetail?.image || '', // ✅ Vazio se não tiver imagem da API
                 currentPrice: tokenDetail?.currentPrice || tokenDetail?.currentPrice || 0,
                 points: 0,
                 rarity: 'common' as const,
@@ -228,18 +451,28 @@ export function TeamsContent() {
           }
         } else {
           console.log('DEBUG checkPaymentAndLoadTeam: Nenhum time existente encontrado');
-          // Mesmo sem time, usar o status de pagamento real
-          setHasValidEntry(hasValidPayment);
+          // Limpar jogadores e time quando não houver time para esta rodada
+          setPlayers([]);
           setExistingTeam(null);
+          // Usar o status de pagamento real
+          setHasValidEntry(hasValidPayment);
+
+          // ✅ Se não tem pagamento, mostrar alerta
+          if (!hasValidPayment) {
+            setPaymentError('Você precisa pagar a taxa de entrada para esta rodada antes de criar seu time.');
+          }
         }
       } else if (teamResponse.status === 402) {
         // Payment required
         const errorData = await teamResponse.json();
         setHasValidEntry(false);
         setPaymentError(errorData.error);
+        setPlayers([]);
+        setExistingTeam(null);
       } else {
         // Se houve erro ao verificar time, mas o pagamento foi feito, permitir criação
         setHasValidEntry(hasValidPayment);
+        setPlayers([]);
         setExistingTeam(null);
       }
     } catch (error) {
@@ -252,68 +485,343 @@ export function TeamsContent() {
       // 🛡️ SAFEGUARD 3: Release lock after completion
       checkInProgressRef.current = false;
     }
-  }, [user, isAuthenticated, selectedLeagueId]);
+  }, [user, isAuthenticated, selectedLeagueId, selectedCompetitionId, competitionData?.competitionId]);
 
   // Atualizar liga quando parâmetros da URL mudarem
   useEffect(() => {
-    if (searchParams) {
-      const urlLeagueId = searchParams.get('league');
-      if (urlLeagueId && mockLeagues.find(league => league.id === urlLeagueId)) {
-        // Só atualizar se for diferente do estado atual
-        if (urlLeagueId !== selectedLeagueId) {
-          setSelectedLeagueId(urlLeagueId);
-          setIsEditingMainTeam(urlLeagueId === 'main');
+    // 🛡️ SAFEGUARD: Não reverter se estivermos mudando programaticamente
+    if (isChangingLeagueRef.current) {
+      console.log('🛡️ URL-SYNC: Ignorando atualização durante troca programática de liga');
+      return;
+    }
+
+    if (searchParams && leagues.length > 0) {
+      const urlLeagueParam = searchParams.get('league');
+
+      // ✅ CORREÇÃO: Incluir suporte para 'main_template' e slug 'main'
+      if (urlLeagueParam) {
+        // Map URL slug to actual league ID
+        let resolvedLeagueId = urlLeagueParam;
+
+        // Special case: "main" slug maps to the main league
+        if (urlLeagueParam === 'main') {
+          const mainLeague = leagues.find(league =>
+            league.name === 'Liga Principal MarketFantasy' ||
+            league.id === 'cmh3qcrw80000cjvdrwtvt65i'
+          );
+          resolvedLeagueId = mainLeague?.id || urlLeagueParam;
+        }
+
+        // Verificar se é template ou se existe nas ligas reais
+        const isValidLeague = resolvedLeagueId === 'main_template' || leagues.find(league => league.id === resolvedLeagueId);
+
+        if (isValidLeague && resolvedLeagueId !== selectedLeagueId) {
+          console.log('🔄 URL-SYNC: Atualizando selectedLeagueId de URL:', { urlParam: urlLeagueParam, resolvedId: resolvedLeagueId });
+          setSelectedLeagueId(resolvedLeagueId);
         }
       }
     }
-  }, [searchParams, selectedLeagueId]);
+  }, [searchParams, leagues, selectedLeagueId]);
 
   // Verificar pagamento quando usuário estiver autenticado ou mudar liga
   useEffect(() => {
+    console.log('🔍 [USEEFFECT] Check-Entry: Executado com:', {
+      selectedLeagueId,
+      isTemplate: selectedLeagueId === 'main_template',
+      isCompetitionLoading,
+      hasCompetitionData: !!competitionData,
+      competitionId: competitionData?.competitionId,
+      hasUser: !!user,
+      isAuthenticated
+    });
+
+    // 🎯 CORREÇÃO: Template usa função separada SEM verificação de pagamento
+    if (selectedLeagueId === 'main_template') {
+      console.log('📋 Check-Entry: Template detectado, usando loadMainTemplate...');
+      setHasValidEntry(true); // Template não precisa de pagamento
+
+      if (user && isAuthenticated) {
+        loadMainTemplate(); // ✅ Função separada sem verificação de pagamento
+      }
+      return;
+    }
+
+    // ✅ CORREÇÃO: Aguardar que os dados da competição (com o ID da rodada) estejam prontos
+    if (isCompetitionLoading || !competitionData?.competitionId) {
+      console.log('⏳ Check-Entry: Aguardando dados da rodada...', {
+        isCompetitionLoading,
+        hasCompetitionId: !!competitionData?.competitionId,
+        competitionData
+      });
+      return;
+    }
+
     if (user && isAuthenticated) {
+      console.log('✅ Check-Entry: Condições satisfeitas, chamando checkPaymentAndLoadTeam');
       checkPaymentAndLoadTeam();
+    } else {
+      console.log('❌ Check-Entry: Usuário não autenticado', { hasUser: !!user, isAuthenticated });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isAuthenticated, selectedLeagueId]);
+  }, [user, isAuthenticated, selectedLeagueId, selectedCompetitionId, competitionData?.competitionId, isCompetitionLoading]);
 
-  // Função para obter filtro fixo baseado no tipo de liga
-  const getFixedFilter = (leagueType: string) => {
-    switch (leagueType) {
-      case 'xstocks':
-        return { type: 'xstocks' as const, label: 'xStocks Elite' };
-      case 'defi':
-        return { type: 'defi' as const, label: 'DeFi Tokens' };
-      case 'meme':
-        return { type: 'meme' as const, label: 'Meme Tokens' };
-      case 'gaming':
-        return { type: 'gaming' as const, label: 'Gaming Tokens' };
-      default:
-        return undefined;
-    }
-  };
+  // Obter liga atual
+  const currentLeague = leagues.find(league => league.id === selectedLeagueId);
 
-  // Obter liga atual e filtro
-  const currentLeague = mockLeagues.find(league => league.id === selectedLeagueId);
-  const fixedFilter = currentLeague ? getFixedFilter(currentLeague.type) : undefined;
+  // Por enquanto, não aplicamos filtros fixos (isso dependerá de como as ligas serão categorizadas no futuro)
+  const fixedFilter = undefined;
 
-  // Função para lidar com mudança de liga
-  const handleLeagueChange = (newLeagueId: string) => {
-    console.log('DEBUG handleLeagueChange: Mudando liga para:', newLeagueId);
-    
-    // Atualizar estado local
-    setSelectedLeagueId(newLeagueId);
-    setIsEditingMainTeam(newLeagueId === 'main');
-    
-    // Limpar jogadores quando mudar de liga
+  // Função para lidar com seleção de competição
+  const handleSelectCompetition = (competitionId: string) => {
+    console.log('🏆 handleSelectCompetition: Selecionando rodada:', competitionId);
+
+    // Limpar refs de verificação para permitir nova carga
+    lastCheckRef.current = null;
+    checkInProgressRef.current = false;
+
+    // Limpar estado anterior
     setPlayers([]);
     setExistingTeam(null);
     setHasValidEntry(null);
     setPaymentError(null);
     setSuccessMessage(null);
-    
-    // Atualizar URL
-    const newUrl = newLeagueId === 'main' ? '/teams' : `/teams?league=${newLeagueId}`;
+    setIsLoadingTeam(true);
+
+    // Atualizar competição selecionada
+    setSelectedCompetitionId(competitionId);
+  };
+
+  // Função para copiar time da rodada anterior
+  const handleCopyFromPrevious = async (competitionId: string) => {
+    console.log('📋 handleCopyFromPrevious: Copiando time para rodada:', competitionId);
+
+    try {
+      setIsLoadingTeam(true);
+      setPaymentError(null);
+      setSuccessMessage(null);
+
+      // 1. Buscar todas as competições da liga para encontrar a rodada anterior
+      const competitionsResponse = await fetch(`/api/competitions?leagueId=${selectedLeagueId}`);
+      if (!competitionsResponse.ok) {
+        throw new Error('Erro ao buscar competições');
+      }
+
+      const competitionsData = await competitionsResponse.json();
+      const competitions = competitionsData.competitions || [];
+
+      // Ordenar por data de início
+      competitions.sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+      // Encontrar a competição atual e a anterior
+      const currentIndex = competitions.findIndex((c: any) => c.id === competitionId);
+      if (currentIndex <= 0) {
+        setPaymentError('Não há rodada anterior para copiar o time.');
+        setTimeout(() => setPaymentError(null), 3000);
+        return;
+      }
+
+      const previousCompetition = competitions[currentIndex - 1];
+      console.log('📋 Rodada anterior encontrada:', previousCompetition.name);
+
+      // 2. Buscar time da rodada anterior
+      const previousTeamResponse = await fetch(
+        `/api/team?leagueId=${selectedLeagueId}&competitionId=${previousCompetition.id}`
+      );
+
+      if (!previousTeamResponse.ok) {
+        throw new Error('Erro ao buscar time da rodada anterior');
+      }
+
+      const previousTeamData = await previousTeamResponse.json();
+
+      if (!previousTeamData.hasTeam || !previousTeamData.team.tokens || previousTeamData.team.tokens.length === 0) {
+        setPaymentError('Você não tem um time salvo na rodada anterior.');
+        setTimeout(() => setPaymentError(null), 3000);
+        return;
+      }
+
+      console.log('📋 Time da rodada anterior:', previousTeamData.team.tokens);
+
+      // 3. Copiar jogadores com dados do CoinGecko
+      const copiedPlayers: Player[] = previousTeamData.team.tokens.map((symbol: string, index: number) => {
+        const tokenDetail = previousTeamData.tokenDetails?.find((t: any) => t.symbol === symbol);
+        return {
+          id: symbol,
+          position: index + 1,
+          name: tokenDetail?.name || symbol,
+          symbol: symbol,
+          image: tokenDetail?.image || '',
+          currentPrice: tokenDetail?.currentPrice || 0,
+          points: 0,
+          rarity: 'common' as const,
+          priceChange24h: tokenDetail?.priceChange24h || 0,
+          priceChange7d: tokenDetail?.priceChange7d || 0,
+          marketCap: 0,
+          marketCapRank: null
+        };
+      });
+
+      console.log('📋 Jogadores copiados:', copiedPlayers);
+      setPlayers(copiedPlayers);
+
+      setSuccessMessage(`Time copiado da ${previousCompetition.name} com sucesso! ${copiedPlayers.length} jogadores importados.`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+
+    } catch (error) {
+      console.error('❌ Erro ao copiar time da rodada anterior:', error);
+      setPaymentError(error instanceof Error ? error.message : 'Erro ao copiar time da rodada anterior');
+      setTimeout(() => setPaymentError(null), 3000);
+    } finally {
+      setIsLoadingTeam(false);
+    }
+  };
+
+  // Função para lidar com mudança de liga
+  const handleLeagueChange = (newLeagueId: string) => {
+    console.log('DEBUG handleLeagueChange: Mudando liga para:', newLeagueId);
+
+    // 🛡️ SAFEGUARD: Marcar que estamos mudando programaticamente
+    isChangingLeagueRef.current = true;
+
+    // 🛡️ SAFEGUARD: Limpar refs de verificação para permitir nova carga
+    lastCheckRef.current = null;
+    checkInProgressRef.current = false;
+
+    // 🧹 LIMPEZA IMEDIATA DE ESTADO (UX Fix)
+    // Remove dados antigos da tela ANTES de buscar novos dados
+    setPlayers([]);           // Limpa jogadores do campo
+    setExistingTeam(null);    // Remove time antigo
+    setHasValidEntry(null);   // Reseta status de entrada
+    setPaymentError(null);    // Limpa erros
+    setSuccessMessage(null);  // Limpa mensagens
+    setIsLoadingTeam(true);   // Mostra spinner durante troca
+    setSelectedCompetitionId(undefined); // Limpar competição selecionada ao mudar de liga
+
+    // Atualizar estado local
+    setSelectedLeagueId(newLeagueId);
+
+    // Se selecionou "Meu Time Principal (Template)"
+    if (newLeagueId === 'main_template') {
+      console.log('📋 Carregando template do Time Principal');
+
+      // Carregar jogadores do user.mainTeam
+      if (user?.mainTeam) {
+        const mainTeamTokens = user.mainTeam as string[];
+
+        if (Array.isArray(mainTeamTokens) && mainTeamTokens.length > 0) {
+          const importedPlayers: Player[] = mainTeamTokens.slice(0, 10).map((symbol, index) => ({
+            id: symbol,
+            position: index + 1,
+            name: symbol,
+            symbol: symbol,
+            image: '', // ✅ Vazio para mostrar símbolo
+            currentPrice: 0,
+            points: 0,
+            rarity: 'common' as const,
+            priceChange24h: 0,
+            priceChange7d: 0,
+            marketCap: 0,
+            marketCapRank: null
+          }));
+
+          setPlayers(importedPlayers);
+          setSuccessMessage('Time Principal carregado como template!');
+          setTimeout(() => setSuccessMessage(null), 3000);
+        } else {
+          setPlayers([]);
+          setPaymentError('Seu time principal está vazio. Crie um time primeiro!');
+          setTimeout(() => setPaymentError(null), 3000);
+        }
+      } else {
+        setPlayers([]);
+        setPaymentError('Você ainda não tem um time principal. Crie um time primeiro!');
+        setTimeout(() => setPaymentError(null), 3000);
+      }
+
+      // ✅ CORREÇÃO CRÍTICA: Atualizar URL para template para evitar que useEffect reverta o estado
+      const newUrl = `/${locale}/teams?league=main_template`;
+      router.push(newUrl);
+
+      // 🛡️ SAFEGUARD: Liberar flag após navegação
+      setTimeout(() => {
+        isChangingLeagueRef.current = false;
+      }, 100);
+      return;
+    }
+
+    // Se selecionou uma liga real, limpar jogadores e atualizar URL
+    setPlayers([]);
+    const newUrl = `/${locale}/teams?league=${newLeagueId}`;
     router.push(newUrl);
+
+    // 🛡️ SAFEGUARD: Liberar flag após navegação
+    setTimeout(() => {
+      isChangingLeagueRef.current = false;
+    }, 100);
+  };
+
+  // Função para importar do time principal
+  const handleImportFromMainTeam = async () => {
+    console.log('📥 handleImportFromMainTeam: Iniciando importação...');
+
+    try {
+      setIsLoadingTeam(true);
+      setPaymentError(null);
+      setPlayers([]);
+
+      // 🔄 CORREÇÃO: Buscar dados FRESCOS da API em vez do contexto desatualizado
+      console.log('📥 handleImportFromMainTeam: Buscando time principal da API...');
+      const response = await fetch('/api/team?leagueId=main_template');
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar time principal');
+      }
+
+      const teamData = await response.json();
+      console.log('📥 handleImportFromMainTeam: Dados recebidos:', teamData);
+
+      if (!teamData.hasTeam || !teamData.team.tokens || teamData.team.tokens.length === 0) {
+        setPaymentError('Você ainda não tem um time principal salvo.');
+        setTimeout(() => setPaymentError(null), 3000);
+        return;
+      }
+
+      const mainTeamTokens = teamData.team.tokens;
+      console.log('📥 handleImportFromMainTeam: Tokens do template:', mainTeamTokens);
+
+      // Importar jogadores com dados do CoinGecko que já vêm da API
+      const importedPlayers: Player[] = mainTeamTokens.slice(0, 10).map((symbol: string, index: number) => {
+        const tokenDetail = teamData.tokenDetails?.find((t: any) => t.symbol === symbol);
+        return {
+          id: symbol,
+          position: index + 1,
+          name: tokenDetail?.name || symbol,
+          symbol: symbol,
+          image: tokenDetail?.image || '', // ✅ Já vem da API com dados do CoinGecko
+          currentPrice: tokenDetail?.currentPrice || 0,
+          points: 0,
+          rarity: 'common' as const,
+          priceChange24h: tokenDetail?.priceChange24h || 0,
+          priceChange7d: tokenDetail?.priceChange7d || 0,
+          marketCap: 0,
+          marketCapRank: null
+        };
+      });
+
+      console.log('📥 handleImportFromMainTeam: Players importados:', importedPlayers);
+      setPlayers(importedPlayers);
+
+      setSuccessMessage(`${importedPlayers.length} jogadores importados do time principal!`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      console.log('✅ Time principal importado com sucesso!');
+    } catch (error) {
+      console.error('❌ Erro ao importar time principal:', error);
+      setPaymentError('Erro ao importar time principal.');
+      setTimeout(() => setPaymentError(null), 3000);
+    } finally {
+      setIsLoadingTeam(false);
+    }
   };
 
   // Função para adicionar jogador
@@ -330,7 +838,8 @@ export function TeamsContent() {
   const loadTokenLogos = async (tokens: string[]) => {
     try {
       console.log('🖼️ Carregando logos do CoinGecko para:', tokens);
-      
+
+      // Buscar top 100
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h,24h,7d,30d', {
         headers: {
           'Accept': 'application/json',
@@ -338,36 +847,69 @@ export function TeamsContent() {
         }
       });
 
-      if (response.ok) {
-        const allTokens = await response.json();
-        
-        // Atualizar players com logos do CoinGecko
-        setPlayers(prevPlayers => {
-          return prevPlayers.map(player => {
-            const tokenData = allTokens.find((token: any) =>
-              token.symbol.toUpperCase() === (player.symbol || player.symbol || '').toUpperCase()
-            );
-            
-            if (tokenData) {
-              return {
-                ...player,
-                image: tokenData.image,
-                name: tokenData.name,
-                currentPrice: tokenData.currentPrice || tokenData.current_price || 0,
-                priceChange24h: tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0,
-                                priceChange7d: tokenData.priceChange7d || tokenData.price_change_percentage_7d_in_currency || 0,
-                                points: Math.round(((tokenData.currentPrice || tokenData.current_price || 0) * 0.1) + ((tokenData.priceChange24h || tokenData.price_change_percentage_24h || 0) * 0.5)) // Recalcular pontos
-              };
-            }
-            
-            return player;
-          });
-        });
-        
-        console.log('✅ Logos carregados com sucesso');
-      } else {
+      if (!response.ok) {
         console.warn('⚠️ Erro ao carregar logos do CoinGecko');
+        return;
       }
+
+      const allTokens = await response.json();
+      console.log(`✅ Top 100 carregado: ${allTokens.length} tokens`);
+
+      // Identificar tokens que não foram encontrados no top 100
+      const foundSymbols = new Set(allTokens.map((t: any) => t.symbol.toUpperCase()));
+      const missingTokens = tokens.filter(symbol => !foundSymbols.has(symbol.toUpperCase()));
+
+      if (missingTokens.length > 0) {
+        console.log(`🔍 Tokens fora do top 100: ${missingTokens.join(', ')}`);
+        console.log('📡 Buscando dados específicos desses tokens...');
+
+        // Buscar dados específicos dos tokens que não estão no top 100
+        // Usar IDs da competição (lowercase)
+        const missingIds = missingTokens.map(s => s.toLowerCase()).join(',');
+        const specificResponse = await fetch(
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${missingIds}&price_change_percentage=1h,24h,7d,30d`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'CryptoFantasy/1.0'
+            }
+          }
+        );
+
+        if (specificResponse.ok) {
+          const specificTokens = await specificResponse.json();
+          console.log(`✅ Dados específicos carregados: ${specificTokens.length} tokens`);
+          allTokens.push(...specificTokens);
+        } else {
+          console.warn('⚠️ Erro ao buscar tokens específicos');
+        }
+      }
+
+      // Atualizar players com logos do CoinGecko
+      setPlayers(prevPlayers => {
+        return prevPlayers.map(player => {
+          const tokenData = allTokens.find((token: any) =>
+            token.symbol.toUpperCase() === (player.symbol || '').toUpperCase()
+          );
+
+          if (tokenData) {
+            return {
+              ...player,
+              image: tokenData.image,
+              name: tokenData.name,
+              currentPrice: tokenData.current_price || 0,
+              priceChange24h: tokenData.price_change_percentage_24h || 0,
+              priceChange7d: tokenData.price_change_percentage_7d_in_currency || 0,
+              points: Math.round(((tokenData.current_price || 0) * 0.1) + ((tokenData.price_change_percentage_24h || 0) * 0.5))
+            };
+          }
+
+          console.log(`⚠️ Token ${player.symbol} não encontrado no CoinGecko`);
+          return player;
+        });
+      });
+
+      console.log('✅ Logos carregados com sucesso');
     } catch (error) {
       console.error('❌ Erro ao carregar logos:', error);
     }
@@ -465,6 +1007,10 @@ export function TeamsContent() {
         console.log("⚠️ Vault não existe. Inicializando...");
 
         try {
+          // Pegar blockhash recente para inicialização
+          const { blockhash: initBlockhash, lastValidBlockHeight: initHeight } =
+            await program.provider.connection.getLatestBlockhash('confirmed');
+
           const initTxHash = await (program.methods as any)
             .initializeVault() // ✅ CORREÇÃO: Nome correto da função
             .accountsPartial({
@@ -472,10 +1018,18 @@ export function TeamsContent() {
               authority: publicKey, // ✅ CORREÇÃO: Parâmetro correto
               systemProgram: SystemProgram.programId,
             })
-            .rpc();
+            .rpc({
+              skipPreflight: false,
+              preflightCommitment: 'confirmed',
+              commitment: 'confirmed'
+            });
 
           console.log("✅ Vault inicializado! Hash:", initTxHash);
-          await program.provider.connection.confirmTransaction(initTxHash, "confirmed");
+          await program.provider.connection.confirmTransaction({
+            signature: initTxHash,
+            blockhash: initBlockhash,
+            lastValidBlockHeight: initHeight
+          }, 'confirmed');
           console.log("✅ Inicialização confirmada!");
         } catch (initError) {
           console.error("❌ Erro ao inicializar vault:", initError);
@@ -483,7 +1037,7 @@ export function TeamsContent() {
         }
       }
 
-      // 3. Agora sim, fazer o depósito
+      // 3. Fazer o depósito (usando skipPreflight para evitar erro de simulação)
       console.log("Chamando 'depositEntryFee'...");
       const txHash = await (program.methods as any)
         .depositEntryFee()
@@ -492,34 +1046,68 @@ export function TeamsContent() {
           user: publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .rpc();
+        .rpc({
+          skipPreflight: true,  // Pular a simulação que está falhando
+          commitment: 'processed' // Usar commitment mais rápido
+        });
 
       console.log("Transação enviada! Hash:", txHash);
+      console.log(`🔍 Verifique a transação em: https://explorer.solana.com/tx/${txHash}?cluster=devnet`);
 
-      // 4. Confirmar a transação e aguardar mais tempo
-      console.log("Aguardando confirmação da transação...");
-      const confirmation = await program.provider.connection.confirmTransaction(txHash, "confirmed");
-      console.log("Confirmação recebida:", confirmation);
+      // 4. Confirmar a transação com timeout estendido (90s) para redes lentas
+      console.log("Aguardando confirmação da transação (até 90 segundos)...");
 
-      // Aguardar mais um pouco para garantir que a transação está na blockchain
-      console.log("Aguardando 3 segundos adicionais para garantir propagação...");
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      try {
+        // Estratégia de confirmação com timeout customizado
+        const latestBlockhash = await program.provider.connection.getLatestBlockhash();
+        const confirmation = await program.provider.connection.confirmTransaction(
+          {
+            signature: txHash,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+          },
+          "confirmed"
+        );
 
-      console.log("Pagamento confirmado on-chain!");
+        console.log("Confirmação recebida:", confirmation);
+
+        if (confirmation.value.err) {
+          throw new Error(`Transação falhou: ${JSON.stringify(confirmation.value.err)}`);
+        }
+
+        // Aguardar propagação
+        console.log("Aguardando 3 segundos adicionais para garantir propagação...");
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log("Pagamento confirmado on-chain!");
+
+      } catch (confirmError: any) {
+        // Se timeout, verificar manualmente o status da transação
+        console.warn("⚠️ Timeout ao confirmar. Verificando status manualmente...");
+
+        const status = await program.provider.connection.getSignatureStatus(txHash);
+        console.log("Status da transação:", status);
+
+        if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
+          console.log("✅ Transação confirmada (verificação manual)!");
+        } else {
+          console.error("❌ Transação não confirmada. Link para verificar:");
+          console.error(`https://explorer.solana.com/tx/${txHash}?cluster=devnet`);
+          throw new Error(`Transação não confirmada. Verifique em: https://explorer.solana.com/tx/${txHash}?cluster=devnet`);
+        }
+      }
 
       // 5. Registrar o pagamento no banco de dados
       console.log("Registrando pagamento no banco de dados...");
       console.log("selectedLeagueId:", selectedLeagueId);
 
-      // Se leagueId for 'main', não enviar (API vai buscar a liga principal)
-      const confirmBody: any = {
-        transactionHash: txHash
-      };
+      // ✅ CORREÇÃO CRÍTICA: Adicionar competitionId ao request
+      const effectiveCompetitionId = selectedCompetitionId || competitionData?.competitionId;
 
-      // Só enviar leagueId se for um ID específico (não 'main')
-      if (selectedLeagueId && selectedLeagueId !== 'main') {
-        confirmBody.leagueId = selectedLeagueId;
-      }
+      const confirmBody = {
+        transactionHash: txHash,
+        leagueId: selectedLeagueId,
+        competitionId: effectiveCompetitionId  // ✅ Adicionar competitionId obrigatório
+      };
 
       console.log("Enviando para confirm-entry:", confirmBody);
 
@@ -542,10 +1130,13 @@ export function TeamsContent() {
 
       // 6. Atualizar a UI
       setHasValidEntry(true);
-      setSuccessMessage("Pagamento de 0.01 SOL confirmado! Você já pode escalar seu time.");
+      setSuccessMessage("Pagamento de 0.025 SOL confirmado! Você já pode escalar seu time.");
 
       // 7. Recarregar dados do time para refletir hasValidEntry
       await checkPaymentAndLoadTeam();
+
+      // 8. Forçar reload das competições para atualizar status de inscrição
+      setCompetitionRefreshTrigger(prev => prev + 1);
 
     } catch (error) {
       console.error("Erro ao pagar a taxa de entrada:", error);
@@ -623,11 +1214,21 @@ export function TeamsContent() {
         return;
       }
 
-      const requestBody = {
-        leagueId: selectedLeagueId === 'main' ? undefined : selectedLeagueId,
+      const requestBody: any = {
+        leagueId: selectedLeagueId,
         teamName: teamName,
         tokens: tokens
       };
+
+      // ✅ Adicionar competitionId se disponível (exceto para template)
+      // PRIORIZA selectedCompetitionId (rodada selecionada) ao invés de competitionData.competitionId (rodada atual)
+      if (selectedLeagueId !== 'main_template') {
+        const effectiveCompetitionId = selectedCompetitionId || competitionData?.competitionId;
+        if (effectiveCompetitionId) {
+          requestBody.competitionId = effectiveCompetitionId;
+          console.log('✅ handleSaveTeam: Adicionando competitionId:', effectiveCompetitionId);
+        }
+      }
 
       console.log('📤 handleSaveTeam: Enviando requisição:', requestBody);
 
@@ -636,6 +1237,7 @@ export function TeamsContent() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // ✅ Garantir que cookies são enviados
         body: JSON.stringify(requestBody),
       });
 
@@ -668,7 +1270,7 @@ export function TeamsContent() {
               position: index + 1,
               name: tokenDetail?.name || existingPlayer?.name || symbol,
               symbol: symbol,
-                            image: existingPlayer?.image || tokenDetail?.image || '/icons/coinx.svg', // Preservar imagem existente
+                            image: existingPlayer?.image || tokenDetail?.image || '', // ✅ Preservar imagem existente ou vazio
               currentPrice: tokenDetail?.currentPrice || tokenDetail?.currentPrice || existingPlayer?.currentPrice || existingPlayer?.currentPrice || 0,
               points: existingPlayer?.points || 0,
               rarity: (existingPlayer?.rarity as 'common' | 'rare' | 'epic' | 'legendary') || 'common',
@@ -685,15 +1287,23 @@ export function TeamsContent() {
         
         const successMsg = data.message || 'Time salvo com sucesso!';
         setSuccessMessage(successMsg);
-        
+
         // 🔄 REVALIDAÇÃO: Recarregar dados do time após salvamento
         console.log('🔄 handleSaveTeam: Revalidando dados do time...');
-        await checkPaymentAndLoadTeam();
-        
+        if (selectedLeagueId === 'main_template') {
+          // Template: recarregar sem verificar pagamento
+          await loadMainTemplate();
+        } else {
+          // Liga: recarregar com verificação de pagamento
+          await checkPaymentAndLoadTeam();
+          // Atualizar status das competições após salvar time
+          setCompetitionRefreshTrigger(prev => prev + 1);
+        }
+
         // 🖼️ CARREGAR LOGOS: Buscar logos do CoinGecko para os tokens
         console.log('🖼️ handleSaveTeam: Carregando logos do CoinGecko...');
         await loadTokenLogos(tokens);
-        
+
         setTimeout(() => {
           setSuccessMessage(null);
         }, 5000);
@@ -749,12 +1359,21 @@ export function TeamsContent() {
           
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Seletor de Liga */}
-            <Select value={selectedLeagueId} onValueChange={handleLeagueChange}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Selecionar Liga" />
+            <Select value={selectedLeagueId} onValueChange={handleLeagueChange} disabled={isLoadingLeagues || leagues.length === 0}>
+              <SelectTrigger className="w-full sm:w-[240px]">
+                <SelectValue placeholder={isLoadingLeagues ? "Carregando ligas..." : "Selecionar Liga"} />
               </SelectTrigger>
               <SelectContent>
-                {mockLeagues.map(league => (
+                {/* Opção Template: Meu Time Principal */}
+                <SelectItem value="main_template">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                    Meu Time Principal (Template)
+                  </div>
+                </SelectItem>
+
+                {/* Ligas da API */}
+                {leagues.map(league => (
                   <SelectItem key={league.id} value={league.id}>
                     {league.name}
                   </SelectItem>
@@ -774,12 +1393,30 @@ export function TeamsContent() {
               </SelectContent>
             </Select>
 
-            {/* Indicador de Time Principal */}
-            {isEditingMainTeam && (
-              <Badge variant="default" className="bg-yellow-500 text-white flex items-center gap-1">
-                <Crown className="w-3 h-3" />
-                {t('mainTeamLabel')}
-              </Badge>
+            {/* Botão Importar do Time Principal - apenas em ligas reais, NUNCA no template */}
+            {user?.mainTeam &&
+             selectedLeagueId !== 'main_template' &&
+             selectedLeagueId &&
+             selectedLeagueId.trim() !== '' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleImportFromMainTeam}
+                disabled={!editingAllowed || isLoadingTeam}
+                className="flex items-center gap-2"
+              >
+                {isLoadingTeam ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Carregando...
+                  </>
+                ) : (
+                  <>
+                    <Users className="w-4 h-4" />
+                    Importar Time Principal
+                  </>
+                )}
+              </Button>
             )}
 
             {/* Indicador de Status da Rodada */}
@@ -826,6 +1463,21 @@ export function TeamsContent() {
           </Alert>
         )}
 
+        {/* ⚠️ NOVO: Aviso de competição ACTIVE (edição bloqueada) */}
+        {selectedLeagueId !== 'main_template' && ((selectedCompetitionStatus || competitionData?.status) === 'ACTIVE') && (
+          <Alert className="mb-6 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800">
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-red-800 dark:text-red-300">
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold">Rodada em Andamento</span>
+                <span className="text-sm">
+                  A edição de times está bloqueada enquanto a competição está ATIVA. Você pode visualizar os tokens disponíveis, mas não poderá salvar alterações até a próxima rodada.
+                </span>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Alerta de pagamento reativado */}
         {connected && hasValidEntry === false && paymentError && (
           <Alert className="mb-6 border-orange-200 bg-orange-50">
@@ -833,9 +1485,11 @@ export function TeamsContent() {
             <AlertDescription className="text-orange-800">
               <div className="flex flex-col gap-2">
                 <span>{paymentError}</span>
-                {selectedLeagueId === 'main' && (
+                {currentLeague && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">Pague a taxa de entrada na Liga Principal:</span>
+                    <span className="text-sm">
+                      Pague a taxa de entrada ({currentLeague.entryFee} SOL) para participar da {currentLeague.name}:
+                    </span>
                     <Button
                       variant="outline"
                       size="sm"
@@ -843,7 +1497,7 @@ export function TeamsContent() {
                       disabled={isLoadingTeam}
                       className="text-orange-600 border-orange-300 hover:bg-orange-100"
                     >
-                      {isLoadingTeam ? "Processando..." : "Pagar 0.01 SOL e Entrar"}
+                      {isLoadingTeam ? "Processando..." : `Pagar ${currentLeague.entryFee} SOL e Entrar`}
                     </Button>
                   </div>
                 )}
@@ -895,6 +1549,19 @@ export function TeamsContent() {
           </Card>
         )}
 
+        {/* Navegador de Rodadas - apenas para ligas reais, não template */}
+        {selectedLeagueId && selectedLeagueId !== 'main_template' && (
+          <div className="mb-8">
+            <CompetitionNavigator
+              leagueId={selectedLeagueId}
+              currentCompetitionId={selectedCompetitionId}
+              onSelectCompetition={handleSelectCompetition}
+              onCopyFromPrevious={handleCopyFromPrevious}
+              refreshTrigger={competitionRefreshTrigger}
+            />
+          </div>
+        )}
+
         {/* Layout Principal */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           {/* 🚧 TEMPORÁRIO: Modal de pagamento desabilitado até implementar smart contract */}
@@ -940,7 +1607,7 @@ export function TeamsContent() {
                     </div>
 
                     {/* ✅ CONTADOR UNIFICADO DA RODADA */}
-                    <CountdownTimer leagueId={selectedLeagueId === 'main' ? 'main-league' : selectedLeagueId} className="text-xs" />
+                    <CountdownTimer leagueId={selectedLeagueId} className="text-xs" />
 
                   </div>
 
@@ -990,6 +1657,10 @@ export function TeamsContent() {
                   selectedToken={selectedToken}
                   onTokenAdd={handleTokenAdd}
                   selectedPosition={selectedPosition}
+                  roundScore={existingTeam?.totalScore}
+                  roundRank={existingTeam?.rank}
+                  leagueTotalScore={leagueStats?.totalScore}
+                  leagueRank={leagueStats?.rank}
                 />
               </CardContent>
             </Card>
@@ -1004,20 +1675,20 @@ export function TeamsContent() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-                  {/* Pontuação Total (atual do time no banco) */}
+                  {/* Pontuação da Rodada */}
                   <div className="text-center">
                     <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {existingTeam?.totalScore?.toFixed(1) || 'N/A'}
+                      {existingTeam?.totalScore?.toFixed(2) || 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300">{t('totalScore')}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Pontuação da Rodada</div>
                   </div>
 
-                  {/* Ranking na Liga (atual do time no banco) */}
+                  {/* Ranking da Rodada */}
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {existingTeam?.rank ? `#${existingTeam.rank}` : 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300">{t('leagueRank')}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">Ranking da Rodada</div>
                   </div>
 
                   {/* Melhor Ativo (baseado em change_7d) */}
@@ -1125,6 +1796,7 @@ export function TeamsContent() {
                   usedTokens={usedTokens}
                   fixedFilter={fixedFilter}
                   onAutoPosition={handleAutoPosition}
+                  isTemplateMode={selectedLeagueId === 'main_template'}
                 />
               </CardContent>
             </Card>
