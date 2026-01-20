@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/competition-end",
       "schedule": "0 0 * * 6"
+    },
+    {
+      "path": "/api/cron/test-end",
+      "schedule": "0 0 * * *"
     }
   ],
   "headers": [
