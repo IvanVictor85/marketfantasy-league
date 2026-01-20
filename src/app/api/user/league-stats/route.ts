@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 // Função para obter o usuário autenticado
 async function getUserFromRequest(request: NextRequest): Promise<string | null> {
   try {
