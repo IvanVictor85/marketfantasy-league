@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getMarketDataByIds, SYMBOL_TO_ID_MAP } from '@/lib/services/cache';
 
+export const dynamic = 'force-dynamic';
+
 // Usar mapa de símbolos do serviço de cache
 const TOKEN_MAPPING = SYMBOL_TO_ID_MAP;
 

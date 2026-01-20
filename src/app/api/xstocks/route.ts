@@ -4,6 +4,8 @@ import { fetchAllTokenPrices, type TokenPriceData } from '@/lib/xstocks/coingeck
 import { fetchXStocksFromCategory, convertCoinGeckoToXStockFormat } from '@/lib/xstocks/coingecko-category';
 import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 
+export const dynamic = 'force-dynamic';
+
 // Definindo o tipo XStockToken localmente para evitar problemas de importação
 export interface XStockToken {
   xSymbol: string;

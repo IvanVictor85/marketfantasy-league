@@ -9,6 +9,8 @@ import {
 } from '@/lib/services/cache'
 import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
 
+export const dynamic = 'force-dynamic';
+
 // 🔒 SEGURANÇA: Schema atualizado para aceitar competitionId opcional
 const teamSchema = z.object({
   leagueId: z.string().optional(),
