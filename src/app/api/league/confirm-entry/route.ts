@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { Connection, PublicKey } from '@solana/web3.js'
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
+// ✅ REFATORAÇÃO: Pagamento por competitionId (Rodada), não leagueId (Liga)
 const confirmEntrySchema = z.object({
   transactionHash: z.string().min(64, 'Invalid transaction hash'),
-  leagueId: z.string().optional()
-  // userWallet removido - será obtido do banco de dados via sessão
+  competitionId: z.string()
 })
 
 // Função para obter o usuário autenticado
@@ -30,18 +32,32 @@ async function getUserFromRequest(request: NextRequest): Promise<string | null> 
 
     return authToken.userId;
   } catch (error) {
-    console.error('❌ [AUTH] Erro ao obter usuário:', error);
+    logger.error('[AUTH] Erro ao obter usuário', error);
     return null;
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // 🔒 SEGURANÇA: Rate Limiting (3 pagamentos por 5 minutos)
+    const rateLimitResult = await rateLimit(request, {
+      interval: 300000, // 5 minutos
+      uniqueTokenPerInterval: 3, // 3 pagamentos por 5 minutos
+    });
+
+    if (!rateLimitResult.success) {
+      logger.security('[CONFIRM-ENTRY] Rate limit excedido', {
+        remaining: rateLimitResult.remaining,
+        reset: rateLimitResult.reset
+      });
+      return rateLimitResponse(rateLimitResult.reset);
+    }
+
     // 🔒 SEGURANÇA: Obter userId do usuário autenticado
     const userId = await getUserFromRequest(request);
 
     if (!userId) {
-      console.error('❌ [CONFIRM-ENTRY] Usuário não autenticado');
+      logger.security('[CONFIRM-ENTRY] Tentativa de pagamento sem autenticação');
       return NextResponse.json(
         { error: 'Usuário não autenticado' },
         { status: 401 }
@@ -55,7 +71,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user || !user.publicKey) {
-      console.error('❌ [CONFIRM-ENTRY] Usuário sem carteira vinculada');
+      logger.warn('[CONFIRM-ENTRY] Usuário sem carteira vinculada', { userId });
       return NextResponse.json(
         { error: 'Você precisa conectar uma carteira antes de confirmar entrada' },
         { status: 400 }
@@ -65,43 +81,70 @@ export async function POST(request: NextRequest) {
     const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco, não do cliente!
 
     const body = await request.json()
-    console.log('🔍 [CONFIRM-ENTRY] Request body:', body)
-    
-    const { transactionHash, leagueId } = confirmEntrySchema.parse(body)
-    console.log('🔍 [CONFIRM-ENTRY] Parsed data:', { userWallet, transactionHash, leagueId })
+    logger.debug('[CONFIRM-ENTRY] Request body recebido');
 
-    // Get Main League if no specific league ID provided
-    let league
-    if (leagueId) {
-      league = await prisma.league.findUnique({
-        where: { id: leagueId }
-      })
-    } else {
-      league = await prisma.league.findFirst({
-        where: { 
-          leagueType: 'MAIN',
-          isActive: true 
-        }
-      })
-    }
+    const { transactionHash, competitionId } = confirmEntrySchema.parse(body)
 
-    if (!league) {
+    if (!competitionId) {
       return NextResponse.json(
-        { error: 'Liga não encontrada' },
-        { status: 404 }
-      )
+        { error: 'ID da Rodada (competitionId) é obrigatório' },
+        { status: 400 }
+      );
     }
 
-    // Check if entry already exists
+    logger.info('[CONFIRM-ENTRY] Confirmando pagamento', {
+      userId,
+      competitionId,
+      txHash: transactionHash.substring(0, 8) + '...'
+    });
+
+    // ✅ REFATORAÇÃO: Buscar a Rodada (Competition) e sua Liga (League)
+    const competition = await prisma.competition.findUnique({
+      where: { id: competitionId },
+      include: {
+        league: true,
+        season: true
+      }
+    });
+
+    if (!competition) {
+      return NextResponse.json(
+        { error: 'Rodada não encontrada' },
+        { status: 404 }
+      );
+    }
+
+    // 🔒 VALIDAÇÃO: Bloquear inscrição em rodadas ACTIVE ou COMPLETED
+    if (competition.status === 'ACTIVE') {
+      logger.security('[CONFIRM-ENTRY] Tentativa de inscrição em rodada ACTIVE', { userId, competitionId });
+      return NextResponse.json(
+        { error: 'As inscrições foram encerradas. Esta rodada já está em andamento.' },
+        { status: 403 }
+      );
+    }
+
+    if (competition.status === 'COMPLETED') {
+      logger.security('[CONFIRM-ENTRY] Tentativa de inscrição em rodada COMPLETED', { userId, competitionId });
+      return NextResponse.json(
+        { error: 'Esta rodada já foi encerrada.' },
+        { status: 403 }
+      );
+    }
+
+    const league = competition.league;
+    const entryFee = Number(league.entryFee); // ex: 0.1 SOL
+
+    // Verificar se entrada já existe
     const existingEntry = await prisma.leagueEntry.findFirst({
       where: {
         userId: userId,
-        leagueId: league.id,
+        competitionId: competitionId,
         status: 'CONFIRMED'
       }
-    })
+    });
 
-    if (existingEntry && existingEntry.status === 'CONFIRMED') {
+    if (existingEntry) {
+      logger.info('[CONFIRM-ENTRY] Entrada já confirmada anteriormente', { userId, competitionId });
       return NextResponse.json({
         success: true,
         message: 'Entrada já confirmada',
@@ -110,27 +153,27 @@ export async function POST(request: NextRequest) {
           amountPaid: existingEntry.amountPaid,
           createdAt: existingEntry.createdAt
         }
-      })
+      });
     }
 
     // Verify transaction on-chain
     const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
-    console.log('🔍 [CONFIRM-ENTRY] RPC URL:', rpcUrl);
+    logger.debug('[CONFIRM-ENTRY] Conectando RPC');
     const connection = new Connection(rpcUrl)
 
     let transaction
     try {
-      console.log('🔍 [CONFIRM-ENTRY] Buscando transação:', transactionHash);
+      logger.debug('[CONFIRM-ENTRY] Buscando transação on-chain');
       transaction = await connection.getTransaction(transactionHash, {
         maxSupportedTransactionVersion: 0,
         commitment: 'confirmed'
       })
-      console.log('🔍 [CONFIRM-ENTRY] Transação encontrada:', transaction ? 'SIM' : 'NÃO');
-      if (transaction) {
-        console.log('🔍 [CONFIRM-ENTRY] Meta existe:', transaction.meta ? 'SIM' : 'NÃO');
+
+      if (!transaction) {
+        logger.warn('[CONFIRM-ENTRY] Transação não encontrada', { txHash: transactionHash.substring(0, 8) + '...' });
       }
     } catch (error) {
-      console.error('❌ [CONFIRM-ENTRY] Error fetching transaction:', error)
+      logger.error('[CONFIRM-ENTRY] Erro ao buscar transação', error);
       return NextResponse.json(
         { error: 'Transação não encontrada na blockchain' },
         { status: 404 }
@@ -138,9 +181,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!transaction || !transaction.meta) {
-      console.error('❌ [CONFIRM-ENTRY] Transação inválida ou sem meta');
-      console.error('   transaction:', !!transaction);
-      console.error('   meta:', !!transaction?.meta);
+      logger.error('[CONFIRM-ENTRY] Transação inválida ou sem meta');
       return NextResponse.json(
         { error: 'Transação inválida ou não confirmada' },
         { status: 400 }
@@ -157,6 +198,7 @@ export async function POST(request: NextRequest) {
     const userAccountIndex = accountKeysArray.findIndex((key: PublicKey) => key.equals(userPublicKey))
 
     if (userAccountIndex === -1) {
+      logger.security('[CONFIRM-ENTRY] Transação não pertence à carteira do usuário', { userId });
       return NextResponse.json(
         { error: 'Transação não pertence à carteira informada' },
         { status: 400 }
@@ -168,24 +210,24 @@ export async function POST(request: NextRequest) {
     const postBalance = transaction.meta.postBalances[userAccountIndex]
     const amountTransferred = preBalance - postBalance
 
-    console.log('🔍 [CONFIRM-ENTRY] Debug valores:')
-    console.log('   Entry Fee (SOL):', league.entryFee)
-    console.log('   Entry Fee (lamports):', entryFeeInLamports)
-    console.log('   Pre Balance:', preBalance)
-    console.log('   Post Balance:', postBalance)
-    console.log('   Amount Transferred (lamports):', amountTransferred)
-    console.log('   Amount Transferred (SOL):', amountTransferred / 1_000_000_000)
+    logger.debug('[CONFIRM-ENTRY] Valores da transação', {
+      entryFeeSol: league.entryFee,
+      entryFeeLamports: entryFeeInLamports,
+      amountTransferredSol: amountTransferred / 1_000_000_000
+    });
 
     // Allow for small transaction fee differences
     const tolerance = 0.001 * 1_000_000_000 // 0.001 SOL tolerance for fees
     const difference = Math.abs(amountTransferred - entryFeeInLamports)
-    console.log('   Difference (lamports):', difference)
-    console.log('   Tolerance (lamports):', tolerance)
-    console.log('   Within tolerance:', difference <= tolerance)
 
     if (difference > tolerance) {
+      logger.security('[CONFIRM-ENTRY] Valor da transação incorreto', {
+        expected: league.entryFee,
+        actual: amountTransferred / 1_000_000_000,
+        difference: difference / 1_000_000_000
+      });
       return NextResponse.json(
-        { 
+        {
           error: 'Valor da transação não corresponde à taxa de entrada',
           expected: league.entryFee,
           actual: amountTransferred / 1_000_000_000,
@@ -196,80 +238,87 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create or update entry record
-    const entryData = {
-      leagueId: league.id,
-      userId: userId,
-      userWallet: userWallet,
-      transactionHash: transactionHash,
-      amountPaid: league.entryFee,
-      status: 'CONFIRMED' as const,
-      blockHeight: Number(transaction.slot)
-    }
+    // ✅ LÓGICA DE DISTRIBUIÇÃO DE PRÊMIO
+    const seasonCut = entryFee * 0.18;    // 18% Temporada
+    const treasuryCut = entryFee * 0.12;  // 12% Tesouro
+    const roundCut = entryFee * 0.70;     // 70% Rodada
 
-    let entry
-    if (existingEntry) {
-      entry = await prisma.leagueEntry.update({
-        where: {
-          id: existingEntry.id
-        },
-        data: entryData
-      })
-    } else {
-      entry = await prisma.leagueEntry.create({
-        data: entryData
-      })
+    logger.info('[CONFIRM-ENTRY] Distribuição de prêmio', {
+      entryFee,
+      seasonCut,
+      treasuryCut,
+      roundCut
+    });
 
-      // Update league participant count and prize pool
-      await prisma.league.update({
-        where: { id: league.id },
+    // ✅ REFATORAÇÃO: Criar entrada e atualizar prêmios em transação atômica
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Criar LeagueEntry ligada à competitionId
+      const newEntry = await tx.leagueEntry.create({
         data: {
-          participantCount: { increment: 1 },
-          totalPrizePool: { increment: league.entryFee }
+          userId: userId,
+          userWallet: userWallet,
+          competitionId: competitionId,
+          transactionHash: transactionHash,
+          amountPaid: entryFee,
+          status: 'CONFIRMED',
+          blockHeight: Number(transaction.slot)
         }
-      })
-    }
+      });
 
-    // Update user's team to mark as having valid entry
-    await prisma.team.updateMany({
-      where: {
-        userId: userId,
-        leagueId: league.id
-      },
-      data: {
-        hasValidEntry: true
+      // 2. Atualizar prizePool da Temporada (18%)
+      if (competition.seasonId) {
+        await tx.season.update({
+          where: { id: competition.seasonId },
+          data: { prizePool: { increment: seasonCut } }
+        });
       }
-    })
+
+      // 3. Atualizar prizePool da Rodada (70%)
+      await tx.competition.update({
+        where: { id: competitionId },
+        data: { prizePool: { increment: roundCut } }
+      });
+
+      // 4. (TODO) Enviar 12% para o Tesouro
+      // Implementar lógica de tesouro aqui
+
+      return newEntry;
+    });
+
+    logger.info('[CONFIRM-ENTRY] Pagamento confirmado com sucesso', {
+      userId,
+      competitionId,
+      seasonCut,
+      roundCut,
+      treasuryCut
+    });
 
     return NextResponse.json({
       success: true,
       message: 'Entrada confirmada com sucesso',
       entry: {
-        transactionHash: entry.transactionHash,
-        amountPaid: entry.amountPaid,
-        createdAt: entry.createdAt
+        transactionHash: result.transactionHash,
+        amountPaid: result.amountPaid,
+        createdAt: result.createdAt
       },
-      league: {
-        id: league.id,
-        name: league.name,
-        entryFee: league.entryFee,
-        totalPrizePool: league.totalPrizePool,
-        participantCount: league.participantCount
+      prizeDistribution: {
+        season: seasonCut,
+        round: roundCut,
+        treasury: treasuryCut
       }
     })
 
   } catch (error) {
-    console.error('❌ [CONFIRM-ENTRY] Error confirming league entry:', error)
-    
+    logger.error('[CONFIRM-ENTRY] Erro ao confirmar entrada', error);
+
     if (error instanceof z.ZodError) {
-      console.error('❌ [CONFIRM-ENTRY] Validation error:', error.errors)
+      logger.warn('[CONFIRM-ENTRY] Erro de validação', { errors: error.errors });
       return NextResponse.json(
         { error: 'Dados inválidos', details: error.errors },
         { status: 400 }
       )
     }
 
-    console.error('❌ [CONFIRM-ENTRY] Unexpected error:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

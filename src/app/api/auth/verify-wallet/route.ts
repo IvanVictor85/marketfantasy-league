@@ -4,6 +4,7 @@ import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { getCorsHeaders } from '@/lib/cors';
 
 /**
  * POST /api/auth/verify-wallet
@@ -203,7 +204,9 @@ export async function POST(request: NextRequest) {
       user: {
         ...user,
         loginMethod: 'wallet' // Adicionar campo extra para indicar método de login
-      }
+      },
+      // ✅ Retornar token para persistência no localStorage (permite F5 sem perder sessão)
+      token: sessionToken
     });
 
     // Definir cookie httpOnly com o token de sessão
@@ -244,13 +247,9 @@ export async function POST(request: NextRequest) {
  * OPTIONS /api/auth/verify-wallet
  * Handler para CORS preflight requests
  */
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: getCorsHeaders(request.headers.get('origin')),
   });
 }

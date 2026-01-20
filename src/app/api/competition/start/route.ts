@@ -8,7 +8,8 @@ import { createStartSnapshot, canStartCompetition } from '@/lib/competition/mana
 // ============================================
 
 const startCompetitionSchema = z.object({
-  competitionId: z.string().min(1, 'Competition ID is required')
+  competitionId: z.string().min(1, 'Competition ID is required'),
+  skipTimeValidation: z.boolean().optional()  // Para testes locais
 });
 
 // ============================================
@@ -29,19 +30,19 @@ export async function POST(request: NextRequest) {
 
     // Parse e validar body
     const body = await request.json();
-    const { competitionId } = startCompetitionSchema.parse(body);
+    const { competitionId, skipTimeValidation } = startCompetitionSchema.parse(body);
 
     console.log(`📋 Competition ID: ${competitionId}`);
+    if (skipTimeValidation) {
+      console.log('⚠️  Modo de teste: Validação de horário desabilitada');
+    }
 
     // Verificar se a competição existe
     const competition = await prisma.competition.findUnique({
       where: { id: competitionId },
       include: {
-        league: {
-          include: {
-            teams: true
-          }
-        }
+        league: true,
+        userTeams: true  // ✅ CORREÇÃO: Times estão em UserTeam, não em League.teams
       }
     });
 
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar status
-    if (competition.status !== 'pending') {
+    if (competition.status !== 'PENDING') {  // ✅ CORREÇÃO: Status é maiúsculo no schema
       console.log(`❌ Competição já está em status: ${competition.status}`);
       return NextResponse.json(
         {
@@ -65,26 +66,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se pode iniciar (horário)
-    const canStart = await canStartCompetition(competitionId);
-    if (!canStart) {
-      const now = new Date();
-      const timeUntilStart = competition.startTime.getTime() - now.getTime();
+    // Verificar se pode iniciar (horário) - EXCETO em modo de teste
+    if (!skipTimeValidation) {
+      const canStart = await canStartCompetition(competitionId);
+      if (!canStart) {
+        const now = new Date();
+        const timeUntilStart = competition.startDate.getTime() - now.getTime();
 
-      console.log(`⏰ Ainda não é hora de iniciar. Faltam ${Math.floor(timeUntilStart / 1000)}s`);
+        console.log(`⏰ Ainda não é hora de iniciar. Faltam ${Math.floor(timeUntilStart / 1000)}s`);
 
-      return NextResponse.json(
-        {
-          error: 'Competição ainda não pode ser iniciada',
-          startTime: competition.startTime,
-          timeUntilStart: timeUntilStart
-        },
-        { status: 400 }
-      );
+        return NextResponse.json(
+          {
+            error: 'Competição ainda não pode ser iniciada',
+            startDate: competition.startDate,
+            timeUntilStart: timeUntilStart
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Verificar se há times participantes
-    if (competition.league.teams.length === 0) {
+    if (competition.userTeams.length === 0) {
       console.log('⚠️ Nenhum time registrado na competição');
       return NextResponse.json(
         {
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`👥 Times participantes: ${competition.league.teams.length}`);
+    console.log(`👥 Times participantes: ${competition.userTeams.length}`);
 
     // Criar snapshot de preços iniciais
     console.log('📸 Criando snapshot de preços...');
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest) {
     const updatedCompetition = await prisma.competition.update({
       where: { id: competitionId },
       data: {
-        status: 'active',
+        status: 'ACTIVE',
         updatedAt: new Date()
       }
     });
@@ -121,10 +124,10 @@ export async function POST(request: NextRequest) {
       competition: {
         id: updatedCompetition.id,
         status: updatedCompetition.status,
-        startTime: updatedCompetition.startTime,
-        endTime: updatedCompetition.endTime,
+        startDate: updatedCompetition.startDate,
+        endDate: updatedCompetition.endDate,
         prizePool: updatedCompetition.prizePool,
-        teamsCount: competition.league.teams.length
+        teamsCount: competition.userTeams.length
       },
       snapshot: {
         tokensCount: snapshot.length,

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 export interface Competition {
   id: string;
+  competitionId?: string; // Alias para id (compatibilidade)
   leagueId: string;
   startTime: Date;
   endTime: Date;
@@ -101,15 +102,35 @@ export function useCompetitionStatus({
 
       const result = await response.json();
 
+      console.log('🔍 [HOOK] useCompetitionStatus: Resposta da API:', {
+        hasCompetitionId: !!result.competitionId,
+        competitionId: result.competitionId,
+        status: result.status
+      });
+
+      // ✅ CORREÇÃO: API retorna objeto flat, não nested
+      const competitionObject = result.competitionId ? {
+        id: result.competitionId,
+        competitionId: result.competitionId, // Alias para compatibilidade
+        leagueId: result.leagueId,
+        startTime: new Date(result.startDate),
+        endTime: new Date(result.endDate),
+        status: result.status?.toLowerCase() || 'pending',
+        prizePool: result.prizePool || 0,
+        distributed: result.distributed || false,
+      } : null;
+
+      console.log('🔍 [HOOK] useCompetitionStatus: Objeto competition criado:', {
+        hasCompetition: !!competitionObject,
+        competitionId: competitionObject?.competitionId,
+        id: competitionObject?.id
+      });
+
       setData({
-        competition: result.competition ? {
-          ...result.competition,
-          startTime: new Date(result.competition.startTime),
-          endTime: new Date(result.competition.endTime),
-        } : null,
+        competition: competitionObject,
         rankings: result.rankings || [],
         winners: result.winners || [],
-        totalParticipants: result.totalParticipants || 0,
+        totalParticipants: result.participants || 0,
         loading: false,
         error: null,
       });
@@ -125,6 +146,16 @@ export function useCompetitionStatus({
 
   // Initial fetch
   useEffect(() => {
+    // ✅ PERFORMANCE FIX: Respeitar flag 'enabled' no fetch inicial
+    if (!enabled) {
+      setData((prev) => ({
+        ...prev,
+        loading: false,
+        error: null,
+      }));
+      return;
+    }
+
     if (!competitionId) {
       setData((prev) => ({
         ...prev,
@@ -135,7 +166,7 @@ export function useCompetitionStatus({
     }
 
     fetchCompetitionStatus();
-  }, [competitionId]);
+  }, [competitionId, enabled]);
 
   // Auto-refresh with smart interval
   useEffect(() => {
@@ -182,15 +213,35 @@ export function useCompetitionStatusManual(competitionId: string) {
 
       const result = await response.json();
 
+      console.log('🔍 [HOOK] useCompetitionStatus: Resposta da API:', {
+        hasCompetitionId: !!result.competitionId,
+        competitionId: result.competitionId,
+        status: result.status
+      });
+
+      // ✅ CORREÇÃO: API retorna objeto flat, não nested
+      const competitionObject = result.competitionId ? {
+        id: result.competitionId,
+        competitionId: result.competitionId, // Alias para compatibilidade
+        leagueId: result.leagueId,
+        startTime: new Date(result.startDate),
+        endTime: new Date(result.endDate),
+        status: result.status?.toLowerCase() || 'pending',
+        prizePool: result.prizePool || 0,
+        distributed: result.distributed || false,
+      } : null;
+
+      console.log('🔍 [HOOK] useCompetitionStatus: Objeto competition criado:', {
+        hasCompetition: !!competitionObject,
+        competitionId: competitionObject?.competitionId,
+        id: competitionObject?.id
+      });
+
       setData({
-        competition: result.competition ? {
-          ...result.competition,
-          startTime: new Date(result.competition.startTime),
-          endTime: new Date(result.competition.endTime),
-        } : null,
+        competition: competitionObject,
         rankings: result.rankings || [],
         winners: result.winners || [],
-        totalParticipants: result.totalParticipants || 0,
+        totalParticipants: result.participants || 0,
         loading: false,
         error: null,
       });

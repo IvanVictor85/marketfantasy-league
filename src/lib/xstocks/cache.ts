@@ -44,11 +44,12 @@ class MemoryCache {
   /**
    * Recupera um valor do cache
    * @param key Chave do cache
-   * @returns Dados armazenados ou null se expirado/não encontrado
+   * @param ignoreTTL Se true, retorna dados mesmo se expirados (fallback para rate limit)
+   * @returns Dados armazenados ou null se não encontrado
    */
-  get<T>(key: string): T | null {
+  get<T>(key: string, ignoreTTL: boolean = false): T | null {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       this.misses++;
       console.log(`Cache MISS: ${key} (não encontrado)`);
@@ -58,15 +59,20 @@ class MemoryCache {
     const now = Date.now();
     const isExpired = (now - entry.timestamp) > entry.ttl;
 
-    if (isExpired) {
+    if (isExpired && !ignoreTTL) {
       this.cache.delete(key);
       this.misses++;
       console.log(`Cache MISS: ${key} (expirado)`);
       return null;
     }
 
-    this.hits++;
-    console.log(`Cache HIT: ${key}`);
+    if (isExpired && ignoreTTL) {
+      console.warn(`⚠️ Cache FALLBACK: ${key} (usando dados expirados)`);
+    } else {
+      this.hits++;
+      console.log(`Cache HIT: ${key}`);
+    }
+
     return entry.data as T;
   }
 
@@ -299,11 +305,12 @@ export function cacheApiResponse(endpoint: string, params: string, data: any, tt
  * Recupera resposta de API do cache
  * @param endpoint Nome do endpoint
  * @param params Parâmetros da requisição (serializado)
+ * @param ignoreTTL Se true, retorna dados mesmo se expirados (fallback para rate limit)
  * @returns Dados da resposta ou null se não encontrados/expirados
  */
-export function getCachedApiResponse<T>(endpoint: string, params: string): T | null {
+export function getCachedApiResponse<T>(endpoint: string, params: string, ignoreTTL: boolean = false): T | null {
   const cacheKey = CACHE_CONFIG.KEYS.API_RESPONSE(endpoint, params);
-  return globalCache.get<T>(cacheKey);
+  return globalCache.get<T>(cacheKey, ignoreTTL);
 }
 
 // ============================================================================

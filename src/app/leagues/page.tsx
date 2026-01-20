@@ -41,7 +41,7 @@ const mockLeagues: League[] = [
     id: '2',
     name: 'Copa dos Novatos',
     description: 'Perfeita para iniciantes aprenderem e competirem',
-    entryFee: 0.01,
+    entryFee: 0.025, // ✅ CORREÇÃO: Mock atualizado para 0.025 SOL
     maxParticipants: 50,
     currentParticipants: 23,
     prizePool: 0.23,

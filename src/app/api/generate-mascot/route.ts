@@ -248,20 +248,21 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const { logger } = await import('@/lib/logger');
+    
     // Log de debug para ambiente
-    console.log('=== DEBUG MASCOT GENERATION ===');
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('AI Provider:', process.env.AI_IMAGE_PROVIDER);
-    console.log('Gemini API Key exists:', !!process.env.GEMINI_API_KEY);
-    console.log('Gemini API Key length:', process.env.GEMINI_API_KEY?.length || 0);
+    logger.debug('=== DEBUG MASCOT GENERATION ===');
+    logger.debug('Environment', { env: process.env.NODE_ENV });
+    logger.debug('AI Provider', { provider: process.env.AI_IMAGE_PROVIDER });
+    logger.debug('Gemini API Key configured', { exists: !!process.env.GEMINI_API_KEY });
     
     // Parse do body da requisição
     const body: MascotFormData = await request.json();
-    console.log('Request body:', JSON.stringify(body, null, 2));
+    logger.debug('Request body received', { character: body.character, uniformStyle: body.uniformStyle });
     
     // Validação dos dados obrigatórios
     if (!body.character || !body.uniformStyle) {
-      console.log('Validation failed: missing required fields');
+      logger.warn('Validation failed: missing required fields');
       return NextResponse.json(
         { 
           error: 'Dados obrigatórios ausentes',
@@ -294,12 +295,12 @@ export async function POST(request: NextRequest) {
     
     // Criar prompt baseado nos dados
     const prompt = createPromptFromFormData(body);
-    console.log('Generated prompt:', prompt);
+    logger.debug('Generated prompt for mascot');
     
     // Gerar imagem do mascote
-    console.log('Starting image generation...');
+    logger.info('Starting image generation');
     const imageUrl = await generateMascotImage(prompt);
-    console.log('Image generation completed. URL length:', imageUrl?.length || 0);
+    logger.info('Image generation completed', { urlLength: imageUrl?.length || 0 });
     
     // Criar objeto de resposta
     const generatedMascot: GeneratedMascot = {

@@ -7,12 +7,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    // Buscar a Liga Principal
+    // Buscar a Liga Principal (primeira liga criada)
     const mainLeague = await prisma.league.findFirst({
-      where: { 
-        leagueType: 'MAIN',
-        isActive: true 
-      }
+      orderBy: { createdAt: 'asc' }
     });
 
     if (!mainLeague) {
@@ -45,15 +42,8 @@ export async function GET(request: NextRequest) {
         name: mainLeague.name,
         description: mainLeague.description,
         entryFee: mainLeague.entryFee,
-        totalPrizePool: mainLeague.totalPrizePool,
-        participantCount: mainLeague.participantCount,
-        startDate: mainLeague.startDate,
-        endDate: mainLeague.endDate,
-        isActive: mainLeague.isActive,
-        status: mainLeague.status,
         badgeUrl: mainLeague.badgeUrl,
-        bannerUrl: mainLeague.bannerUrl,
-        prizeDistribution: mainLeague.prizeDistribution
+        bannerUrl: mainLeague.bannerUrl
       },
       ranking: {
         teams: ranking.teams,
@@ -83,12 +73,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action } = body;
 
-    // Buscar a Liga Principal
+    // Buscar a Liga Principal (primeira liga criada)
     const mainLeague = await prisma.league.findFirst({
-      where: { 
-        leagueType: 'MAIN',
-        isActive: true 
-      }
+      orderBy: { createdAt: 'asc' }
     });
 
     if (!mainLeague) {
@@ -108,9 +95,7 @@ export async function POST(request: NextRequest) {
           message: 'Rankings da Liga Principal recalculados com sucesso',
           league: {
             id: mainLeague.id,
-            name: mainLeague.name,
-            totalPrizePool: mainLeague.totalPrizePool,
-            participantCount: mainLeague.participantCount
+            name: mainLeague.name
           },
           ranking: {
             teams: ranking.teams,
@@ -139,28 +124,19 @@ export async function POST(request: NextRequest) {
         // Atualizar estatísticas da liga
         const confirmedEntries = await prisma.leagueEntry.count({
           where: {
-            leagueId: mainLeague.id,
             status: 'CONFIRMED'
           }
         });
 
-        const totalPrizePool = confirmedEntries * mainLeague.entryFee;
-
-        const updatedLeague = await prisma.league.update({
-          where: { id: mainLeague.id },
-          data: {
-            participantCount: confirmedEntries,
-            totalPrizePool: totalPrizePool
-          }
-        });
+        const totalPrizePool = Number(mainLeague.entryFee) * confirmedEntries;
 
         return NextResponse.json({
           success: true,
           message: 'Estatísticas da Liga Principal atualizadas',
           league: {
-            id: updatedLeague.id,
-            participantCount: updatedLeague.participantCount,
-            totalPrizePool: updatedLeague.totalPrizePool
+            id: mainLeague.id,
+            participantCount: confirmedEntries,
+            totalPrizePool: totalPrizePool
           },
           timestamp: new Date().toISOString()
         });

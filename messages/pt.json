@@ -32,7 +32,8 @@
     "new": "novo",
     "today": "hoje",
     "update": "Atualizar",
-    "filters": "Filtros"
+    "filters": "Filtros",
+    "errorLoadingTokens": "Erro ao carregar tokens:"
   },
   "navigation": {
     "home": "Início",
@@ -113,7 +114,23 @@
     "teamNameHelp": "O nome do time é baseado no seu nome de usuário. Você pode alterá-lo na página de perfil.",
     "paymentConfirmed": "Pagamento confirmado",
     "nextRoundStartsIn": "Próxima rodada inicia em:",
-    "roundInProgressTime": "Rodada em andamento (Dom 21h - Sex 21h BRT)"
+    "roundInProgressTime": "Rodada em andamento (Dom 21h - Sex 21h BRT)",
+    "loadingLeagues": "Carregando ligas...",
+    "loading": "Carregando...",
+    "verifyingPayment": "Verificando status do pagamento e carregando time...",
+    "selectLeague": "Selecionar Liga",
+    "connectWalletFirst": "Por favor, conecte sua carteira primeiro.",
+    "vaultInitError": "Falha ao inicializar o vault. Tente novamente.",
+    "paymentConfirmedMessage": "Pagamento de 0.025 SOL confirmado! Você já pode escalar seu time.",
+    "processing": "Processando...",
+    "payAndJoin": "Pagar {fee} SOL e Entrar",
+    "errorLoadingTokens": "Erro ao carregar tokens:",
+    "errorLoadingMainTeam": "Erro ao carregar time principal",
+    "players": "Jogadores",
+    "totalScoreLeague": "Pontuação Total (Liga)",
+    "leagueRanking": "Ranking da Liga",
+    "roundScore": "Pontuação da Rodada",
+    "roundRanking": "Ranking da Rodada"
   },
   "market": {
     "title": "Mercado de Tokens",
@@ -142,7 +159,8 @@
     "demoNotice": "Esta é uma versão de demonstração. Os dados podem não refletir valores reais de mercado.",
     "searchPlaceholder": "Buscar token...",
     "period": "Período",
-    "priceHeader": "PREÇO"
+    "priceHeader": "PREÇO",
+    "periodLabel": "Período:"
   },
   "leagues": {
     "title": "Ligas",
@@ -176,7 +194,10 @@
     "leagueFinished": "Liga Finalizada",
     "connectWallet": "Conectar Carteira",
     "linkWallet": "Vincular Carteira",
-    "linking": "Vinculando..."
+    "linking": "Vinculando...",
+    "teamsLocked": "Times Trancados! Rodada em Andamento",
+    "waiting": "Aguardando...",
+    "joinRound": "Entrar na Rodada"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -260,7 +281,8 @@
     "participants": "Participantes",
     "timeLeft": "Tempo Restante",
     "connectWallet": "Conectar Carteira",
-    "nextRound": "Próxima Rodada"
+    "nextRound": "Próxima Rodada",
+    "joinLeague": "Entrar na Liga"
   },
   "HomePage": {
     "heroTitle": "O Fantasy Game do Universo Cripto.",
@@ -357,7 +379,37 @@
     "amountSol": "Valor (SOL)",
     "cancel": "Cancelar",
     "readyToPlay": "Pronto para jogar!",
-    "noTokensInLineup": "Nenhum token na escalação"
+    "noTokensInLineup": "Nenhum token na escalação",
+    "totalScore": "Pontuação Total",
+    "currentRound": "Rodada Atual",
+    "selectLeague": "Selecione uma liga",
+    "myPerformance": "Meu Desempenho",
+    "checkRoundResults": "Confira seus resultados por rodada",
+    "selectLeagueLabel": "Selecione a Liga",
+    "selectRoundLabel": "Selecione a Rodada",
+    "season": "Temporada",
+    "live": "Ao Vivo",
+    "noParticipation": "Você não participou desta rodada.",
+    "score": "Pontuação",
+    "ranking": "Ranking",
+    "prize": "Prêmio",
+    "congratulations": "Parabéns! Você ganhou!",
+    "prizeEarnedText": "Sua posição #{position} garantiu um prêmio de {amount} SOL.",
+    "claimed": "Resgatado",
+    "claiming": "Resgatando...",
+    "claimPrize": "Resgatar Prêmio",
+    "total": "Total",
+    "completed": "Completadas",
+    "estimatedPrize": "Prêmio Est.",
+    "roundInProgress": "Rodada em Andamento",
+    "partialPoints": "pts parciais",
+    "roundBreakdown": "Breakdown por Rodada",
+    "accumulatedPrizes": "Prêmios Acumulados",
+    "totalEarnedRounds": "Total ganho nas rodadas completadas",
+    "estimatedFinalPrize": "Prêmio Final Estimado",
+    "maintainPosition": "Se você mantiver esta posição até o final",
+    "selectRoundToView": "Selecione uma rodada para ver os resultados.",
+    "roundRankingLabel": "Ranking da Rodada"
   },
   "ProfilePage": {
     "title": "Editar Perfil",
@@ -445,7 +497,16 @@
     "loginRequired": "Faça login para acessar o ranking",
     "loginButton": "Fazer Login",
     "selectLeague": "Selecionar liga",
-    "noTeamsInLeague": "Nenhum time encontrado na liga"
+    "noTeamsInLeague": "Nenhum time encontrado na liga",
+    "seasonRanking": "Ranking da Temporada",
+    "viewLabel": "Visualizar:",
+    "selectRound": "Selecione a rodada",
+    "season": "Temporada",
+    "round": "Rodada",
+    "live": "AO VIVO",
+    "roundResetSuccess": "✅ Rodada resetada com sucesso!",
+    "resetError": "Erro ao executar reset",
+    "errorLabel": "❌ Erro:"
   },
   "AiAnalysisPage": {
     "title": "Central de Análise IA",
@@ -474,6 +535,52 @@
     "suggestion2": "Analise o sentimento do mercado para BTC",
     "suggestion3": "Quais tokens têm maior potencial esta semana?",
     "loadingMarket": "Carregando dados do mercado...",
-    "errorLoading": "Erro ao carregar dados do mercado. Usando dados de exemplo."
+    "errorLoading": "Erro ao carregar dados do mercado. Usando dados de exemplo.",
+    "teamAnalysisTitle": "Análise do Seu Time",
+    "yourMainTeam": "Seu Time Principal",
+    "analyzeWithAI": "Analisar com IA",
+    "loadingYourTeam": "Carregando seu time...",
+    "noTeamCreated": "Você ainda não tem um time criado",
+    "createMyTeam": "Criar Meu Time",
+    "incompleteTeam": "Seu time está incompleto ({count}/10 tokens)",
+    "completeTeamForAI": "Complete seu time para usar a análise da IA",
+    "completeTeam": "Completar Time",
+    "needTenTokens": "Seu time precisa ter 10 tokens para análise",
+    "defiInsights": "Insights DeFi",
+    "loadingDefiData": "Carregando dados DeFi...",
+    "trendingProtocols": "Protocolos Bombando",
+    "topEcosystems": "Ecossistemas Top",
+    "tvlAlerts": "Alertas TVL",
+    "teamAnalysisModalTitle": "Análise do Seu Time",
+    "aiGeneratedAnalysis": "Análise gerada por IA sobre seu portfólio de tokens",
+    "analyzingTeam": "Analisando seu time...",
+    "yourCurrentTeam": "Seu Time Atual",
+    "close": "Fechar",
+    "whyProtocol": "Por que {name} está {direction}?",
+    "growing": "crescendo",
+    "declining": "caindo",
+    "aiProtocolAnalysis": "Análise gerada por IA sobre as mudanças no protocolo",
+    "generatingAnalysis": "Gerando análise..."
+  },
+  "competitions": {
+    "title": "Rodadas da Liga",
+    "subtitle": "Selecione uma rodada para gerenciar seu time",
+    "noRounds": "Nenhuma rodada disponível",
+    "selected": "Selecionada",
+    "enrolled": "Você está inscrito",
+    "enrollmentPending": "Inscrição pendente",
+    "statusActive": "Em Andamento",
+    "statusCompleted": "Encerrada",
+    "statusEnrolled": "Inscrito",
+    "statusUpcoming": "Futura",
+    "manageTeam": "Gerenciar Time",
+    "editTeam": "Editar Time",
+    "payConfirm": "Pagar e Confirmar",
+    "buildTeam": "Montar Time",
+    "enroll": "Inscrever-se",
+    "viewResults": "Ver Resultados",
+    "enrollmentClosed": "Inscrições Encerradas",
+    "copyPrevious": "Copiar time da rodada anterior",
+    "teamWithoutPayment": "Time criado sem pagamento oficial"
   }
 }

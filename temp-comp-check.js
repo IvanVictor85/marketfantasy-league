@@ -1,0 +1,1 @@
+const {PrismaClient} = require('@prisma/client'); const p = new PrismaClient(); (async()=>{const c = await p.competition.findMany({include:{_count:{select:{userTeams:true}}},orderBy:{startDate:'asc'}}); c.forEach((x,i)=>console.log((i+1)+'. '+x.status+' - Times:'+x._count.userTeams)); await p.\();})();

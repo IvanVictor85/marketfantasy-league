@@ -103,4 +103,5 @@ const nextConfig = {
   },
 };
 
+// Re-enable next-intl - required for [locale] routing
 module.exports = withNextIntl(nextConfig);

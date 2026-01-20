@@ -8,14 +8,15 @@ import {
   determineWinners,
   canEndCompetition
 } from '@/lib/competition/manager';
-import { getTop100Tokens } from '@/lib/services/coingecko.service';
+import { getTop100TokensWithSWR } from '@/lib/services/cache';
 
 // ============================================
 // VALIDATION SCHEMA
 // ============================================
 
 const endCompetitionSchema = z.object({
-  competitionId: z.string().min(1, 'Competition ID is required')
+  competitionId: z.string().min(1, 'Competition ID is required'),
+  skipTimeValidation: z.boolean().optional()  // Para testes locais
 });
 
 // ============================================
@@ -39,19 +40,18 @@ export async function POST(request: NextRequest) {
 
     // Parse e validar body
     const body = await request.json();
-    const { competitionId } = endCompetitionSchema.parse(body);
+    const { competitionId, skipTimeValidation } = endCompetitionSchema.parse(body);
 
     console.log(`📋 Competition ID: ${competitionId}`);
+    if (skipTimeValidation) {
+      console.log('⚠️  Modo de teste: Validação de horário desabilitada');
+    }
 
     // Verificar se a competição existe
     const competition = await prisma.competition.findUnique({
       where: { id: competitionId },
       include: {
-        league: {
-          include: {
-            teams: true
-          }
-        }
+        league: true // ✅ Removido include de teams (legacy)
       }
     });
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar status
-    if (competition.status !== 'active') {
+    if (competition.status !== 'ACTIVE') {  // ✅ CORREÇÃO: Status maiúsculo
       console.log(`❌ Competição não está ativa. Status atual: ${competition.status}`);
       return NextResponse.json(
         {
@@ -75,25 +75,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se pode finalizar (horário)
-    const canEnd = await canEndCompetition(competitionId);
-    if (!canEnd) {
-      const now = new Date();
-      const timeUntilEnd = competition.endTime.getTime() - now.getTime();
+    // Verificar se pode finalizar (horário) - EXCETO em modo de teste
+    if (!skipTimeValidation) {
+      const canEnd = await canEndCompetition(competitionId);
+      if (!canEnd) {
+        const now = new Date();
+        const timeUntilEnd = competition.endDate.getTime() - now.getTime();
 
-      console.log(`⏰ Ainda não é hora de finalizar. Faltam ${Math.floor(timeUntilEnd / 1000)}s`);
+        console.log(`⏰ Ainda não é hora de finalizar. Faltam ${Math.floor(timeUntilEnd / 1000)}s`);
 
-      return NextResponse.json(
-        {
-          error: 'Competição ainda não pode ser finalizada',
-          endTime: competition.endTime,
-          timeUntilEnd: timeUntilEnd
-        },
-        { status: 400 }
-      );
+        return NextResponse.json(
+          {
+            error: 'Competição ainda não pode ser finalizada',
+            endDate: competition.endDate,
+            timeUntilEnd: timeUntilEnd
+          },
+          { status: 400 }
+        );
+      }
     }
 
-    console.log(`👥 Times participantes: ${competition.league.teams.length}`);
+    // ✅ NOVO: Contar UserTeams da competição
+    const teamsCount = await prisma.userTeam.count({
+      where: { competitionId }
+    });
+
+    console.log(`👥 Times participantes: ${teamsCount}`);
 
     // ETAPA 1: Criar snapshot de preços finais
     console.log('📸 ETAPA 1: Criando snapshot de preços finais...');
@@ -120,24 +127,83 @@ export async function POST(request: NextRequest) {
     const updatedCompetition = await prisma.competition.update({
       where: { id: competitionId },
       data: {
-        status: 'completed',
+        status: 'COMPLETED',
         distributed: false, // Prêmios ainda não distribuídos na blockchain
         updatedAt: new Date()
       }
     });
     console.log('✅ Status atualizado para completed');
 
-    // ETAPA 6: Criar próxima competição e salvar Top 100 tokens
-    console.log('🔄 ETAPA 6: Criando próxima competição e salvando cardápio...');
+    // ETAPA 6: Atualizar SeasonRanking (pontos acumulados da temporada)
+    console.log('📊 ETAPA 6: Atualizando rankings da temporada (Season)...');
 
+    if (competition.seasonId) {
+      try {
+        // Buscar todos os times da competição com suas pontuações finais
+        const userTeams = await prisma.userTeam.findMany({
+          where: { competitionId: competitionId },
+          select: {
+            userId: true,
+            totalPoints: true
+          }
+        });
+
+        console.log(`   Atualizando ${userTeams.length} usuários na Season ${competition.seasonId}...`);
+
+        // Atualizar SeasonRanking para cada usuário
+        for (const team of userTeams) {
+          await prisma.seasonRanking.upsert({
+            where: {
+              userId_seasonId: {
+                userId: team.userId,
+                seasonId: competition.seasonId
+              }
+            },
+            update: {
+              // Incrementar pontos totais da temporada
+              totalSeasonPoints: {
+                increment: Number(team.totalPoints)
+              },
+              updatedAt: new Date()
+            },
+            create: {
+              userId: team.userId,
+              seasonId: competition.seasonId,
+              totalSeasonPoints: Number(team.totalPoints)
+            }
+          });
+        }
+
+        console.log(`✅ SeasonRanking atualizado para ${userTeams.length} usuários`);
+      } catch (error) {
+        console.error('⚠️ Erro ao atualizar SeasonRanking:', error);
+        // Não falhar o endpoint se isso der erro
+      }
+    } else {
+      console.log('⚠️ Competição não está linkada a uma Season - pulando atualização de ranking');
+    }
+
+    // ETAPA 7: Criar próxima competição e salvar Top 100 tokens
+    // ⚠️ DESABILITADO: Criação automática removida (rodadas são criadas manualmente)
+    console.log('⏭️  ETAPA 7: Criação automática de próxima competição DESABILITADA');
+
+    // ❌ CÓDIGO ANTIGO COMENTADO (fluxo SEX-DOM de 5 dias não é mais usado)
+    /*
     try {
       // Buscar Top 100 tokens da CoinGecko
       console.log('🌐 Buscando Top 100 tokens da CoinGecko...');
       const top100Tokens = await getTop100Tokens();
+
+      // ✅ VERIFICAR SE COINGECKO RETORNOU DADOS
+      if (!top100Tokens || top100Tokens.length === 0) {
+        console.error('❌ CoinGecko retornou array vazio - não foi possível criar próxima competição');
+        throw new Error('CoinGecko API indisponível - não foi possível obter Top 100 tokens');
+      }
+
       console.log(`✅ Top 100 tokens obtidos: ${top100Tokens.length} tokens`);
 
       // Calcular horários da próxima competição (baseado no fluxo SEX-DOM)
-      const now = new Date(competition.endTime); // Este é Sexta-feira, 21h
+      const now = new Date(competition.endDate); // Este é Sexta-feira, 21h
 
       // O próximo draft começa agora, mas a próxima *competição* começa em 2 dias
       const nextStartTime = new Date(now);
@@ -153,9 +219,9 @@ export async function POST(request: NextRequest) {
       const nextCompetition = await prisma.competition.create({
         data: {
           leagueId: competition.leagueId,
-          startTime: nextStartTime,
-          endTime: nextEndTime,
-          status: 'pending',
+          startDate: nextStartTime,
+          endDate: nextEndTime,
+          status: 'PENDING',
           prizePool: 0, // Será atualizado conforme entradas pagas
           distributed: false
         }
@@ -188,24 +254,34 @@ export async function POST(request: NextRequest) {
       // Não falhar o endpoint inteiro se isso der erro
       // A competição atual foi finalizada com sucesso
     }
+    */
 
-    // Buscar rankings atualizados
-    const rankings = await prisma.team.findMany({
+    // ✅ NOVO: Buscar rankings de UserTeam (ordenado por totalPoints)
+    const userTeams = await prisma.userTeam.findMany({
       where: {
-        leagueId: competition.leagueId
+        competitionId: competitionId
+      },
+      include: {
+        user: {
+          select: {
+            publicKey: true,
+            name: true
+          }
+        }
       },
       orderBy: {
-        rank: 'asc'
-      },
-      select: {
-        id: true,
-        teamName: true,
-        userWallet: true,
-        rank: true,
-        totalScore: true,
-        tokens: true
+        totalPoints: 'desc'
       }
     });
+
+    // ✅ IMPORTANTE: Calcular rank em runtime
+    const rankings = userTeams.map((team, index) => ({
+      rank: index + 1,
+      teamName: team.teamName,
+      userWallet: team.user.publicKey,
+      totalScore: Number(team.totalPoints) || 0,
+      tokens: team.players as string[]
+    }));
 
     const duration = Date.now() - startTime;
 
@@ -221,11 +297,11 @@ export async function POST(request: NextRequest) {
       competition: {
         id: updatedCompetition.id,
         status: updatedCompetition.status,
-        startTime: updatedCompetition.startTime,
-        endTime: updatedCompetition.endTime,
+        startDate: updatedCompetition.startDate,
+        endDate: updatedCompetition.endDate,
         prizePool: updatedCompetition.prizePool,
         distributed: updatedCompetition.distributed,
-        teamsCount: competition.league.teams.length
+        teamsCount: teamsCount // ✅ Usando count de UserTeam
       },
       snapshot: {
         tokensCount: snapshot.length
@@ -239,10 +315,10 @@ export async function POST(request: NextRequest) {
         prize: w.prize
       })),
       rankings: rankings.map(r => ({
-        rank: r.rank,
+        rank: r.rank, // ✅ Já calculado em runtime
         teamName: r.teamName,
         userWallet: r.userWallet,
-        totalScore: Number((r.totalScore || 0).toFixed(2))
+        totalScore: Number(r.totalScore.toFixed(2))
       })),
       duration
     }, {

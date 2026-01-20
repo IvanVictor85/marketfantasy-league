@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getTop100Tokens } from '@/lib/services/coingecko.service';
+import { getTop100TokensWithSWR as getTop100Tokens } from '@/lib/services/cache';
 
 /**
  * POST /api/admin/reset-competition
@@ -64,6 +64,13 @@ export async function POST(request: NextRequest) {
     console.log('\n🌐 ETAPA 2: Buscando Top 100 tokens da CoinGecko...');
 
     const top100Tokens = await getTop100Tokens();
+
+    // ✅ VERIFICAR SE COINGECKO RETORNOU DADOS
+    if (!top100Tokens || top100Tokens.length === 0) {
+      console.error('❌ CoinGecko retornou array vazio - não é possível criar competição');
+      throw new Error('CoinGecko API indisponível - não foi possível obter Top 100 tokens');
+    }
+
     console.log(`✅ ${top100Tokens.length} tokens obtidos da CoinGecko`);
 
     // ============================================
@@ -112,9 +119,9 @@ export async function POST(request: NextRequest) {
     const newCompetition = await prisma.competition.create({
       data: {
         leagueId: mainLeague.id,
-        startTime: nextSunday,
-        endTime: nextFriday,
-        status: 'pending', // Draft aberto
+        startDate: nextSunday,  // ✅ CORREÇÃO: Usar startDate do novo schema
+        endDate: nextFriday,    // ✅ CORREÇÃO: Usar endDate do novo schema
+        status: 'PENDING',      // ✅ CORREÇÃO: Usar PENDING maiúsculo
         prizePool: 0,
         distributed: false
       }
@@ -122,8 +129,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Competição criada: ${newCompetition.id}`);
     console.log(`   Status: ${newCompetition.status}`);
-    console.log(`   Início: ${newCompetition.startTime.toISOString()}`);
-    console.log(`   Fim: ${newCompetition.endTime.toISOString()}`);
+    console.log(`   Início: ${newCompetition.startDate.toISOString()}`);
+    console.log(`   Fim: ${newCompetition.endDate.toISOString()}`);
 
     // ============================================
     // ETAPA 5: SALVAR CARDÁPIO DE TOKENS
@@ -167,8 +174,8 @@ export async function POST(request: NextRequest) {
       competition: {
         id: newCompetition.id,
         status: newCompetition.status,
-        startTime: newCompetition.startTime,
-        endTime: newCompetition.endTime,
+        startTime: newCompetition.startDate,
+        endTime: newCompetition.endDate,
         leagueId: newCompetition.leagueId,
         leagueName: mainLeague.name
       },
@@ -198,21 +205,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/admin/reset-competition
- *
- * Versão GET para facilitar teste via browser (desenvolvimento)
- * Em produção, usar apenas POST com autenticação
- */
-export async function GET(request: NextRequest) {
-  console.log('⚠️  GET /api/admin/reset-competition chamado');
-  console.log('⚠️  Redirecionando para POST...');
-
-  // Criar nova request POST
-  const postRequest = new NextRequest(request.url, {
-    method: 'POST',
-    headers: request.headers
-  });
-
-  return POST(postRequest);
-}
+// 🔒 SEGURANÇA: Método GET removido para prevenir execução acidental via navegador
+// Use apenas POST com CRON_SECRET no header Authorization

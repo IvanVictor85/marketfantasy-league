@@ -10,77 +10,145 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// ARQUITETURA DE 3 NÍVEIS: SEASON → LEAGUE → COMPETITION
+// ============================================
+
+// 1. TEMPORADA (Season) - Nível Mais Alto
+// Agrupa múltiplas rodadas e acumula o prêmio principal (18%)
+model Season {
+  id          String   @id @default(cuid())
+  name        String   // ex: "Temporada 1 - 2025"
+  startDate   DateTime
+  endDate     DateTime
+  status      String   // UPCOMING, ACTIVE, COMPLETED
+
+  // ✅ CAMPO-CHAVE: O prêmio acumulado (os 18%)
+  prizePool   Decimal  @default(0) @db.Decimal(18, 8)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  competitions    Competition[]
+  seasonRankings  SeasonRanking[]
+
+  @@map("seasons")
+}
+
+// 2. LIGA (League) - Tipo de Competição (Regras)
+// Define quais tokens são permitidos
 model League {
-  id             String   @id @default(cuid())
-  name           String
-  leagueType     String   @default("MAIN") // "MAIN" for Liga Principal, "COMMUNITY" for future leagues
-  entryFee       Float    // Entry fee in SOL
-  maxPlayers     Int?     // NULL for unlimited (Liga Principal)
-  startDate      DateTime
-  endDate        DateTime
-  isActive       Boolean  @default(true)
-  treasuryPda    String   // Solana PDA address
-  programId      String?  // Solana Program ID for this league
-  adminWallet    String   // Admin wallet address
-  protocolWallet String   // Protocol treasury wallet
-  emblemUrl      String?  // URL of the selected emblem image
-  description    String?  // League description
-  status         String   @default("ACTIVE") // League status
-  badgeUrl       String?  // Badge URL
-  bannerUrl      String?  // Banner URL
-  prizeDistribution String  @default("{\"first\": 50, \"second\": 30, \"third\": 20}") // Prize distribution percentages
-  totalPrizePool Float   @default(0) // Current total prize pool in SOL
-  participantCount Int   @default(0) // Current number of participants
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  teams          Team[]
-  leagueEntries  LeagueEntry[]
-  competitions   Competition[]
+  id            String   @id @default(cuid())
+  name          String   // ex: "Liga Principal", "Liga DeFi", "Liga Meme"
+  description   String?
+  entryFee      Decimal  @default(10) @db.Decimal(18, 8) // Taxa de entrada padrão
+
+  // Configurações visuais
+  emblemUrl     String?
+  badgeUrl      String?
+  bannerUrl     String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relações
+  competitions    Competition[]
+  allowedPlayers  LeaguePlayer[]
 
   @@map("leagues")
 }
 
-model LeagueEntry {
-  id               String   @id @default(cuid())
-  leagueId         String
-  userId           String   // User ID from authentication
-  userWallet       String   // User's Solana wallet address
-  transactionHash  String   @unique // Solana transaction signature
-  amountPaid       Float    // Amount paid in SOL
-  status           String   @default("CONFIRMED") // "PENDING", "CONFIRMED", "FAILED"
-  blockHeight      Int?     // Block height of the transaction
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  league           League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, leagueId]) // Previne duplicatas por usuário
-  @@map("league_entries")
+// 3. COMPETIÇÃO/RODADA (Competition) - Instância de Tempo
+// Pertence a UMA Temporada e a UMA Liga
+model Competition {
+  id          String   @id @default(cuid())
+  name        String?  // ex: "Rodada 1 (DeFi)", "Semana 42 (Principal)"
+  startDate   DateTime? // Início do "snapshot" (Dom 21:00)
+  endDate     DateTime? // Fim do cálculo (Sex 21:00)
+  status      String   // UPCOMING, ACTIVE, COMPLETED
+
+  // Prêmios desta rodada (70% das taxas)
+  prizePool   Decimal  @default(0) @db.Decimal(18, 8)
+  distributed Boolean  @default(false)
+
+  // Chaves estrangeiras
+  leagueId    String
+  league      League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  seasonId    String?  // Temporariamente opcional para migração
+  season      Season?  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  // Campos legados (para compatibilidade)
+  startTime   DateTime?
+  endTime     DateTime?
+  winners     String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  userTeams         UserTeam[]
+  competitionTokens CompetitionToken[]
+
+  @@map("competitions")
 }
 
-model Team {
-  id               String   @id @default(cuid())
-  leagueId         String
-  userId           String   // User ID from authentication
-  userWallet       String   // User's Solana wallet address
-  teamName         String
-  tokens           String   // JSON array of token symbols only: ["BTC", "ETH", "SOL", ...]. Details fetched from CoinGecko.
-  totalScore       Float?   // Calculated performance score
-  rank             Int?     // Final ranking in the league
-  selectedMascotUrl String? // URL of the selected mascot image
-  hasValidEntry    Boolean  @default(false) // Whether user has paid entry fee
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  league           League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, leagueId]) // Previne duplicatas por usuário
-  @@map("teams")
+// 4. TIME DO USUÁRIO (UserTeam) - Snapshot do Time
+// O time "congelado" de um utilizador para uma rodada específica
+model UserTeam {
+  id            String      @id @default(cuid())
+
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  // O time "congelado" (array de símbolos)
+  players       Json        // ["BTC", "ETH", "SOL", ...]
+
+  // Pontuação final desta equipa APENAS nesta rodada
+  totalPoints   Decimal     @default(0) @db.Decimal(18, 8)
+
+  // Metadados
+  teamName         String?
+  selectedMascotUrl String?
+
+  // ✅ NOVO: Pagamento da taxa de inscrição na rodada
+  entryFeePaid     Boolean  @default(false) // Se pagou a taxa de 0.025 SOL
+  paymentTxHash    String?  // Hash da transação Solana (proof of payment)
+  entryFeeAmount   Decimal  @default(0) @db.Decimal(18, 8) // Valor pago (para histórico)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, competitionId])
+  @@map("user_teams")
 }
 
+// 5. RANKING DA TEMPORADA (SeasonRanking) - Pontos Acumulados
+// Guarda o total de pontos de um utilizador numa temporada inteira
+model SeasonRanking {
+  id                String  @id @default(cuid())
+
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  seasonId          String
+  season            Season  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  // ✅ CAMPO-CHAVE: O acúmulo de pontos do utilizador
+  totalSeasonPoints Decimal @default(0) @db.Decimal(18, 8)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, seasonId])
+  @@map("season_rankings")
+}
+
+// 6. TOKENS (Token) - Catálogo de Criptomoedas
 model Token {
   id          String   @id @default(cuid())
   symbol      String   @unique
@@ -88,78 +156,153 @@ model Token {
   coingeckoId String   @unique
   logoUrl     String?
   isActive    Boolean  @default(true)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
+  // Relações
+  allowedInLeagues  LeaguePlayer[]
+
   @@map("tokens")
 }
 
-model Competition {
-  id          String   @id @default(cuid())
-  leagueId    String
-  startTime   DateTime
-  endTime     DateTime
-  status      String   // "pending", "active", "completed"
-  winners     String?  // Array of winner wallet addresses (JSON string)
-  prizePool   Float    // Total prize pool in SOL
-  distributed Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// 7. TOKENS PERMITIDOS POR LIGA (LeaguePlayer)
+// Define quais tokens são permitidos em cada liga
+model LeaguePlayer {
+  id        String @id @default(cuid())
 
-  league      League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  tokens      CompetitionToken[] // Tokens disponíveis para esta competição
+  leagueId  String
+  league    League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
 
-  @@map("competitions")
+  tokenId   String
+  token     Token  @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([leagueId, tokenId])
+  @@map("league_players")
 }
 
+// 8. TOKENS DISPONÍVEIS POR COMPETIÇÃO (CompetitionToken)
+// Snapshot dos tokens no momento da competição
 model CompetitionToken {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   competitionId String
-  tokenId       String   // CoinGecko ID (ex: "bitcoin", "ethereum", "pudgy-penguins")
-  symbol        String   // Símbolo (ex: "BTC", "ETH", "PENGU")
-  name          String   // Nome completo (ex: "Bitcoin", "Ethereum", "Pudgy Penguins")
-  imageUrl      String   // URL da imagem do token
-  marketCapRank Int?     // Ranking no momento do snapshot
+  tokenId       String      // ID da CoinGecko (ex: 'bitcoin', 'ethereum')
+
+  // Dados do snapshot
+  symbol        String
+  name          String
+  imageUrl      String
+  marketCapRank Int?
+
+  // ✅ SNAPSHOTS DE PREÇOS
+  // Snapshot Inicial (Domingo 21h BR)
+  priceStart         Decimal?  @db.Decimal(18, 8)  // Preço no início da rodada
+  priceStartDate     DateTime?                      // Data/hora do snapshot inicial
+
+  // Snapshot Final (Sexta 21h BR)
+  priceEnd           Decimal?  @db.Decimal(18, 8)  // Preço no fim da rodada
+  priceEndDate       DateTime?                      // Data/hora do snapshot final
+
+  // Dados calculados
+  percentChange      Decimal?  @db.Decimal(18, 8)  // Variação percentual (priceEnd - priceStart) / priceStart * 100
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
 
-  @@unique([competitionId, tokenId]) // Previne duplicatas na mesma competição
+  @@unique([competitionId, tokenId])
   @@index([competitionId])
   @@map("competition_tokens")
 }
 
-model PriceHistory {
-  id          String   @id @default(cuid())
-  tokenSymbol String
-  price       Float
-  timestamp   DateTime
-  source      String   @default("coingecko")
-
-  @@map("price_history")
-  @@index([tokenSymbol, timestamp])
-}
-
+// 9. USUÁRIO (User) - Perfil do Jogador
 model User {
   id         String   @id @default(cuid())
-  email      String?  @unique // ✅ CORREÇÃO: Email agora é OPCIONAL (usuários de carteira podem não ter email)
-  publicKey  String?  @unique // Carteira Solana (única por usuário)
+  email      String?  @unique
+  publicKey  String?  @unique // Carteira Solana
   name       String   // Nome do Time
-  username   String?  @unique // Nome de usuário único
+  username   String?  @unique
   avatar     String?
   twitter    String?
   discord    String?
   bio        String?
+
+  // ✅ O "TIME PRINCIPAL" (Template do Utilizador)
+  mainTeam   Json?    // ["BTC", "ETH", "SOL", ...]
+
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  authTokens AuthToken[]
-  teams      Team[]
-  leagueEntries LeagueEntry[]
+  // Relações
+  authTokens     AuthToken[]
+  userTeams      UserTeam[]
+  seasonRankings SeasonRanking[]
+  leagueEntries  LeagueEntry[]
+  prizeClaims    PrizeClaim[]  // ← NOVO: Prêmios disponíveis para claim
+  legacyTeams    Team[]   @relation("LegacyTeams")
 
   @@map("users")
 }
+
+// 10. ENTRADA NA LIGA (LeagueEntry) - Pagamento de Taxa
+// Registro de pagamento de taxa de entrada
+model LeagueEntry {
+  id               String   @id @default(cuid())
+  userId           String
+  competitionId    String?  // Temporariamente opcional para migração
+  leagueId         String?  // Campo legado
+  userWallet       String
+  transactionHash  String   @unique
+  amountPaid       Decimal  @db.Decimal(18, 8)
+  status           String   @default("CONFIRMED") // PENDING, CONFIRMED, FAILED
+  blockHeight      Int?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("league_entries")
+}
+
+// 11. PRÊMIOS PARA CLAIM (PrizeClaim) - Sistema de Reivindicação
+// Registra prêmios ganhos que podem ser sacados pelos usuários
+model PrizeClaim {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Origem do prêmio
+  competitionId String?  // Se for prêmio de rodada
+  seasonId      String?  // Se for prêmio de temporada
+
+  // Informações do prêmio
+  amount        Decimal  @db.Decimal(18, 8) // Valor em SOL
+  position      Int      // 1 = 1º lugar, 2 = 2º, 3 = 3º, -1 = último
+  prizeType     String   // ROUND_PRIZE, SEASON_PRIZE
+
+  // Status do claim
+  claimed       Boolean  @default(false)
+  claimedAt     DateTime?
+  txHash        String?  // Hash da transação de pagamento
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([claimed])
+  @@map("prize_claims")
+}
+
+// Adicionar relação no User
+// (Já existe em User model, adicionar: prizeClaims PrizeClaim[])
+
+// ============================================
+// MODELOS DE SUPORTE (Autenticação, Histórico)
+// ============================================
 
 model VerificationCode {
   id        String   @id @default(cuid())
@@ -186,16 +329,53 @@ model AuthToken {
   @@index([token])
   @@map("auth_tokens")
 }
+
 model WalletNonce {
   id            String   @id @default(cuid())
   nonce         String   @unique
   expiresAt     DateTime
   used          Boolean  @default(false)
   usedAt        DateTime?
-  walletAddress String? // Wallet que usou o nonce (após verificação)
+  walletAddress String?
   createdAt     DateTime @default(now())
 
   @@index([nonce])
   @@index([expiresAt])
   @@map("wallet_nonces")
+}
+
+model PriceHistory {
+  id          String   @id @default(cuid())
+  tokenSymbol String
+  price       Decimal  @db.Decimal(18, 8)
+  timestamp   DateTime
+  source      String   @default("coingecko")
+
+  @@index([tokenSymbol, timestamp])
+  @@map("price_history")
+}
+
+// ============================================
+// MODELOS LEGADOS (Para compatibilidade temporária)
+// TODO: Migrar dados e remover após migração completa
+// ============================================
+
+model Team {
+  id               String   @id @default(cuid())
+  leagueId         String   // DEPRECATED: Usar UserTeam
+  userId           String
+  userWallet       String
+  teamName         String
+  tokens           String
+  totalScore       Float?
+  rank             Int?
+  selectedMascotUrl String?
+  hasValidEntry    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation("LegacyTeams", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leagueId])
+  @@map("teams_legacy")
 }

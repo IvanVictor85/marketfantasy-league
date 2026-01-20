@@ -1,6 +1,6 @@
 'use client';
 
-// import { SessionProvider } from 'next-auth/react'; // Temporariamente desabilitado
+import { SessionProvider } from 'next-auth/react';
 import { ReactNode } from 'react';
 
 interface SessionProviderWrapperProps {
@@ -8,6 +8,5 @@ interface SessionProviderWrapperProps {
 }
 
 export function SessionProviderWrapper({ children }: SessionProviderWrapperProps) {
-  // NextAuth temporariamente desabilitado - retorna children diretamente
-  return <>{children}</>;
+  return <SessionProvider>{children}</SessionProvider>;
 }

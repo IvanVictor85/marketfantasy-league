@@ -3,11 +3,16 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { validateTokens } from '@/lib/valid-tokens'
 import { isRodadaEmAndamento } from '@/lib/utils/timeCheck'
-import { getMarketDataWithFallback } from '@/lib/services/coingecko.service'
+import {
+  getMarketDataWithFallback,
+  ensureCachePopulated,
+} from '@/lib/services/cache'
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit'
 
-// 🔒 SEGURANÇA: Schema NÃO aceita mais userWallet do cliente
+// 🔒 SEGURANÇA: Schema atualizado para aceitar competitionId opcional
 const teamSchema = z.object({
   leagueId: z.string().optional(),
+  competitionId: z.string().optional(), // ✅ Novo campo para vínculo com rodada
   teamName: z.string().min(1, 'Team name is required').max(50, 'Team name too long'),
   tokens: z.array(z.string()).length(10, 'Team must have exactly 10 tokens')
 })
@@ -18,18 +23,14 @@ async function getUserFromRequest(request: NextRequest): Promise<string | null> 
     const token = request.cookies.get('auth-token')?.value ||
                   request.headers.get('Authorization')?.replace('Bearer ', '');
 
-    if (!token) {
-      return null;
-    }
+    if (!token) return null;
 
     const authToken = await prisma.authToken.findUnique({
       where: { token },
       include: { user: true }
     });
 
-    if (!authToken || authToken.expiresAt < new Date()) {
-      return null;
-    }
+    if (!authToken || authToken.expiresAt < new Date()) return null;
 
     return authToken.userId;
   } catch (error) {
@@ -38,426 +39,395 @@ async function getUserFromRequest(request: NextRequest): Promise<string | null> 
   }
 }
 
+// Helper para formatar resposta do CoinGecko consistentemente
+function mapMarketDataToResponse(marketData: any[], tokens: string[]) {
+  if (!marketData || marketData.length === 0) {
+    return tokens.map(s => ({
+      id: `unknown-${s}`,
+      symbol: s,
+      name: s,
+      image: '/icons/coinx.svg',
+      currentPrice: 0,
+      priceChange1h: 0,
+      priceChange24h: 0,
+      priceChange7d: 0,
+      marketCap: 0,
+      marketCapRank: null
+    }));
+  }
+
+  return marketData.map(t => ({
+    id: t.id,
+    symbol: t.symbol,
+    name: t.name,
+    image: t.image || '',
+    currentPrice: t.current_price || 0,
+    priceChange1h: t.price_change_percentage_1h_in_currency || 0,
+    priceChange24h: t.price_change_percentage_24h || 0,
+    priceChange7d: t.price_change_percentage_7d_in_currency || 0,
+    marketCap: t.market_cap || 0,
+    marketCapRank: t.market_cap_rank || null
+  }));
+}
+
 export async function POST(request: NextRequest) {
+  // 🔒 RATE LIMITING
+  const rateLimitResult = await rateLimit(request, RATE_LIMITS.AUTHENTICATED);
+  if (!rateLimitResult.success) return rateLimitResponse(rateLimitResult.reset);
+
   console.log('🚀 API team POST: Iniciando salvamento de time...');
+
   try {
-    // 🔒 VERIFICAÇÃO DE HORÁRIO: Bloquear edição quando rodada está em andamento (21:00-09:00 BRT)
+    // 🔒 VERIFICAÇÃO DE HORÁRIO
     if (isRodadaEmAndamento()) {
-      console.log('🚫 API team POST: Rodada em Andamento - edição bloqueada entre 21:00-09:00 BRT');
+      console.log('🚫 API team POST: Rodada em Andamento - edição bloqueada');
       return NextResponse.json(
         { error: 'Rodada em Andamento. A edição está bloqueada entre 21:00 e 09:00 (Horário de Brasília).' },
         { status: 403 }
       );
     }
 
-    // 🔒 SEGURANÇA: Obter userId do usuário autenticado
     const userId = await getUserFromRequest(request);
+    if (!userId) return NextResponse.json({ error: 'Usuário não autenticado' }, { status: 401 });
 
-    if (!userId) {
-      console.error('❌ [TEAM] Usuário não autenticado');
-      return NextResponse.json(
-        { error: 'Usuário não autenticado' },
-        { status: 401 }
-      );
-    }
-
-    // 🔒 SEGURANÇA: Buscar a carteira do usuário no banco (fonte confiável)
+    // 🔒 SEGURANÇA: Buscar wallet do banco
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { publicKey: true, email: true }
     });
 
     if (!user || !user.publicKey) {
-      console.error('❌ [TEAM] Usuário sem carteira vinculada');
-      return NextResponse.json(
-        { error: 'Você precisa conectar uma carteira antes de criar um time' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Você precisa conectar uma carteira antes de criar um time' }, { status: 400 });
     }
 
-    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco, não do cliente!
+    const userWallet = user.publicKey;
+    const body = await request.json();
 
-    const body = await request.json()
-    console.log('📥 API team POST: Body recebido:', body);
-    const { leagueId, teamName, tokens } = teamSchema.parse(body)
-    console.log('✅ API team POST: Dados validados:', { userId, userWallet, leagueId, teamName, tokensLength: tokens.length });
+    // Parse com o novo schema
+    const { leagueId, competitionId, teamName, tokens } = teamSchema.parse(body);
 
-    // Validar exatamente 10 tokens
+    console.log('✅ API team POST: Dados recebidos:', { userId, leagueId, competitionId, tokensLength: tokens.length });
+
+    // Validar 10 tokens únicos
     if (tokens.length !== 10) {
-      console.log('❌ API team POST: Quantidade inválida de tokens:', tokens.length);
-      return NextResponse.json(
-        {
-          error: `Time deve ter exatamente 10 tokens. Você forneceu ${tokens.length}.`,
-          requiresPayment: false
-        },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: `Time deve ter exatamente 10 tokens.`, requiresPayment: false }, { status: 400 });
     }
-
-    // Validar que não há duplicatas
     const uniqueTokens = new Set(tokens);
     if (uniqueTokens.size !== 10) {
-      console.log('❌ API team POST: Tokens duplicados detectados');
-      const duplicates = tokens.filter((token, index) => tokens.indexOf(token) !== index);
-      return NextResponse.json(
-        {
-          error: 'Não pode haver tokens duplicados no time',
-          duplicates: [...new Set(duplicates)],
-          requiresPayment: false
-        },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Não pode haver tokens duplicados', requiresPayment: false }, { status: 400 });
     }
 
-    // Get Main League if no specific league ID provided
-    console.log('🔍 API team POST: Buscando liga...', leagueId ? `ID: ${leagueId}` : 'Liga principal');
-    let league
-    if (leagueId) {
-      league = await prisma.league.findUnique({
-        where: { id: leagueId }
-      })
+    // 🎯 CASO: Template
+    if (leagueId === 'main_template') {
+      console.log('📋 API team POST: Salvando Time Principal (Template)');
+      await prisma.user.update({
+        where: { id: userId },
+        data: { mainTeam: tokens }
+      });
+
+      // Buscar dados de mercado (com dedupe)
+      const marketData = await getMarketDataWithFallback(tokens);
+      const tokenDetails = mapMarketDataToResponse(marketData, tokens);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Time Principal salvo com sucesso!',
+        team: { id: 'main_template', name: teamName, tokens, hasValidEntry: true },
+        tokenDetails
+      });
+    }
+
+    // 🎯 CASO: Liga / Competição Real
+    let league;
+    if (leagueId && leagueId !== 'main-league') {
+      league = await prisma.league.findUnique({ where: { id: leagueId } });
     } else {
       league = await prisma.league.findFirst({
-        where: { 
-          leagueType: 'MAIN',
-          isActive: true 
-        }
-      })
+        where: { name: { contains: 'Principal', mode: 'insensitive' } }
+      });
     }
 
-    if (!league) {
-      console.log('❌ API team POST: Liga não encontrada');
-      return NextResponse.json(
-        { error: 'Liga não encontrada' },
-        { status: 404 }
-      )
-    }
-    console.log('✅ API team POST: Liga encontrada:', { id: league.id, name: league.name });
+    if (!league) return NextResponse.json({ error: 'Liga não encontrada' }, { status: 404 });
 
-    // 🔒 SEGURANÇA: Verificar se usuário já tem entrada confirmada nesta liga
-    console.log('💰 API team POST: Verificando entrada na liga...');
+    console.log(`🔍 API team POST: Liga encontrada: ${league.id}`);
+
+    // ✅ CRUCIAL: Determinar o ID da Competição (Rodada)
+    let targetCompetitionId = competitionId;
+
+    if (!targetCompetitionId) {
+      console.log(`🔍 API team POST: competitionId não informado. Buscando rodada ativa para liga ${league.id}...`);
+      const activeComp = await prisma.competition.findFirst({
+        where: {
+          leagueId: league.id,
+          status: 'ACTIVE'
+        },
+        orderBy: { startDate: 'desc' }
+      });
+
+      if (activeComp) {
+        targetCompetitionId = activeComp.id;
+        console.log(`✅ API team POST: Rodada ativa encontrada: ${targetCompetitionId}`);
+      } else {
+        return NextResponse.json({
+          error: 'Nenhuma rodada ativa encontrada. Aguarde o início da próxima rodada.'
+        }, { status: 400 });
+      }
+    }
+
+    // 🔒 Verificar pagamento/entrada (por rodada específica)
     const leagueEntry = await prisma.leagueEntry.findFirst({
       where: {
         userId: userId,
-        leagueId: league.id,
+        competitionId: targetCompetitionId,
         status: 'CONFIRMED'
       }
-    })
-
-    if (!leagueEntry) {
-      console.log('❌ API team POST: Entrada não confirmada');
-      return NextResponse.json(
-        { 
-          error: 'Pagamento da taxa de entrada não confirmado',
-          requiresPayment: true,
-          league: {
-            id: league.id,
-            name: league.name,
-            entryFee: league.entryFee
-          }
-        },
-        { status: 402 } // Payment Required
-      )
-    }
-    console.log('✅ API team POST: Entrada confirmada');
-
-    // Validate tokens against known valid symbols
-    console.log('🔍 API team POST: Validando tokens...', tokens);
-    const tokenValidation = validateTokens(tokens);
-    
-    if (!tokenValidation.valid) {
-      console.log('❌ API team POST: Tokens inválidos:', tokenValidation.invalidTokens);
-      return NextResponse.json(
-        { 
-          error: 'Tokens inválidos encontrados',
-          invalidTokens: tokenValidation.invalidTokens
-        },
-        { status: 400 }
-      )
-    }
-    console.log('✅ API team POST: Tokens validados');
-
-    // Get token details from database if they exist, otherwise use symbol as name
-    const dbTokens = await prisma.token.findMany({
-      where: {
-        symbol: {
-          in: tokens
-        }
-      },
-      select: {
-        symbol: true,
-        name: true
-      }
-    })
-
-    const validTokens = tokens.map(symbol => {
-      const dbToken = dbTokens.find((t: { symbol: string; name: string }) => t.symbol === symbol);
-      return {
-        symbol,
-        name: dbToken?.name || symbol
-      };
     });
 
-    // 🔒 SEGURANÇA: Usar upsert para criar ou atualizar time
-    console.log('💾 API team POST: Salvando time com upsert...');
-    const team = await prisma.team.upsert({
+    if (!leagueEntry) {
+      return NextResponse.json({
+        error: 'Pagamento da taxa de entrada não confirmado',
+        requiresPayment: true,
+        league: { id: league.id, name: league.name, entryFee: league.entryFee }
+      }, { status: 402 });
+    }
+
+    // Validar tokens (allowlist)
+    console.log('🔍 API team POST: Validando tokens:', tokens);
+    const tokenValidation = validateTokens(tokens);
+    if (!tokenValidation.valid) {
+      console.error('❌ API team POST: Tokens inválidos encontrados:', tokenValidation.invalidTokens);
+      return NextResponse.json({
+        error: 'Tokens inválidos',
+        invalidTokens: tokenValidation.invalidTokens
+      }, { status: 400 });
+    }
+    console.log('✅ API team POST: Todos os tokens são válidos');
+
+    // 💾 SALVAR NO BANCO usando UserTeam
+    console.log(`💾 API team POST: Salvando time para Competição: ${targetCompetitionId}`);
+
+    const userTeam = await prisma.userTeam.upsert({
       where: {
-        userId_leagueId: {
+        userId_competitionId: {
           userId: userId,
-          leagueId: league.id
+          competitionId: targetCompetitionId
         }
       },
       update: {
+        players: tokens,
         teamName: teamName,
-        tokens: JSON.stringify(tokens),
-        userWallet: userWallet,
-        hasValidEntry: true,
         updatedAt: new Date()
       },
       create: {
         userId: userId,
-        leagueId: league.id,
-        userWallet: userWallet,
-        teamName: teamName,
-        tokens: JSON.stringify(tokens),
-        hasValidEntry: true
+        competitionId: targetCompetitionId,
+        players: tokens,
+        teamName: teamName
       }
     });
-    console.log('✅ API team POST: Time salvo com sucesso:', team.id);
 
-    // Calculate initial team value (placeholder - would need price data)
-    const teamValue = 0; // TODO: Calculate based on actual token prices
+    console.log(`✅ API team POST: Time salvo com sucesso: ${userTeam.id}`);
 
-    // Get the updated team data
-    const updatedTeam = team;
+    // Buscar dados de mercado (com dedupe)
+    const marketData = await getMarketDataWithFallback(tokens);
+    const tokenDetails = mapMarketDataToResponse(marketData, tokens);
+
+    // Calcular ranking da rodada
+    const allTeamsInCompetition = await prisma.userTeam.findMany({
+      where: { competitionId: targetCompetitionId },
+      select: {
+        userId: true,
+        totalPoints: true
+      },
+      orderBy: { totalPoints: 'desc' }
+    });
+
+    const userRank = allTeamsInCompetition.findIndex(t => t.userId === userId) + 1;
 
     return NextResponse.json({
       success: true,
-      message: team.createdAt.getTime() === team.updatedAt.getTime() ? 'Time criado com sucesso' : 'Time atualizado com sucesso',
+      message: 'Time salvo com sucesso',
       team: {
-        id: team.id,
-        name: team.teamName,
-        tokens: JSON.parse(team.tokens),
-        totalValue: teamValue,
-        totalScore: team.totalScore || 0,
-        rank: team.rank || null,
-        hasValidEntry: team.hasValidEntry,
-        createdAt: team.createdAt,
-        updatedAt: team.updatedAt
+        id: userTeam.id,
+        name: userTeam.teamName,
+        tokens: userTeam.players as string[],
+        competitionId: userTeam.competitionId,
+        totalPoints: userTeam.totalPoints,
+        rank: userRank > 0 ? userRank : null,
+        updatedAt: userTeam.updatedAt
       },
-      tokenDetails: validTokens
-    })
+      tokenDetails
+    });
 
   } catch (error) {
-    console.error('Error managing team:', error)
-    
+    console.error('Error managing team:', error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Dados inválidos', details: error.errors },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Dados inválidos', details: error.errors }, { status: 400 });
     }
-
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    // 🔒 SEGURANÇA: Obter userId do usuário autenticado
     const userId = await getUserFromRequest(request);
+    if (!userId) return NextResponse.json({ error: 'Usuário não autenticado' }, { status: 401 });
 
-    if (!userId) {
-      console.error('❌ [TEAM-GET] Usuário não autenticado');
-      return NextResponse.json(
-        { error: 'Usuário não autenticado' },
-        { status: 401 }
-      );
-    }
+    // ✅ PERFORMANCE: Garantir que o cache de dedupe esteja populado antes de buscar dados de mercado
+    // Isso evita CACHE_MISS → Rate Limit quando o servidor reinicia ou faz Hot Refresh
+    await ensureCachePopulated();
 
-    // 🔒 SEGURANÇA: Buscar a carteira do usuário no banco (fonte confiável)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { publicKey: true, email: true }
+      select: { publicKey: true, mainTeam: true }
     });
 
-    if (!user) {
-      console.error('❌ [TEAM-GET] Usuário não encontrado');
-      return NextResponse.json(
-        { error: 'Usuário não encontrado' },
-        { status: 404 }
-      );
-    }
+    if (!user) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
 
-    const { searchParams } = new URL(request.url)
-    const leagueId = searchParams.get('leagueId')
+    const { searchParams } = new URL(request.url);
+    const leagueId = searchParams.get('leagueId');
+    const competitionIdParam = searchParams.get('competitionId');
 
-    // 🔓 PERMITIR ACESSO SEM CARTEIRA: Usuários podem ver a página mesmo sem carteira
+    console.log('🔍 API team GET: Buscando time para:', { userId, leagueId, competitionIdParam });
+
+    // 🔓 Lógica Sem Carteira (Visualização apenas)
     if (!user.publicKey) {
-      console.log('⚠️ [TEAM-GET] Usuário sem carteira vinculada - retornando estado vazio');
-
-      // Buscar liga para retornar informações básicas
-      let league;
-      if (leagueId) {
-        league = await prisma.league.findUnique({
-          where: { id: leagueId }
-        });
-      } else {
-        league = await prisma.league.findFirst({
-          where: {
-            leagueType: 'MAIN',
-            isActive: true
-          }
-        });
-      }
-
       return NextResponse.json({
         hasTeam: false,
         needsWallet: true,
-        message: 'Conecte uma carteira para criar seu time',
-        league: league ? {
-          id: league.id,
-          name: league.name,
-          entryFee: league.entryFee
-        } : null
+        message: 'Conecte uma carteira para criar seu time'
       });
     }
 
-    const userWallet = user.publicKey; // 🔒 SEGURANÇA: Usando carteira do banco!
+    // 🎯 CASO: Template Principal
+    if (leagueId === 'main_template') {
+      console.log('📋 [TEAM-GET] Buscando time template...');
 
-    console.log('🔍 API team GET: Buscando time para:', { userId, userWallet, leagueId });
+      if (!user.mainTeam) {
+        return NextResponse.json({ hasTeam: false, isTemplate: true, message: 'Time principal vazio' });
+      }
 
-    // Get Main League if no specific league ID provided
-    let league
-    if (leagueId) {
-      league = await prisma.league.findUnique({
-        where: { id: leagueId }
-      })
+      let teamTokens: string[] = [];
+      try {
+        teamTokens = Array.isArray(user.mainTeam) ? user.mainTeam as string[] : JSON.parse(user.mainTeam as any);
+      } catch (e) {
+        teamTokens = [];
+      }
+
+      if (!teamTokens.length) {
+        return NextResponse.json({ hasTeam: false, isTemplate: true });
+      }
+
+      // Buscar dados de mercado (com dedupe)
+      const marketData = await getMarketDataWithFallback(teamTokens);
+      const tokenDetails = mapMarketDataToResponse(marketData, teamTokens);
+
+      return NextResponse.json({
+        hasTeam: true,
+        isTemplate: true,
+        team: {
+          id: 'main_template',
+          name: 'Meu Time Principal',
+          tokens: teamTokens,
+          hasValidEntry: true
+        },
+        tokenDetails
+      });
+    }
+
+    // 🎯 CASO: Liga / Rodada
+    let league;
+    if (leagueId && leagueId !== 'main-league') {
+      league = await prisma.league.findUnique({ where: { id: leagueId } });
     } else {
       league = await prisma.league.findFirst({
-        where: { 
-          leagueType: 'MAIN',
-          isActive: true 
-        }
-      })
+        where: { name: { contains: 'Principal', mode: 'insensitive' } }
+      });
     }
 
-    if (!league) {
-      return NextResponse.json(
-        { error: 'Liga não encontrada' },
-        { status: 404 }
-      )
-    }
+    if (!league) return NextResponse.json({ error: 'Liga não encontrada' }, { status: 404 });
 
-    // Get user's team for this league
-    const team = await prisma.team.findFirst({
-      where: {
-        userId: userId,
-        leagueId: league.id
-      }
-    })
+    // ✅ CRUCIAL: Determinar qual Competição (Rodada) buscar
+    let targetCompetitionId = competitionIdParam;
 
-    if (!team) {
-      return NextResponse.json(
-        { 
+    // Se não veio competitionId na URL, descobrir qual é a ativa
+    if (!targetCompetitionId) {
+      console.log(`🔍 [TEAM-GET] competitionId ausente. Buscando ACTIVE para liga ${league.id}`);
+      const activeComp = await prisma.competition.findFirst({
+        where: { leagueId: league.id, status: 'ACTIVE' },
+        orderBy: { startDate: 'desc' }
+      });
+
+      if (activeComp) {
+        targetCompetitionId = activeComp.id;
+        console.log(`✅ [TEAM-GET] Usando rodada ativa: ${targetCompetitionId}`);
+      } else {
+        return NextResponse.json({
           hasTeam: false,
-          league: {
-            id: league.id,
-            name: league.name,
-            entryFee: league.entryFee
-          }
-        }
-      )
-    }
-
-    // Parse tokens from JSON string
-    let teamTokens: string[] = [];
-    try {
-      teamTokens = JSON.parse(team.tokens);
-    } catch (error) {
-      console.error('Error parsing team tokens:', error);
-      teamTokens = [];
-    }
-
-    // Get token details for the team using new service (com fallback para ghost tokens)
-    let tokenDetails: any[] = [];
-
-    if (teamTokens.length > 0) {
-      try {
-        console.log(`🔍 [TEAM-GET] Buscando dados de ${teamTokens.length} tokens do time...`);
-
-        // Usar a nova função que busca por IDs e cria ghosts para tokens delistados
-        const marketData = await getMarketDataWithFallback(teamTokens);
-
-        console.log(`✅ [TEAM-GET] ${marketData.length} tokens obtidos (incluindo ghosts se necessário)`);
-
-        // Mapear para formato esperado pela UI (padronizado com /api/market)
-        tokenDetails = marketData.map(tokenData => ({
-          id: tokenData.id,
-          symbol: tokenData.symbol,
-          name: tokenData.name,
-          image: tokenData.image || '/icons/coinx.svg', // Fallback para tokens sem imagem
-          currentPrice: tokenData.current_price || 0,
-          priceChange1h: tokenData.price_change_percentage_1h_in_currency || 0,
-          priceChange24h: tokenData.price_change_percentage_24h || 0,
-          priceChange7d: tokenData.price_change_percentage_7d_in_currency || 0,
-          priceChange30d: tokenData.price_change_percentage_30d_in_currency || 0,
-          marketCap: tokenData.market_cap || 0,
-          totalVolume: tokenData.total_volume || 0,
-          marketCapRank: tokenData.market_cap_rank || null
-        }));
-
-      } catch (error) {
-        console.error('❌ [TEAM-GET] Erro ao buscar dados do CoinGecko:', error);
-
-        // Fallback para erro crítico: retornar tokens básicos (padronizado com /api/market)
-        tokenDetails = teamTokens.map(symbol => ({
-          id: `unknown-${symbol.toLowerCase()}`,
-          symbol: symbol,
-          name: symbol,
-          image: '/icons/coinx.svg',
-          currentPrice: 0,
-          priceChange1h: 0,
-          priceChange24h: 0,
-          priceChange7d: 0,
-          priceChange30d: 0,
-          marketCap: 0,
-          totalVolume: 0,
-          marketCapRank: null
-        }));
+          message: 'Nenhuma rodada ativa encontrada',
+          league: { id: league.id, name: league.name, entryFee: league.entryFee }
+        });
       }
     }
+
+    console.log(`🔍 [TEAM-GET] Buscando UserTeam para: userId=${userId}, competitionId=${targetCompetitionId}`);
+
+    const userTeam = await prisma.userTeam.findUnique({
+      where: {
+        userId_competitionId: {
+          userId: userId,
+          competitionId: targetCompetitionId
+        }
+      }
+    });
+
+    if (!userTeam) {
+      console.log('⚠️ [TEAM-GET] Time não encontrado para esta rodada.');
+      return NextResponse.json({
+        hasTeam: false,
+        league: { id: league.id, name: league.name, entryFee: league.entryFee }
+      });
+    }
+
+    // Parse tokens
+    const teamTokens = userTeam.players as string[];
+
+    // Buscar dados de mercado (com dedupe)
+    const marketData = await getMarketDataWithFallback(teamTokens);
+    const tokenDetails = mapMarketDataToResponse(marketData, teamTokens);
+
+    console.log(`✅ [TEAM-GET] Time encontrado: ${userTeam.id}`);
+
+    // Calcular ranking da rodada
+    const allTeamsInCompetition = await prisma.userTeam.findMany({
+      where: { competitionId: targetCompetitionId },
+      select: {
+        userId: true,
+        totalPoints: true
+      },
+      orderBy: { totalPoints: 'desc' }
+    });
+
+    const userRank = allTeamsInCompetition.findIndex(t => t.userId === userId) + 1;
 
     return NextResponse.json({
       hasTeam: true,
       team: {
-        id: team.id,
-        name: team.teamName,
+        id: userTeam.id,
+        name: userTeam.teamName,
         tokens: teamTokens,
-        totalValue: 0, // Calculate based on token prices if needed
-        totalScore: team.totalScore || 0,
-        rank: team.rank || null,
-        hasValidEntry: team.hasValidEntry,
-        createdAt: team.createdAt,
-        updatedAt: team.updatedAt,
-        tokenDetails: tokenDetails
+        competitionId: userTeam.competitionId,
+        totalPoints: Number(userTeam.totalPoints) || 0,
+        rank: userRank > 0 ? userRank : null,
+        hasValidEntry: true,
+        updatedAt: userTeam.updatedAt
       },
-      tokenDetails: tokenDetails,
-      league: {
-        id: league.id,
-        name: league.name,
-        entryFee: league.entryFee
-      }
-    })
+      tokenDetails,
+      league: { id: league.id, name: league.name, entryFee: league.entryFee }
+    });
 
   } catch (error) {
-    console.error('Error fetching team:', error)
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    )
+    console.error('Error fetching team:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }

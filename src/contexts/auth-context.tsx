@@ -34,6 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ✅ Flag para identificar se acabou de fazer login (para redirecionamento)
   const justLoggedInRef = useRef<boolean>(false);
+
+  // ✅ Flag para identificar se é o carregamento inicial (evita logout no F5)
+  const isInitialMountRef = useRef<boolean>(true);
   
   // Always call useWallet, but handle client-side logic inside
   const wallet = useWallet();
@@ -53,12 +56,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for existing session on mount
     const checkExistingSession = async () => {
       const savedUser = localStorage.getItem('mfl_user');
+      const savedToken = localStorage.getItem('auth-token'); // ✅ Recuperar token também
       console.log('DEBUG AuthProvider: Checking saved user:', savedUser);
+      console.log('DEBUG AuthProvider: Checking saved token:', savedToken ? 'EXISTS' : 'MISSING');
 
       if (savedUser) {
         try {
           const userData = JSON.parse(savedUser);
           console.log('DEBUG AuthProvider: Parsed user data:', userData);
+
+          // ⚠️ Se usuário existe mas token não, limpar tudo e forçar novo login
+          if (!savedToken) {
+            console.log('⚠️ [AUTH] Usuário sem token válido. Limpando sessão...');
+            localStorage.removeItem('mfl_user');
+            localStorage.removeItem('auth-token');
+            setUser(null);
+            setIsLoading(false);
+            return;
+          }
+
           setUser(userData);
 
           // 🔄 Buscar dados atualizados do perfil do banco
@@ -68,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${savedToken}` // ✅ Sempre incluir token
               }
             });
 
@@ -78,8 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const updatedUser = { ...userData, ...result.data };
                 setUser(updatedUser);
                 localStorage.setItem('mfl_user', JSON.stringify(updatedUser));
-
               }
+            } else if (response.status === 401) {
+              // Token inválido ou expirado - limpar sessão
+              console.log('⚠️ [AUTH] Token inválido ou expirado. Limpando sessão...');
+              localStorage.removeItem('mfl_user');
+              localStorage.removeItem('auth-token');
+              setUser(null);
             } else {
               console.log('⚠️ [AUTH] Não foi possível buscar perfil atualizado');
             }
@@ -89,11 +111,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error('Error parsing saved user data:', error);
           localStorage.removeItem('mfl_user');
+          localStorage.removeItem('auth-token'); // ✅ Limpar token também
         }
       } else {
         console.log('DEBUG AuthProvider: No saved user found');
       }
       setIsLoading(false);
+
+      // ✅ Marcar que o carregamento inicial terminou (após pequeno delay para wallet reconectar)
+      setTimeout(() => {
+        isInitialMountRef.current = false;
+        console.log('✅ [AUTH] Carregamento inicial concluído, monitoramento de wallet ativo');
+      }, 2000); // 2 segundos para dar tempo da wallet reconectar
     };
 
     checkExistingSession();
@@ -145,6 +174,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       publicKey: publicKey?.toString()
     });
 
+    // ✅ Desconectar carteira APENAS se o login foi feito via wallet
+    const shouldDisconnectWallet = user?.loginMethod === 'wallet' && connected;
+
     setUser(null);
     localStorage.removeItem('mfl_user');
     localStorage.removeItem('auth-token');
@@ -152,10 +184,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ✅ Resetar flag de login
     justLoggedInRef.current = false;
 
-    // SEMPRE desconectar carteira no logout, independente do método de login
-    if (connected) {
-      console.log('🔌 [LOGOUT] Desconectando carteira:', publicKey?.toString());
+    // ✅ Desconectar carteira apenas se login foi via wallet
+    if (shouldDisconnectWallet) {
+      console.log('🔌 [LOGOUT] Desconectando carteira (login via wallet):', publicKey?.toString());
       disconnect();
+    } else if (connected) {
+      console.log('✅ [LOGOUT] Carteira mantida conectada (login via email)');
     }
 
     console.log('✅ [LOGOUT] Logout concluído');
@@ -371,6 +405,12 @@ Carteira: ${walletAddress}`;
       setUser(userData);
       localStorage.setItem('mfl_user', JSON.stringify(userData));
 
+      // ✅ CORREÇÃO: Salvar token no localStorage para persistir sessão no F5
+      if (result.token) {
+        localStorage.setItem('auth-token', result.token);
+        console.log('💾 [SIWS] Token salvo no localStorage');
+      }
+
       // ✅ Marcar que acabou de fazer login (para redirecionamento)
       justLoggedInRef.current = true;
 
@@ -508,11 +548,12 @@ Carteira: ${walletAddress}`;
       loginAttemptRef.current = null;
     }
 
-    // REGRA 2: FORÇAR LOGOUT POR DESCONEXÃO (A que já funciona)
+    // REGRA 2: FORÇAR LOGOUT POR DESCONEXÃO
     // Se a carteira foi desconectada (!connected)
     // E o usuário ESTAVA logado com carteira (user?.loginMethod === 'wallet')
-    if (isClient && !connected && user?.loginMethod === 'wallet') {
-      console.log('🔌 [AUTH] Carteira desconectada. Forçando logout.');
+    // ✅ CORREÇÃO: NÃO fazer logout durante carregamento inicial (evita logout no F5)
+    if (isClient && !connected && user?.loginMethod === 'wallet' && !isInitialMountRef.current) {
+      console.log('🔌 [AUTH] Carteira desconectada pelo usuário. Forçando logout.');
       logout();
     }
 

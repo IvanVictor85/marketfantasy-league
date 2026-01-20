@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
 import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
+import { getCorsHeaders } from '@/lib/cors';
 
 // Função para validar email
 function isValidEmail(email: string): boolean {
@@ -198,13 +199,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: getCorsHeaders(request.headers.get('origin')),
   });
 }

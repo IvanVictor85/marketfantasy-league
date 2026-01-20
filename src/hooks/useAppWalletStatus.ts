@@ -61,27 +61,27 @@ export function useAppWalletStatus(): AppWalletStatus {
     } : undefined;
 
     // 📊 DEBUG LOGS - Valores em tempo real
-    console.log('🔍 [WALLET-STATUS] Debug:', {
-      profileWallet,
-      connectedWallet,
-      isMismatched,
-      isProfileLoading: isLoading,
-      isAuthenticated,
-      connected,
-      user: user ? { 
-        id: user.id, 
-        email: user.email, 
-        publicKey: user.publicKey // Adicionando para debug
-      } : null,
-      // Detalhes da lógica
-      logic: {
-        notLoading: !isLoading,
-        authenticated: isAuthenticated,
-        hasProfileWallet: !!profileWallet,
-        hasConnectedWallet: !!connectedWallet,
-        walletsDifferent: profileWallet !== connectedWallet
-      }
-    });
+    // console.log('🔍 [WALLET-STATUS] Debug:', {
+    //   profileWallet,
+    //   connectedWallet,
+    //   isMismatched,
+    //   isProfileLoading: isLoading,
+    //   isAuthenticated,
+    //   connected,
+    //   user: user ? {
+    //     id: user.id,
+    //     email: user.email,
+    //     publicKey: user.publicKey // Adicionando para debug
+    //   } : null,
+    //   // Detalhes da lógica
+    //   logic: {
+    //     notLoading: !isLoading,
+    //     authenticated: isAuthenticated,
+    //     hasProfileWallet: !!profileWallet,
+    //     hasConnectedWallet: !!connectedWallet,
+    //     walletsDifferent: profileWallet !== connectedWallet
+    //   }
+    // });
 
     setStatus({
       profileWallet,
@@ -104,16 +104,16 @@ export function useAppWalletStatus(): AppWalletStatus {
   }, [user?.publicKey, publicKey, connected, isAuthenticated, isLoading]);
 
   // 🔍 MODO DE DEPURAÇÃO - Log detalhado antes do return
-  console.log(
-    '%c[useAppWalletStatus] ATUALIZOU:',
-    'background: #222; color: #bada55',
-    {
-      profileWallet: status.profileWallet,
-      connectedWallet: status.connectedWallet,
-      isProfileLoading: status.isProfileLoading,
-      isMismatched: status.isMismatched, // O valor calculado
-    }
-  );
+  // console.log(
+  //   '%c[useAppWalletStatus] ATUALIZOU:',
+  //   'background: #222; color: #bada55',
+  //   {
+  //     profileWallet: status.profileWallet,
+  //     connectedWallet: status.connectedWallet,
+  //     isProfileLoading: status.isProfileLoading,
+  //     isMismatched: status.isMismatched, // O valor calculado
+  //   }
+  // );
 
   return status;
 }

@@ -3,6 +3,7 @@ import { generateNonce } from 'siwe';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { getCorsHeaders } from '@/lib/cors';
 
 /**
  * GET /api/auth/nonce
@@ -70,13 +71,9 @@ export async function GET(request: NextRequest) {
  * OPTIONS /api/auth/nonce
  * Handler para CORS preflight requests
  */
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: getCorsHeaders(request.headers.get('origin')),
   });
 }

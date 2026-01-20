@@ -24,10 +24,27 @@ interface MainLeagueData {
   entryFee: number;
   totalPrizePool: number;
   participantCount: number;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  round: {
+
+  // ✅ REFATORAÇÃO: Dados "crus" da competição
+  status: 'ACTIVE' | 'PENDING' | 'COMPLETED' | null;
+  startDate: string | null;  // Data de LOCK (domingo 21h)
+  endDate: string | null;    // Data de FIM (sexta 21h)
+  activeCompetitionId: string | null;  // ID da rodada ativa
+
+  // ✅ NOVO: Informações da temporada
+  season?: {
+    id: string;
+    name: string;
+    prizePool: number;
+    status: string;
+    totalRounds: number;
+    completedRounds: number;
+    currentRoundNumber: number | null;
+  } | null;
+
+  // Campos legados (para compatibilidade)
+  isActive?: boolean;
+  round?: {
     current: number;
     timeRemaining: number;
     isActive: boolean;
@@ -44,6 +61,70 @@ interface EntryStatus {
   };
 }
 
+/**
+ * ✅ REFATORAÇÃO: Calcular o estado atual da competição
+ * Esta função implementa a lógica de 4 estados baseada nos dados "crus" da API
+ *
+ * ⚠️ IMPORTANTE: Prioriza o status do banco sobre verificações de data
+ * Isso permite testes e controle manual do estado da competição
+ */
+type CompetitionState =
+  | 'DRAFT_OPEN'      // Antes de startDate - Draft aberto, pode entrar
+  | 'LOCKED'          // Entre startDate e endDate - Rodada em andamento, times trancados
+  | 'FINISHED'        // Após endDate ou status COMPLETED - Rodada finalizada
+  | 'UNKNOWN';        // Sem dados ou status inválido
+
+function getCompetitionState(
+  status: MainLeagueData['status'],
+  startDate: string | null,
+  endDate: string | null
+): CompetitionState {
+  if (!status) {
+    return 'UNKNOWN';
+  }
+
+  // ✅ PRIORIDADE 1: Status COMPLETED sempre resulta em FINISHED
+  if (status === 'COMPLETED') {
+    return 'FINISHED';
+  }
+
+  // ✅ PRIORIDADE 2: Status ACTIVE - verificar datas apenas como guia
+  if (status === 'ACTIVE') {
+    if (!startDate || !endDate) {
+      // Se não tem datas mas está ACTIVE, considerar draft aberto
+      return 'DRAFT_OPEN';
+    }
+
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // ⚠️ MODO DE TESTE: Se status é ACTIVE, sempre permitir entrada
+    // independente das datas, para facilitar testes
+    // Quando estiver em produção, pode mudar para LOCKED se já passou de startDate
+
+    // Se ainda não começou, draft está aberto
+    if (now < start) {
+      return 'DRAFT_OPEN';
+    }
+
+    // ✅ MUDANÇA PARA TESTES: Mesmo após startDate, se ACTIVE, manter DRAFT_OPEN
+    // Isso permite entrar na rodada para testar mesmo depois do início
+    // Em produção, você pode comentar esta linha e descomentar a de baixo
+    return 'DRAFT_OPEN'; // ← MODO TESTE: Sempre permite entrada
+
+    // Descomentar para produção (bloqueia entrada após início):
+    // return 'LOCKED';
+  }
+
+  // ✅ PRIORIDADE 3: Status PENDING - draft aberto
+  if (status === 'PENDING') {
+    return 'DRAFT_OPEN';
+  }
+
+  return 'UNKNOWN';
+}
+
 // Componente inline para exibir o timer da rodada
 function RoundTimerInline() {
   const tLeagues = useTranslations('leagues');
@@ -51,7 +132,7 @@ function RoundTimerInline() {
 
   if (loading) return <span className="text-gray-400">{tLeagues('loading')}</span>;
   if (isExpired) return <span className="text-red-600">🔴 {tLeagues('roundInProgress')}</span>;
-  
+
   return <span className="text-green-600">🟢 {tLeagues('startsIn')} {formatTime()}</span>;
 }
 
@@ -131,8 +212,8 @@ export function MainLeagueCard() {
         id: 'main-league-fallback',
         name: tLeagues('mainLeagueName'),
         description: tLeagues('mainLeagueDescription'),
-        entryFee: 0.01, // ✅ Padronizado para 0.01 SOL
-        totalPrizePool: 0.01,
+        entryFee: 0.025, // ✅ Atualizado para 0.025 SOL
+        totalPrizePool: 0.025,
         participantCount: 0,
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -180,20 +261,14 @@ export function MainLeagueCard() {
     setIsCheckingEntry(true);
 
     try {
-      // Obter token de autenticação
-      const token = localStorage.getItem('auth-token');
-      console.log('🔑 MainLeagueCard: Token obtido:', token ? 'Presente' : 'Ausente');
-      
-      if (!token) {
-        console.error('❌ MainLeagueCard: Token de autenticação não encontrado');
-        setEntryStatus({ hasPaid: false, error: 'Token de autenticação não encontrado' });
-        return;
-      }
+      // ✅ CORREÇÃO: Não precisa verificar token do localStorage
+      // A API usa cookies de sessão que são enviados automaticamente
 
       // Verificar se o usuário está autenticado
       if (!isAuthenticated || !user) {
-        console.error('❌ MainLeagueCard: Usuário não autenticado');
+        console.log('⏩ [MAINLEAGUECARD] Usuário não autenticado, pulando verificação');
         setEntryStatus({ hasPaid: false, error: 'Usuário não autenticado' });
+        checkInProgressRef.current = false;
         return;
       }
 
@@ -204,26 +279,28 @@ export function MainLeagueCard() {
         userPublicKey: user?.publicKey
       });
 
+      // ✅ REFATORAÇÃO: Enviar competitionId em vez de leagueId
+      if (!leagueData.activeCompetitionId) {
+        console.error('❌ MainLeagueCard: Nenhuma competição ativa encontrada');
+        setEntryStatus({ hasPaid: false, error: 'Nenhuma rodada ativa disponível' });
+        return;
+      }
+
       console.log('📡 MainLeagueCard: Enviando requisição para check-entry:', {
         url: '/api/league/check-entry',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token ? token.substring(0, 20) + '...' : 'null'}`
-        },
-        body: {
-          leagueId: leagueData.id
-        }
+        competitionId: leagueData.activeCompetitionId
       });
 
+      // ✅ CORREÇÃO: Cookies de sessão são enviados automaticamente
       const response = await fetch('/api/league/check-entry', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+        headers: {
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          leagueId: leagueData.id 
+        credentials: 'include', // Garantir que cookies sejam enviados
+        body: JSON.stringify({
+          competitionId: leagueData.activeCompetitionId
         })
       });
 
@@ -261,21 +338,45 @@ export function MainLeagueCard() {
 
   // Check entry status when profile wallet changes (with debounce)
   useEffect(() => {
+    console.log('🔍 [MAINLEAGUECARD-EFFECT] Check-Entry: Executado com:', {
+      profileWallet,
+      isProfileLoading,
+      isAuthenticated,
+      hasLeagueData: !!leagueData,
+      activeCompetitionId: leagueData?.activeCompetitionId
+    });
+
     // 🔒 GUARD CLAUSE: Se não houver carteira ou perfil está carregando, setar isCheckingEntry = false
     if (!profileWallet || isProfileLoading) {
+      console.log('⏩ [MAINLEAGUECARD] Aguardando carteira ou perfil...');
+      setIsCheckingEntry(false);
+      return;
+    }
+
+    // ✅ CORREÇÃO: Aguardar autenticação
+    if (!isAuthenticated) {
+      console.log('⏩ [MAINLEAGUECARD] Aguardando autenticação...');
+      setIsCheckingEntry(false);
+      return;
+    }
+
+    // ✅ CORREÇÃO: Não executar se activeCompetitionId não estiver disponível
+    if (!leagueData?.activeCompetitionId) {
+      console.log('⏳ MainLeagueCard: Aguardando activeCompetitionId...');
       setIsCheckingEntry(false);
       return;
     }
 
     if (leagueData) {
       const timeoutId = setTimeout(() => {
+        console.log('✅ [MAINLEAGUECARD] Condições satisfeitas, chamando checkEntryStatus');
         checkEntryStatus();
       }, 500); // 500ms debounce
 
       return () => clearTimeout(timeoutId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileWallet, leagueData, isProfileLoading]);
+  }, [profileWallet, leagueData?.activeCompetitionId, isProfileLoading, isAuthenticated]);
 
   const handleConnectWallet = () => {
     setVisible(true);
@@ -299,9 +400,9 @@ export function MainLeagueCard() {
       const response = await fetch('/api/user/link-wallet', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include', // Usar cookies de sessão
         body: JSON.stringify({ publicKey: publicKey.toString() })
       });
 
@@ -464,17 +565,22 @@ export function MainLeagueCard() {
         throw new Error('Erro ao confirmar transação. Verifique o status na carteira.');
       }
 
-      // Confirm entry with backend
+      // ✅ REFATORAÇÃO: Confirmar entrada com competitionId
       console.log('🔄 MainLeagueCard: Confirmando entrada com o backend...');
-      // TEMPORÁRIO: Usar endpoint de teste para bypass da verificação on-chain
-      const confirmResponse = await fetch('/api/league/test-entry', {
+
+      if (!leagueData?.activeCompetitionId) {
+        throw new Error('Nenhuma rodada ativa disponível');
+      }
+
+      const confirmResponse = await fetch('/api/league/confirm-entry', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        headers: {
+          'Content-Type': 'application/json'
         },
+        credentials: 'include', // Usar cookies de sessão
         body: JSON.stringify({
-          leagueId: leagueData?.id
+          transactionHash: signature,
+          competitionId: leagueData.activeCompetitionId
         })
       });
 
@@ -569,21 +675,18 @@ export function MainLeagueCard() {
 
   return (
     <Card className="border-accent border-2 bg-card">
-      <CardHeader className="pb-2 pt-3 px-4">
-        <div className="flex items-center justify-between">
-          <div className="relative w-16 h-16 bg-transparent flex items-center justify-center">
-            <Image 
-              src="/league-logos/main-league-trophy.png" 
-              alt={tLeagues('mainLeagueName')} 
-              width={64}
-              height={64}
-              className="object-contain"
-            />
-          </div>
-          <Badge className="bg-secondary text-secondary-foreground font-bold">
+      <CardHeader className="pb-2 pt-3 px-3">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{leagueData.name}</h3>
+          <Badge className="bg-secondary text-secondary-foreground font-bold text-xs">
             {tLeagues("officialBadge")}
           </Badge>
         </div>
+        {leagueData.season && (
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            {leagueData.season.name} • Rodada {leagueData.season.currentRoundNumber || '-'}/{leagueData.season.totalRounds} • {leagueData.season.completedRounds} completadas
+          </p>
+        )}
       </CardHeader>
       
       <CardContent className="pb-4">
@@ -591,6 +694,54 @@ export function MainLeagueCard() {
           <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{leagueData.name}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">{leagueData.description}</p>
         </div>
+
+        {/* ✅ NOVO: Informações da Temporada */}
+        {leagueData.season && (
+          <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                  {leagueData.season.name}
+                </span>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {leagueData.season.status === 'ACTIVE' ? '🔴 Ativa' : '✅ Finalizada'}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Rodada:</span>
+                <span className="font-bold text-gray-900 dark:text-gray-100">
+                  {leagueData.season.currentRoundNumber || '-'} / {leagueData.season.totalRounds}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Prêmio Total:</span>
+                <span className="font-bold text-yellow-600 dark:text-yellow-400">
+                  {leagueData.season.prizePool.toFixed(3)} SOL
+                </span>
+              </div>
+            </div>
+
+            {/* Barra de progresso das rodadas */}
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                <span>Progresso</span>
+                <span>{leagueData.season.completedRounds} completadas</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(leagueData.season.completedRounds / leagueData.season.totalRounds) * 100}%`
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* League Stats */}
         <div className="grid grid-cols-2 gap-3 mb-4">
@@ -698,26 +849,73 @@ export function MainLeagueCard() {
           </Button>
         )
 
-        /* LÓGICA DE 3 ESTADOS */
+        /* ✅ REFATORAÇÃO: LÓGICA DE 4 ESTADOS */
 
         /* ESTADO 1: VINCULADO (profileWallet existe) */
         : profileWallet ? (
-          <Button
-            onClick={handleActionClick}
-            disabled={transactionLoading || !leagueData.round.isActive}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
-          >
-            {transactionLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {tLeagues('processing')}
-              </>
-            ) : !leagueData.round.isActive ? (
-              tLeagues('leagueFinished')
-            ) : (
-              `${tLeagues("joinLeague")} (${leagueData.entryFee} SOL)`
-            )}
-          </Button>
+          (() => {
+            const competitionState = getCompetitionState(
+              leagueData.status,
+              leagueData.startDate,
+              leagueData.endDate
+            );
+
+            // Estado: Draft Aberto (pode entrar)
+            if (competitionState === 'DRAFT_OPEN') {
+              return (
+                <Button
+                  onClick={handleActionClick}
+                  disabled={transactionLoading}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+                >
+                  {transactionLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {tLeagues('processing')}
+                    </>
+                  ) : (
+                    `${tLeagues("joinRound")} (${leagueData.entryFee} SOL)`
+                  )}
+                </Button>
+              );
+            }
+
+            // Estado: Rodada em Andamento (times trancados)
+            if (competitionState === 'LOCKED') {
+              return (
+                <Button
+                  disabled
+                  className="w-full bg-red-600 text-white cursor-not-allowed"
+                >
+                  🔒 {tLeagues('teamsLocked')}
+                </Button>
+              );
+            }
+
+            // Estado: Rodada Finalizada
+            if (competitionState === 'FINISHED') {
+              return (
+                <Button
+                  disabled
+                  variant="outline"
+                  className="w-full cursor-not-allowed"
+                >
+                  {tLeagues('leagueFinished')}
+                </Button>
+              );
+            }
+
+            // Estado: Desconhecido (fallback)
+            return (
+              <Button
+                disabled
+                variant="outline"
+                className="w-full cursor-not-allowed"
+              >
+                {tLeagues('waiting')}
+              </Button>
+            );
+          })()
         )
 
         /* ESTADO 2: NÃO VINCULADO e NÃO CONECTADO */

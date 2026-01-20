@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  * - Finaliza competições ativas que devem terminar
  * - Calcula pontuações e distribui prêmios
  *
- * Schedule: "0 21 * * 5" (Toda sexta-feira às 21:00 UTC)
+ * Schedule: "0 0 * * 6" (Sábado 00:00 UTC = Sexta-feira 21:00 BRT)
  *
  * Vercel Hobby Plan: Permite apenas crons diários (1x/dia)
  * Solução: Usar cron semanal + polling no frontend
@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
 
     const activeCompetitions = await prisma.competition.findMany({
       where: {
-        status: 'active',
-        endTime: {
+        status: 'ACTIVE',
+        endDate: {  // ✅ CORREÇÃO: endDate (não endTime)
           gte: oneDayAgo,
           lte: oneDayLater
         }

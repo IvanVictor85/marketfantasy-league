@@ -13,8 +13,8 @@ declare_id!("7QHMrTeoLTggAy11kTTEwtoRzcvK8rEeY1TRu4oUdgGP");
 pub mod mfl_program {
     use super::*;
 
-    // Constante para a taxa de entrada (0.01 SOL = 10,000,000 Lamports)
-    const ENTRY_FEE_LAMPORTS: u64 = 10_000_000;
+    // Constante para a taxa de entrada (0.025 SOL = 25,000,000 Lamports)
+    const ENTRY_FEE_LAMPORTS: u64 = 25_000_000;
 
     /**
      * Função 1: Initialize Vault (ADMIN)
@@ -34,10 +34,10 @@ pub mod mfl_program {
 
     /**
      * Função 2: Deposit Entry Fee (JOGADOR)
-     * O jogador paga a taxa de 0.01 SOL para o cofre.
+     * O jogador paga a taxa de 0.025 SOL para o cofre.
      */
     pub fn deposit_entry_fee(ctx: Context<DepositEntryFee>) -> Result<()> {
-        msg!("Recebendo depósito de 0.01 SOL...");
+        msg!("Recebendo depósito de 0.025 SOL...");
 
         // 1. Preparar a transferência de SOL
         let cpi_accounts = Transfer {
@@ -59,6 +59,59 @@ pub mod mfl_program {
             .ok_or(ErrorCode::Overflow)?; // Proteção contra overflow
 
         msg!("Depósito recebido! Novo total do cofre: {}", ctx.accounts.vault.total_pot);
+        Ok(())
+    }
+
+    /**
+     * Função 3: Claim Prize (ADMIN)
+     * Distribui prêmio do cofre para o vencedor.
+     * Apenas a autoridade (admin) pode chamar esta função.
+     */
+    pub fn claim_prize(ctx: Context<ClaimPrize>, amount: u64) -> Result<()> {
+        msg!("Distribuindo prêmio de {} lamports para {}...", amount, ctx.accounts.winner.key());
+
+        // Validação: Verificar se há saldo suficiente no cofre
+        require!(
+            ctx.accounts.vault.total_pot >= amount,
+            ErrorCode::InsufficientFunds
+        );
+
+        // Validação: Verificar se quem está chamando é a autoridade
+        require!(
+            ctx.accounts.authority.key() == ctx.accounts.vault.authority,
+            ErrorCode::Unauthorized
+        );
+
+        // Transferir SOL do vault (PDA) para o vencedor
+        // Como o vault é um PDA, precisamos usar seeds para assinar
+        let vault_seeds = &[
+            b"mfl-vault".as_ref(),
+            &[ctx.bumps.vault], // O bump é fornecido automaticamente pelo Anchor
+        ];
+        let signer_seeds = &[&vault_seeds[..]];
+
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.vault.to_account_info(),
+            to: ctx.accounts.winner.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.system_program.to_account_info();
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+
+        // Executar a transferência
+        system_program::transfer(cpi_ctx, amount)?;
+
+        // Atualizar o saldo do cofre
+        ctx.accounts.vault.total_pot = ctx
+            .accounts
+            .vault
+            .total_pot
+            .checked_sub(amount)
+            .ok_or(ErrorCode::Underflow)?;
+
+        msg!("✅ Prêmio distribuído! Novo saldo do vault: {}", ctx.accounts.vault.total_pot);
+        msg!("🏆 Vencedor: {}", ctx.accounts.winner.key());
+        msg!("💰 Valor: {} lamports ({} SOL)", amount, amount as f64 / 1_000_000_000.0);
+
         Ok(())
     }
 }
@@ -130,6 +183,33 @@ pub struct DepositEntryFee<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/**
+ * Contexto para `claim_prize`
+ */
+#[derive(Accounts)]
+pub struct ClaimPrize<'info> {
+    // 1. O cofre (PDA) de onde sairá o prêmio
+    #[account(
+        mut,
+        seeds = [b"mfl-vault"],
+        bump
+    )]
+    pub vault: Account<'info, Vault>,
+
+    // 2. O vencedor que receberá o prêmio
+    /// CHECK: Esta conta é verificada apenas como destino da transferência
+    #[account(mut)]
+    pub winner: AccountInfo<'info>,
+
+    // 3. A autoridade (admin) que autoriza o pagamento
+    // Deve ser o mesmo que criou o vault
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    // 4. O Programa do Sistema Solana
+    pub system_program: Program<'info, System>,
+}
+
 // ===================================================================
 // ERROS CUSTOMIZADOS
 // ===================================================================
@@ -137,4 +217,10 @@ pub struct DepositEntryFee<'info> {
 pub enum ErrorCode {
     #[msg("Overflow ao adicionar ao cofre.")]
     Overflow,
+    #[msg("Underflow ao subtrair do cofre.")]
+    Underflow,
+    #[msg("Saldo insuficiente no cofre.")]
+    InsufficientFunds,
+    #[msg("Não autorizado. Apenas o admin pode distribuir prêmios.")]
+    Unauthorized,
 }

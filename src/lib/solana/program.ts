@@ -432,6 +432,13 @@ export const sendAndConfirmTransaction = async (
            
            // Calculate delay with exponential backoff
            const delay = 1000 * Math.pow(2, attempt);
+           console.error(`❌ ERRO DETALHADO - Tentativa ${attempt + 1}:`, {
+             message: lastError?.message,
+             name: lastError?.name,
+             code: lastError?.code,
+             logs: lastError?.logs,
+             full: lastError
+           });
            console.log(`Tentativa ${attempt + 1} falhou, tentando novamente em ${delay}ms...`);
            await new Promise(resolve => setTimeout(resolve, delay));
          }
@@ -897,11 +904,205 @@ export const withdrawSolReal = async (
 
 // Withdraw SOL from platform (simplified implementation for current use)
 export const withdrawSol = async (
-  wallet: WalletContextState, 
+  wallet: WalletContextState,
   amountSol: number,
   setTransactionActive?: (active: boolean) => void,
   priorityLevel: 'low' | 'medium' | 'high' = 'medium'
 ): Promise<string> => {
   // For now, use the real implementation
   return withdrawSolReal(wallet, amountSol, setTransactionActive, priorityLevel);
+};
+
+/**
+ * Claim prize from vault to winner
+ * This function calls the claim_prize instruction from the MFL program
+ * Only the vault authority (admin) can call this function
+ *
+ * @param adminWallet - Admin wallet context (must be the vault authority)
+ * @param winnerPublicKey - Winner's wallet public key
+ * @param amountSol - Prize amount in SOL
+ * @param setTransactionActive - Optional callback to set transaction active state
+ * @param priorityLevel - Transaction priority level (low, medium, high)
+ * @returns Transaction signature hash
+ */
+export const claimPrize = async (
+  adminWallet: WalletContextState,
+  winnerPublicKey: PublicKey,
+  amountSol: number,
+  setTransactionActive?: (active: boolean) => void,
+  priorityLevel: 'low' | 'medium' | 'high' = 'medium'
+): Promise<string> => {
+  if (!adminWallet.publicKey || !adminWallet.signTransaction) {
+    throw new Error('Admin wallet não conectada adequadamente');
+  }
+
+  console.log('🏆 Distributing prize via smart contract...');
+  console.log(`👤 Winner: ${winnerPublicKey.toString()}`);
+  console.log(`💰 Amount: ${amountSol} SOL`);
+
+  const amountLamports = solToLamports(amountSol);
+
+  try {
+    // Get vault PDA (same seed as in the IDL: "mfl-vault")
+    const [vaultPda] = await PublicKey.findProgramAddress(
+      [Buffer.from('mfl-vault')],
+      PROGRAM_ID
+    );
+
+    console.log(`🏦 Vault PDA: ${vaultPda.toString()}`);
+
+    // Check vault balance
+    const conn = await getConnection();
+    const vaultBalance = await conn.getBalance(vaultPda);
+    console.log(`💰 Vault balance: ${vaultBalance / LAMPORTS_PER_SOL} SOL`);
+
+    if (vaultBalance < amountLamports) {
+      throw new Error(`Vault tem saldo insuficiente. Saldo atual: ${vaultBalance / LAMPORTS_PER_SOL} SOL, necessário: ${amountSol} SOL`);
+    }
+
+    // Create the transaction
+    const transaction = new Transaction();
+
+    // Create the claim_prize instruction
+    // Discriminator from IDL: [157, 233, 139, 121, 246, 62, 234, 235]
+    const discriminator = Buffer.from([157, 233, 139, 121, 246, 62, 234, 235]);
+
+    // Instruction data: discriminator (8 bytes) + amount (8 bytes u64)
+    const data = Buffer.alloc(16);
+    discriminator.copy(data, 0);
+    data.writeBigUInt64LE(BigInt(amountLamports), 8);
+
+    const claimInstruction = new TransactionInstruction({
+      keys: [
+        { pubkey: vaultPda, isSigner: false, isWritable: true },          // vault
+        { pubkey: winnerPublicKey, isSigner: false, isWritable: true },   // winner
+        { pubkey: adminWallet.publicKey, isSigner: true, isWritable: true }, // authority
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, // system_program
+      ],
+      programId: PROGRAM_ID,
+      data,
+    });
+
+    transaction.add(claimInstruction);
+
+    console.log('📤 Sending prize distribution transaction...');
+
+    // Send and confirm the transaction
+    const signature = await sendAndConfirmTransaction(
+      adminWallet,
+      transaction,
+      setTransactionActive,
+      priorityLevel
+    );
+
+    console.log('✅ Prize distributed successfully!');
+    console.log(`📝 Transaction signature: ${signature}`);
+    console.log(`💰 Amount transferred: ${amountSol} SOL (${amountLamports} lamports)`);
+    console.log(`🎯 From vault: ${vaultPda.toString()}`);
+    console.log(`🎯 To winner: ${winnerPublicKey.toString()}`);
+
+    return signature;
+  } catch (error: any) {
+    console.error('❌ Failed to distribute prize:', error);
+
+    // Provide user-friendly error messages
+    if (error.message?.includes('insufficient funds')) {
+      throw new Error('Saldo insuficiente no vault para distribuir prêmio.');
+    }
+
+    if (error.message?.includes('Unauthorized') || error.message?.includes('Não autorizado')) {
+      throw new Error('Apenas o admin pode distribuir prêmios.');
+    }
+
+    if (error.message?.includes('User rejected')) {
+      throw new Error('Transação cancelada pelo admin');
+    }
+
+    throw new Error(`Erro ao distribuir prêmio: ${error.message}`);
+  }
+};
+
+/**
+ * Pay round entry fee (0.025 SOL) using the smart contract
+ * This function calls the deposit_entry_fee instruction from the MFL program
+ *
+ * @param wallet - Wallet context state from useWallet hook
+ * @param setTransactionActive - Optional callback to set transaction active state
+ * @param priorityLevel - Transaction priority level (low, medium, high)
+ * @returns Transaction signature hash
+ */
+export const payRoundEntryFee = async (
+  wallet: WalletContextState,
+  setTransactionActive?: (active: boolean) => void,
+  priorityLevel: 'low' | 'medium' | 'high' = 'medium'
+): Promise<string> => {
+  if (!wallet.publicKey || !wallet.signTransaction) {
+    throw new Error('Carteira não conectada adequadamente');
+  }
+
+  console.log('💰 Paying round entry fee (0.025 SOL)...');
+  console.log(`👤 User: ${wallet.publicKey.toString()}`);
+
+  // The entry fee is hardcoded in the smart contract (0.025 SOL = 25,000,000 lamports)
+  const ENTRY_FEE_LAMPORTS = 25_000_000;
+
+  try {
+    // Get vault PDA (same seed as in the IDL: "mfl-vault")
+    const [vaultPda] = await PublicKey.findProgramAddress(
+      [Buffer.from('mfl-vault')],
+      PROGRAM_ID
+    );
+
+    console.log(`🏦 Vault PDA: ${vaultPda.toString()}`);
+
+    // Create the transaction
+    const transaction = new Transaction();
+
+    // Priority fee and compute unit limit will be added by sendAndConfirmTransaction
+
+    // Create the deposit_entry_fee instruction manually
+    // Based on IDL: discriminator + accounts (vault, user, system_program)
+    const discriminator = Buffer.from([41, 40, 167, 225, 14, 84, 207, 82]);
+
+    const depositInstruction = new TransactionInstruction({
+      keys: [
+        { pubkey: vaultPda, isSigner: false, isWritable: true },
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      programId: PROGRAM_ID,
+      data: discriminator, // deposit_entry_fee takes no arguments, only discriminator
+    });
+
+    transaction.add(depositInstruction);
+
+    console.log('📤 Sending transaction...');
+
+    // Send and confirm the transaction
+    const signature = await sendAndConfirmTransaction(
+      wallet,
+      transaction,
+      setTransactionActive,
+      priorityLevel
+    );
+
+    console.log('✅ Round entry fee paid successfully!');
+    console.log(`📝 Transaction signature: ${signature}`);
+    console.log(`💰 Amount: 0.025 SOL (${ENTRY_FEE_LAMPORTS} lamports)`);
+
+    return signature;
+  } catch (error: any) {
+    console.error('❌ Failed to pay round entry fee:', error);
+
+    // Provide user-friendly error messages
+    if (error.message?.includes('insufficient funds')) {
+      throw new Error('Saldo insuficiente. Você precisa de pelo menos 0.025 SOL + taxas de rede.');
+    }
+
+    if (error.message?.includes('User rejected')) {
+      throw new Error('Transação cancelada pelo usuário');
+    }
+
+    throw new Error(`Erro ao pagar taxa de entrada: ${error.message}`);
+  }
 };

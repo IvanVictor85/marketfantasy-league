@@ -10,7 +10,7 @@ import { NavbarFixed } from '@/components/layout/navbar-fixed';
 import ToasterClient from '@/components/ui/toaster-client';
 import { WalletConnectModalGlobal } from '@/components/wallet/wallet-connect-modal-global';
 import { WalletSessionLinker } from '@/components/wallet/wallet-session-linker';
-import { SessionProviderWrapper } from '@/components/providers/session-provider';
+// import { SessionProviderWrapper } from '@/components/providers/session-provider'; // ⚠️ NextAuth disabled
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { QueryClientProvider } from '@/components/providers/query-client-provider';
@@ -33,6 +33,10 @@ export const metadata: Metadata = {
   },
 };
 
+export function generateStaticParams() {
+  return [{ locale: 'pt' }, { locale: 'en' }];
+}
+
 export default async function LocaleLayout({
   children,
   params
@@ -44,15 +48,7 @@ export default async function LocaleLayout({
   const isProd = process.env.NODE_ENV === 'production';
 
   // Carregar mensagens para o locale atual
-  let messages;
-  try {
-    // 🔧 CRÍTICO: Passar {locale} para carregar o arquivo correto (en.json ou pt.json)
-    messages = await getMessages({ locale });
-  } catch (error) {
-    console.error('❌ [i18n] Erro ao carregar mensagens:', error);
-    // Fallback para objeto vazio se houver erro
-    messages = {};
-  }
+  const messages = await getMessages({ locale });
 
   return (
     <html lang={locale} className={inter.variable}>
@@ -69,25 +65,24 @@ export default async function LocaleLayout({
           <QueryClientProvider>
             {/* ✅ CRÍTICO: NextIntlClientProvider DEVE receber locale e messages */}
             <NextIntlClientProvider locale={locale} messages={messages}>
-              <SessionProviderWrapper>
-                <WalletContextProvider>
-                  <AuthProvider>
-                    <WalletModalProvider>
-                      <WalletSessionLinker />
-                      <div className="min-h-screen bg-background">
-                        <NavbarFixed />
-                        <main className="flex-1">
-                          {children}
-                        </main>
-                        <ToasterClient />
-                        <WalletConnectModalGlobal />
-                        {/* Portal container for dropdowns */}
-                        <div id="dropdown-portal" />
-                      </div>
-                    </WalletModalProvider>
-                  </AuthProvider>
-                </WalletContextProvider>
-              </SessionProviderWrapper>
+              {/* SessionProviderWrapper removed - NextAuth is disabled */}
+              <WalletContextProvider>
+                <AuthProvider>
+                  <WalletModalProvider>
+                    <WalletSessionLinker />
+                    <div className="min-h-screen bg-background">
+                      <NavbarFixed />
+                      <main className="flex-1">
+                        {children}
+                      </main>
+                      <ToasterClient />
+                      <WalletConnectModalGlobal />
+                      {/* Portal container for dropdowns */}
+                      <div id="dropdown-portal" />
+                    </div>
+                  </WalletModalProvider>
+                </AuthProvider>
+              </WalletContextProvider>
             </NextIntlClientProvider>
           </QueryClientProvider>
         </ThemeProvider>

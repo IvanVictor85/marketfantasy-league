@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { fetchAllTokenPrices, type TokenPriceData } from '@/lib/xstocks/coingecko';
 import { fetchXStocksFromCategory, convertCoinGeckoToXStockFormat } from '@/lib/xstocks/coingecko-category';
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 
 // Definindo o tipo XStockToken localmente para evitar problemas de importação
 export interface XStockToken {
@@ -310,6 +311,12 @@ async function fetchCompleteData(): Promise<{
  * Handler para GET /api/xstocks
  */
 export async function GET(request: NextRequest) {
+  // 🔒 RATE LIMITING: Prevenir spam na API pública de xStocks
+  const rateLimitResult = await rateLimit(request, RATE_LIMITS.PUBLIC_API);
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.reset);
+  }
+
   const startTime = Date.now();
   
   try {
@@ -413,13 +420,10 @@ export async function GET(request: NextRequest) {
 /**
  * Handler para OPTIONS (CORS)
  */
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
+  const { getCorsHeaders } = await import('@/lib/cors');
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: getCorsHeaders(request.headers.get('origin')),
   });
 }

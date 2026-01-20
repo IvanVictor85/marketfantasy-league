@@ -49,6 +49,9 @@ import { useTransactionState } from '@/components/providers/wallet-provider';
 import { toast } from 'sonner';
 import { useTeamData } from '@/hooks/useTeamData';
 import { useRoundTimer } from '@/hooks/useRoundTimer';
+import { RoundPerformance } from '@/components/dashboard/round-performance';
+import { PrizeClaims } from '@/components/dashboard/prize-claims';
+import { PointsEvolutionChart } from '@/components/dashboard/points-evolution-chart';
 
 // Importando os novos tipos
 import { 
@@ -179,16 +182,26 @@ const mockUserData: UserData = {
 };
 
 // Dashboard Sidebar Component
-const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }: {
+const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading, selectedCompetitionId, userId }: {
   userData: UserData,
   selectedTeamData: { league: League | null, team: LeagueTeam | MainTeam | null, isMainTeam: boolean },
   savedMascot: SavedMascot | null,
-  isLoading: boolean
+  isLoading: boolean,
+  selectedCompetitionId?: string | null,
+  userId?: string
 }) => {
   const t = useTranslations('DashboardPage');
   const wallet = useGuardedActionHook();
   const { publicKey, connected, canExecuteAction } = wallet;
   const { setTransactionActive } = useTransactionState();
+
+  // Estado para estatísticas rápidas (muda conforme seleção)
+  const [quickStats, setQuickStats] = useState<{
+    rank: number;
+    totalParticipants: number;
+    partialScore: number;
+    lastRoundScore: number;
+  } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositedBalance, setDepositedBalance] = useState<number>(0);
@@ -234,6 +247,70 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
     };
     fetchBalances();
   }, [publicKey]);
+
+  // Buscar estatísticas rápidas baseado na seleção
+  useEffect(() => {
+    if (!userId || !selectedTeamData.league) {
+      setQuickStats(null);
+      return;
+    }
+
+    const fetchQuickStats = async () => {
+      try {
+        if (selectedCompetitionId === 'SEASON') {
+          // Buscar dados da temporada
+          const competition = await fetch(`/api/league/competitions?leagueId=${selectedTeamData.league?.id}`);
+          if (competition.ok) {
+            const compData = await competition.json();
+            const seasonId = compData.competitions?.find((c: any) => c.seasonId)?.seasonId;
+
+            if (seasonId) {
+              const response = await fetch(`/api/season/ranking?seasonId=${seasonId}&userId=${userId}`);
+              if (response.ok) {
+                const data = await response.json();
+                const userRanking = data.rankings?.find((r: any) => r.userId === userId);
+
+                setQuickStats({
+                  rank: userRanking?.rank || 0,
+                  totalParticipants: data.rankings?.length || 0,
+                  partialScore: userRanking?.totalPoints || 0,
+                  lastRoundScore: data.userBreakdown?.rounds?.[data.userBreakdown.rounds.length - 1]?.points || 0
+                });
+              }
+            }
+          }
+        } else if (selectedCompetitionId && selectedCompetitionId !== 'all') {
+          // Buscar dados da rodada específica
+          const response = await fetch(`/api/teams?competitionId=${selectedCompetitionId}`);
+          if (response.ok) {
+            const data = await response.json();
+            const userTeam = data.teams?.find((t: any) => t.userId === userId);
+
+            if (userTeam) {
+              setQuickStats({
+                rank: userTeam.rank || 0,
+                totalParticipants: data.teams?.length || 0,
+                partialScore: userTeam.liveScore || userTeam.totalPoints || 0,
+                lastRoundScore: userTeam.liveScore || userTeam.totalPoints || 0
+              });
+            }
+          }
+        } else {
+          // Usar dados padrão da liga
+          setQuickStats({
+            rank: selectedTeamData.league?.rank || 0,
+            totalParticipants: selectedTeamData.league?.totalParticipants || 0,
+            partialScore: selectedTeamData.league?.partialScore || 0,
+            lastRoundScore: selectedTeamData.league?.lastRoundScore || 0
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas rápidas:', error);
+      }
+    };
+
+    fetchQuickStats();
+  }, [selectedCompetitionId, userId, selectedTeamData.league]);
 
   const openSolanaFaucet = useCallback(() => {
     if (!publicKey) {
@@ -730,22 +807,28 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
         <CardContent className="p-6">
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">{t('leagueRank')}</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                {selectedCompetitionId === 'SEASON' ? 'RANK NA TEMPORADA' : t('leagueRank')}
+              </p>
               <p className="text-2xl font-bold">
                 {selectedTeamData.isMainTeam ? t('teamName') :
-                 `${selectedTeamData.league?.rank || 0} / ${selectedTeamData.league?.totalParticipants || 0}`}
+                 `${quickStats?.rank || 0} / ${quickStats?.totalParticipants || 0}`}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">{t('partialValue')}</p>
-              <p className="text-2xl font-bold text-green-600">
-                {selectedTeamData.isMainTeam ? "N/A" : `+${selectedTeamData.league?.partialScore?.toFixed(2) || 0}%`}
+              <p className="text-sm font-medium text-muted-foreground">
+                {selectedCompetitionId === 'SEASON' ? 'PONTOS TOTAIS' : selectedCompetitionId && selectedCompetitionId !== 'all' ? 'PONTOS DA RODADA' : t('partialValue')}
+              </p>
+              <p className={`text-2xl font-bold ${(quickStats?.partialScore || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {selectedTeamData.isMainTeam ? "N/A" : `${(quickStats?.partialScore || 0) >= 0 ? '+' : ''}${quickStats?.partialScore?.toFixed(2) || 0}${selectedCompetitionId === 'SEASON' ? '' : '%'}`}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">{t('lastRound')}</p>
-              <p className="text-xl font-bold">
-                {selectedTeamData.isMainTeam ? "N/A" : `+${selectedTeamData.league?.lastRoundScore?.toFixed(2) || 0}`}
+              <p className="text-sm font-medium text-muted-foreground">
+                {selectedCompetitionId === 'SEASON' ? 'ÚLTIMA RODADA' : selectedCompetitionId && selectedCompetitionId !== 'all' ? 'RODADA ATUAL' : t('lastRound')}
+              </p>
+              <p className={`text-xl font-bold ${(quickStats?.lastRoundScore || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {selectedTeamData.isMainTeam ? "N/A" : `${(quickStats?.lastRoundScore || 0) >= 0 ? '+' : ''}${quickStats?.lastRoundScore?.toFixed(2) || 0}`}
               </p>
             </div>
           </div>
@@ -779,17 +862,155 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading }
 };
 
 // Dashboard Content Component
-const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
+const DashboardContent = ({ userData, selectedTeamData, onLeagueChange, userId, selectedCompetitionId, onCompetitionChange }: {
   userData: UserData,
   selectedTeamData: { league: League | null, team: LeagueTeam | MainTeam | null, isMainTeam: boolean },
-  onLeagueChange: (leagueId: string) => void
+  onLeagueChange: (leagueId: string) => void,
+  userId?: string,
+  selectedCompetitionId?: string | null,
+  onCompetitionChange?: (competitionId: string | null) => void
 }) => {
   const t = useTranslations('DashboardPage');
 
-  // Encontrar o melhor, pior e mais neutro token do time (baseado em 7d se disponível, senão 24h)
-  const teamPlayers = selectedTeamData.team?.players || [];
+  // Estado para rodada selecionada
+  const [selectedRoundData, setSelectedRoundData] = useState<any>(null);
+  const [loadingRoundData, setLoadingRoundData] = useState(false);
 
-  const getChange = (player: any) => player.priceChange7d || player.priceChange7d || player.priceChange24h || 0;
+  // Buscar dados da rodada selecionada
+  useEffect(() => {
+    if (!selectedCompetitionId || !userId || selectedCompetitionId === 'all' || selectedCompetitionId === 'SEASON') {
+      setSelectedRoundData(null);
+      return;
+    }
+
+    const fetchRoundData = async () => {
+      try {
+        setLoadingRoundData(true);
+
+        // Buscar informações da competição
+        const competitionsResponse = await fetch(`/api/league/competitions?leagueId=${selectedTeamData.league?.id}`);
+        let competitionInfo: any = null;
+
+        if (competitionsResponse.ok) {
+          const competitionsData = await competitionsResponse.json();
+          competitionInfo = competitionsData.competitions?.find((c: any) => c.id === selectedCompetitionId);
+        }
+
+        const response = await fetch(`/api/teams?competitionId=${selectedCompetitionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const userTeam = data.teams?.find((t: any) => t.userId === userId);
+
+          if (userTeam) {
+            // Buscar snapshots dos tokens da rodada
+            const snapshotsResponse = await fetch(`/api/competition/tokens?competitionId=${selectedCompetitionId}`);
+            let tokenSnapshots: any[] = [];
+
+            if (snapshotsResponse.ok) {
+              const snapshotsData = await snapshotsResponse.json();
+              tokenSnapshots = snapshotsData.tokens || [];
+            }
+
+            // Buscar dados completos dos tokens a partir dos símbolos
+            const tokenSymbols = userTeam.players || userTeam.tokens || [];
+
+            // Buscar no mainTeam os tokens com dados completos
+            const mainTeamPlayers = selectedTeamData.team?.players || [];
+
+            // Buscar dados de mercado atuais (com logos!) da mesma API que o Token Market usa
+            const marketResponse = await fetch('/api/market');
+            let marketTokens: any[] = [];
+            if (marketResponse.ok) {
+              const marketData = await marketResponse.json();
+              marketTokens = marketData.tokens || [];
+            }
+
+            const fullTokens = tokenSymbols.map((symbol: string) => {
+              const found = mainTeamPlayers.find((p: any) =>
+                p.symbol?.toUpperCase() === symbol.toUpperCase()
+              );
+
+              // Buscar snapshot deste token
+              const snapshot = tokenSnapshots.find((s: any) =>
+                s.symbol?.toUpperCase() === symbol.toUpperCase()
+              );
+
+              // Buscar dados de mercado para variação 7d
+              const marketToken = marketTokens.find((m: any) =>
+                m.symbol?.toUpperCase() === symbol.toUpperCase()
+              );
+
+              // Calcular variação da rodada baseado nos snapshots
+              let roundChange = 0;
+              let roundPoints = 0;
+
+              if (snapshot && snapshot.priceStart && snapshot.priceEnd) {
+                // Rodada completa - usar priceStart e priceEnd
+                const priceStart = parseFloat(snapshot.priceStart.toString());
+                const priceEnd = parseFloat(snapshot.priceEnd.toString());
+                roundChange = ((priceEnd - priceStart) / priceStart) * 100;
+                roundPoints = roundChange;
+              } else if (snapshot && snapshot.priceStart && marketToken?.currentPrice) {
+                // Rodada ATIVA - calcular pontuação parcial com preço atual do /api/market
+                const priceStart = parseFloat(snapshot.priceStart.toString());
+                const currentPrice = marketToken.currentPrice;
+                if (currentPrice > 0) {
+                  roundChange = ((currentPrice - priceStart) / priceStart) * 100;
+                  roundPoints = roundChange;
+                  console.log(`[DASHBOARD] Pontuação parcial ${symbol}: ${roundPoints.toFixed(2)}% (${priceStart} → ${currentPrice})`);
+                }
+              } else if (snapshot && snapshot.percentChange) {
+                // Fallback: usar percentChange se disponível
+                roundChange = parseFloat(snapshot.percentChange.toString());
+                roundPoints = roundChange;
+              }
+
+              return {
+                symbol: symbol, // Garantir que símbolo existe
+                name: snapshot?.name || found?.name || marketToken?.name || symbol,
+                priceChange7d: marketToken?.priceChange7d || found?.priceChange7d || 0,
+                priceChangeRound: roundChange, // Variação da rodada
+                roundPoints: roundPoints, // Pontuação na rodada
+                imageUrl: marketToken?.image || snapshot?.imageUrl || found?.imageUrl || '', // ✅ Usar image do /api/market
+                priceStart: snapshot?.priceStart,
+                priceEnd: snapshot?.priceEnd
+              };
+            });
+
+            setSelectedRoundData({
+              ...userTeam,
+              players: fullTokens,
+              totalPoints: userTeam.totalScore || userTeam.liveScore || userTeam.totalPoints || 0,
+              competitionName: competitionInfo?.name || 'Rodada',
+              competitionStatus: competitionInfo?.status || 'UNKNOWN',
+              startDate: competitionInfo?.startDate || null,
+              endDate: competitionInfo?.endDate || null,
+              totalParticipants: data.teams?.length || 0
+            });
+          } else {
+            setSelectedRoundData(null);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados da rodada:', error);
+      } finally {
+        setLoadingRoundData(false);
+      }
+    };
+
+    fetchRoundData();
+  }, [selectedCompetitionId, userId, selectedTeamData.team]);
+
+  // Usar dados da rodada selecionada ou dados do time atual
+  const teamPlayers = selectedRoundData?.players || selectedTeamData.team?.players || [];
+
+  // Se rodada selecionada, usar variação da rodada. Senão, usar 7d
+  const getChange = (player: any) => {
+    if (selectedRoundData && player.priceChangeRound !== undefined) {
+      return player.priceChangeRound; // Variação da rodada (snapshot)
+    }
+    return player.priceChange7d || player.priceChange24h || 0; // Variação padrão
+  };
 
   const bestToken = teamPlayers.length > 0 ? teamPlayers.reduce((best, current) =>
     getChange(current) > getChange(best) ? current : best
@@ -836,30 +1057,207 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
 
       <RoundTimerDisplay />
 
+      {/* Meu Desempenho - Breakdown por Rodada */}
+      {!selectedTeamData.isMainTeam && selectedTeamData.league && userId && (
+        <RoundPerformance
+          leagueId={selectedTeamData.league.id}
+          userId={userId}
+          selectedCompetitionId={selectedCompetitionId}
+          onCompetitionChange={onCompetitionChange || (() => {})}
+        />
+      )}
+
+      {/* Resumo da Rodada Selecionada - Card Unificado */}
+      {selectedRoundData && selectedCompetitionId && selectedCompetitionId !== 'all' && selectedCompetitionId !== 'SEASON' && (
+        <Card className="border-2 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-blue-600" />
+                {selectedRoundData.competitionName || 'Resumo da Rodada'}
+              </CardTitle>
+              {/* Badge de Status */}
+              {selectedRoundData.competitionStatus === 'COMPLETED' && (
+                <Badge variant="secondary" className="bg-gray-100">✅ Finalizada</Badge>
+              )}
+              {selectedRoundData.competitionStatus === 'ACTIVE' && (
+                <Badge variant="secondary" className="bg-green-100 text-green-700">🔴 Ao Vivo</Badge>
+              )}
+              {selectedRoundData.competitionStatus === 'PENDING' && (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700">⏳ Aguardando</Badge>
+              )}
+            </div>
+            {/* Datas */}
+            {selectedRoundData.startDate && selectedRoundData.endDate && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {new Date(selectedRoundData.startDate).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                })} - {new Date(selectedRoundData.endDate).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </p>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Aviso de Rodada Ativa */}
+            {selectedRoundData.competitionStatus === 'ACTIVE' && (
+              <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Rodada em andamento - pontuação parcial atualizada em tempo real
+                </p>
+              </div>
+            )}
+
+            {/* Linha 1: Pontos e Ranking */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">
+                  {selectedRoundData.competitionStatus === 'ACTIVE' ? 'Pontos Parciais' : 'Pontos Finais'}
+                </p>
+                <p className={`text-2xl font-bold ${(selectedRoundData.totalPoints || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(selectedRoundData.totalPoints || 0) >= 0 ? '+' : ''}{selectedRoundData.totalPoints?.toFixed(2) || '0.00'}%
+                </p>
+              </div>
+              <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Ranking</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  #{selectedRoundData.rank || 'N/A'}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Tokens Escalados</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {selectedRoundData.players?.length || 0}/5
+                </p>
+              </div>
+            </div>
+
+            {/* Linha 2: Melhor e Pior Token */}
+            {bestToken && worstToken && (
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                {/* Melhor Token */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-green-600 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    Melhor da Rodada
+                  </p>
+                  <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                    {bestToken.imageUrl && (
+                      <img src={bestToken.imageUrl} alt={bestToken.symbol} className="h-6 w-6 rounded-full" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">{bestToken.symbol}</p>
+                      <p className="text-xs text-muted-foreground truncate">{bestToken.name}</p>
+                    </div>
+                    <p className="text-sm font-bold text-green-600">
+                      +{getChange(bestToken).toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+
+                {/* Pior Token */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-red-600 flex items-center gap-1">
+                    <TrendingDown className="h-3 w-3" />
+                    Pior da Rodada
+                  </p>
+                  <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                    {worstToken.imageUrl && (
+                      <img src={worstToken.imageUrl} alt={worstToken.symbol} className="h-6 w-6 rounded-full" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">{worstToken.symbol}</p>
+                      <p className="text-xs text-muted-foreground truncate">{worstToken.name}</p>
+                    </div>
+                    <p className={`text-sm font-bold ${getChange(worstToken) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {getChange(worstToken) >= 0 ? '+' : ''}{getChange(worstToken).toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Linha 3: Nome do Time e Participantes */}
+            {(selectedRoundData.teamName || selectedRoundData.totalParticipants) && (
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                {selectedRoundData.teamName && (
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Nome do Time</p>
+                    <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                      {selectedRoundData.teamName}
+                    </p>
+                  </div>
+                )}
+                {selectedRoundData.totalParticipants && (
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Total de Participantes</p>
+                    <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                      {selectedRoundData.totalParticipants}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Meus Prêmios */}
+      {userId && (
+        <PrizeClaims
+          userId={userId}
+          leagueId={!selectedTeamData.isMainTeam ? selectedTeamData.league?.id : undefined}
+          refreshTrigger={selectedCompetitionId} // ✅ Forçar atualização quando muda de rodada
+        />
+      )}
+
       {/* Card de Gráfico de Desempenho */}
       <Card>
         <CardHeader>
-          <CardTitle>{selectedTeamData.isMainTeam
-            ? t('portfolioEvolutionTitle')
-            : `${t('portfolioEvolutionTitle')} - ${selectedTeamData.league?.leagueName || 'N/A'}`}</CardTitle>
-          <CardDescription>{t('portfolioEvolutionDescription')}</CardDescription>
+          <CardTitle>
+            {selectedTeamData.isMainTeam
+              ? 'Evolução de Pontos'
+              : `Evolução de Pontos - ${selectedTeamData.league?.leagueName || 'N/A'}`}
+          </CardTitle>
+          <CardDescription>
+            {selectedTeamData.isMainTeam
+              ? 'Acompanhe sua performance ao longo das rodadas'
+              : 'Histórico de pontuação em todas as rodadas desta liga'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="h-64 w-full bg-gradient-to-br from-orange-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center rounded-md border-2 border-dashed border-orange-200 dark:border-gray-700">
-            <div className="text-center space-y-3">
-              <div className="text-5xl">📊</div>
-              <h3 className="text-xl font-bold text-orange-700 dark:text-orange-400">{t('comingSoonTitle')}</h3>
-              <p className="text-sm text-muted-foreground dark:text-gray-400 max-w-md px-4">{t('comingSoonText')}</p>
+          {!selectedTeamData.isMainTeam && userId && selectedTeamData.league ? (
+            <PointsEvolutionChart
+              userId={userId}
+              leagueId={selectedTeamData.league.id}
+            />
+          ) : (
+            <div className="h-64 w-full flex flex-col items-center justify-center">
+              <div className="text-5xl mb-3">📊</div>
+              <p className="text-muted-foreground">Selecione uma liga para ver a evolução de pontos</p>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Card "Meu Time na Rodada" (Destaques) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('highlightsTitle')}</CardTitle>
-        </CardHeader>
+      {/* Card "Meu Time na Rodada" (Destaques) - Ocultar quando SEASON está selecionado */}
+      {selectedCompetitionId !== 'SEASON' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t('highlightsTitle')}
+              {selectedCompetitionId && selectedCompetitionId !== 'all' && selectedCompetitionId !== 'SEASON' && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  {loadingRoundData ? '(Carregando...)' : '(Rodada Selecionada)'}
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {bestToken && (
@@ -870,13 +1268,23 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 </div>
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
-                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {(bestToken.symbol || bestToken.symbol || '?').substring(0, 1)}
-                    </div>
+                    {bestToken.imageUrl ? (
+                      <Image
+                        src={bestToken.imageUrl}
+                        alt={bestToken.symbol || ''}
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
+                        {(bestToken.symbol || '?').substring(0, 1)}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{bestToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{bestToken.symbol || bestToken.symbol}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{bestToken.symbol}</p>
                     <p className="text-green-600 dark:text-green-400 font-bold">
                       {getChange(bestToken) >= 0 ? '+' : ''}{getChange(bestToken).toFixed(1)}%
                     </p>
@@ -892,13 +1300,23 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 </div>
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
-                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {(worstToken.symbol || worstToken.symbol || '?').substring(0, 1)}
-                    </div>
+                    {worstToken.imageUrl ? (
+                      <Image
+                        src={worstToken.imageUrl}
+                        alt={worstToken.symbol || ''}
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
+                        {(worstToken.symbol || '?').substring(0, 1)}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{worstToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{worstToken.symbol || worstToken.symbol}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{worstToken.symbol}</p>
                     <p className="text-red-600 dark:text-red-400 font-bold">
                       {getChange(worstToken) >= 0 ? '+' : ''}{getChange(worstToken).toFixed(1)}%
                     </p>
@@ -914,13 +1332,23 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                 </div>
                 <div className="flex items-center">
                   <div className="w-10 h-10 relative mr-3">
-                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
-                      {(neutralToken.symbol || neutralToken.symbol || '?').substring(0, 1)}
-                    </div>
+                    {neutralToken.imageUrl ? (
+                      <Image
+                        src={neutralToken.imageUrl}
+                        alt={neutralToken.symbol || ''}
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center dark:text-white">
+                        {(neutralToken.symbol || '?').substring(0, 1)}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="font-medium dark:text-white">{neutralToken.name}</p>
-                    <p className="text-xs text-muted-foreground dark:text-gray-400">{neutralToken.symbol || neutralToken.symbol}</p>
+                    <p className="text-xs text-muted-foreground dark:text-gray-400">{neutralToken.symbol}</p>
                     <p className="text-blue-600 dark:text-blue-400 font-bold">
                       {getChange(neutralToken) >= 0 ? '+' : ''}{getChange(neutralToken).toFixed(1)}%
                     </p>
@@ -930,21 +1358,33 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
             )}
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
-      {/* Card "Composição do Time" */}
-      <Card>
+      {/* Card "Composição do Time" - Ocultar quando SEASON está selecionado */}
+      {selectedCompetitionId !== 'SEASON' && (
+        <Card>
         <CardHeader>
-          <CardTitle>{t('lineupTitle')}</CardTitle>
+          <CardTitle>
+            {t('lineupTitle')}
+            {selectedCompetitionId && selectedCompetitionId !== 'all' && selectedCompetitionId !== 'SEASON' && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                {loadingRoundData ? '(Carregando...)' : '(Rodada Selecionada)'}
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           {teamPlayers.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('lineupName')}</TableHead>
+                  <TableHead>Token</TableHead>
                   <TableHead>{t('lineupSymbol')}</TableHead>
-                  <TableHead className="text-right">{t('lineupChange7d')}</TableHead>
+                  <TableHead className="text-right">Variação 7d</TableHead>
+                  {selectedRoundData && (
+                    <TableHead className="text-right">Pontuação</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -952,11 +1392,37 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
                   const change = getChange(player);
                   return (
                     <TableRow key={player.symbol || ''}>
-                      <TableCell className="font-medium">{player.name}</TableCell>
-                      <TableCell>{player.symbol || ''}</TableCell>
-                      <TableCell className={`text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {change >= 0 ? '+' : ''}{change.toFixed(1)}%
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {player.imageUrl ? (
+                            <Image
+                              src={player.imageUrl}
+                              alt={player.symbol || ''}
+                              width={24}
+                              height={24}
+                              className="rounded-full"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-xs">
+                              {(player.symbol || '?').substring(0, 1)}
+                            </div>
+                          )}
+                          <span className="font-medium">{player.name}</span>
+                        </div>
                       </TableCell>
+                      <TableCell>{player.symbol || ''}</TableCell>
+                      <TableCell className={`text-right font-medium ${
+                        (player.priceChange7d || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {(player.priceChange7d || 0) >= 0 ? '+' : ''}{(player.priceChange7d || 0).toFixed(1)}%
+                      </TableCell>
+                      {selectedRoundData && (
+                        <TableCell className={`text-right font-bold ${
+                          (player.roundPoints || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {(player.roundPoints || 0) >= 0 ? '+' : ''}{(player.roundPoints || 0).toFixed(2)}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -968,7 +1434,8 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange }: {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
       {/* Card Social / Convide Amigos */}
       <Card className="bg-[#2A9D8F]/5">
@@ -1031,9 +1498,43 @@ export default function Dashboard() {
   const { user, isLoading } = useAuth();
   const [selectedTeamId, setSelectedTeamId] = useState<string>("main");
   const [savedMascot, setSavedMascot] = useState<SavedMascot | null>(null);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
+  const [leagueStats, setLeagueStats] = useState<{
+    rank: number | null;
+    totalParticipants: number;
+    partialScore: number;
+    lastRoundScore: number;
+  } | null>(null);
 
   // Buscar dados reais da liga principal
-  const { teamData: mainTeamData, loading: mainTeamLoading, error: mainTeamError } = useTeamData();
+  const { teamData: mainTeamData, loading: mainTeamLoading, error: mainTeamError } = useTeamData('main-league');
+
+  // Buscar estatísticas da liga quando uma liga for selecionada
+  useEffect(() => {
+    const fetchLeagueStats = async () => {
+      if (!user || selectedTeamId === 'main') {
+        setLeagueStats(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/user/league-stats?leagueId=${selectedTeamId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setLeagueStats({
+            rank: data.rank,
+            totalParticipants: data.totalParticipants || 0,
+            partialScore: data.totalScore || 0,
+            lastRoundScore: data.lastRoundScore || 0
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas da liga:', error);
+      }
+    };
+
+    fetchLeagueStats();
+  }, [user, selectedTeamId]);
 
   // Criar dados do usuário baseados no contexto de autenticação e dados reais
   const userData: UserData = useMemo(() => {
@@ -1062,26 +1563,54 @@ export default function Dashboard() {
         }))
       } : undefined;
 
+      // ✅ CORREÇÃO: Se há dados da liga principal, incluir em leagueTeams
+      const leagueTeams: LeagueTeam[] = [];
+      if (mainTeamData?.hasTeam && mainTeamData.league) {
+        leagueTeams.push({
+          id: mainTeamData.id,
+          userId: user.id, // ✅ Adicionar userId
+          leagueId: mainTeamData.league.id,
+          isMainTeam: true, // ✅ Adicionar isMainTeam
+          formation: "433",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          players: mainTeamData.players.map((player, index) => ({
+            id: (player.symbol || '').toLowerCase(),
+            position: index + 1,
+            name: player.name,
+            symbol: player.symbol || '',
+            image: player.image || '/icons/coinx.svg',
+            currentPrice: player.currentPrice || 0,
+            marketCap: player.marketCap || 0,
+            marketCapRank: player.marketCapRank || null,
+            points: player.points || 0,
+            rarity: (player.rarity || "common") as "common" | "legendary" | "epic" | "rare",
+            priceChange24h: player.priceChange24h || 0,
+            priceChange7d: player.priceChange7d || 0
+          }))
+        });
+      }
+
       return {
         id: user.id,
         teamName: mainTeamData?.teamName || user.name || "Nome do Time",
         userName: user.username || "Nome de Usuário",
         mascot: mockUserData.mascot, // Manter mascote mock por enquanto
         mainTeam: mainTeam,
-        leagueTeams: [], // Por enquanto vazio, pode ser expandido depois
+        leagueTeams: leagueTeams,
         leagues: mainTeamData?.league ? [{
           id: mainTeamData.league.id,
           leagueName: mainTeamData.league.name,
-          rank: 0, // Será implementado depois
-          totalParticipants: 0, // Será implementado depois
-          partialScore: 0, // Será implementado depois
-          lastRoundScore: 0, // Será implementado depois
+          rank: leagueStats?.rank || 0,
+          totalParticipants: leagueStats?.totalParticipants || 0,
+          partialScore: leagueStats?.partialScore || 0,
+          lastRoundScore: leagueStats?.lastRoundScore || 0,
           status: "active"
         }] : []
       };
     }
     return mockUserData; // Fallback para dados mock se não houver usuário
-  }, [user, mainTeamData]);
+  }, [user, mainTeamData, leagueStats]);
 
   // Carregar mascote - PRIORIDADE: user.avatar do banco > localStorage
   useEffect(() => {
@@ -1213,11 +1742,16 @@ export default function Dashboard() {
           selectedTeamData={selectedTeamData}
           savedMascot={savedMascot}
           isLoading={isLoading}
+          selectedCompetitionId={selectedCompetitionId}
+          userId={user?.id}
         />
-        <DashboardContent 
-          userData={userData} 
-          selectedTeamData={selectedTeamData} 
+        <DashboardContent
+          userData={userData}
+          selectedTeamData={selectedTeamData}
           onLeagueChange={setSelectedTeamId}
+          userId={user?.id}
+          selectedCompetitionId={selectedCompetitionId}
+          onCompetitionChange={setSelectedCompetitionId}
         />
       </div>
     </main>

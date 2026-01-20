@@ -29,10 +29,17 @@ interface Competition {
   isEnrolled?: boolean;
 }
 
+// ✅ Dados de inscrição passados junto com a seleção para evitar chamadas duplicadas
+export interface CompetitionEnrollmentData {
+  hasPaid: boolean;
+  hasTeam: boolean;
+  isEnrolled: boolean;
+}
+
 interface CompetitionNavigatorProps {
   leagueId: string;
   currentCompetitionId?: string;
-  onSelectCompetition: (competitionId: string) => void;
+  onSelectCompetition: (competitionId: string, enrollmentData?: CompetitionEnrollmentData) => void;
   onCopyFromPrevious?: (competitionId: string) => void;
   className?: string;
   refreshTrigger?: number; // Incrementar este valor para forçar reload
@@ -76,7 +83,9 @@ export function CompetitionNavigator({
       const data = await response.json();
 
       // 2. Buscar status de inscrição E time do usuário em cada rodada
-      const enrollmentPromises = data.competitions.map(async (comp: any) => {
+      // ✅ PERFORMANCE FIX: Sequential requests ao invés de Promise.all() para evitar Rate Limit 429
+      const enrollments = [];
+      for (const comp of data.competitions) {
         try {
           const checkResponse = await fetch('/api/league/check-entry', {
             method: 'POST',
@@ -86,27 +95,26 @@ export function CompetitionNavigator({
 
           if (checkResponse.ok) {
             const checkData = await checkResponse.json();
-            return {
+            enrollments.push({
               compId: comp.id,
               hasPaid: checkData.hasPaid,
               hasTeam: checkData.hasTeam,
               enrolled: checkData.hasPaid || checkData.hasTeam
-            };
+            });
+          } else {
+            enrollments.push({ compId: comp.id, hasPaid: false, hasTeam: false, enrolled: false });
           }
         } catch {
-          return { compId: comp.id, hasPaid: false, hasTeam: false, enrolled: false };
+          enrollments.push({ compId: comp.id, hasPaid: false, hasTeam: false, enrolled: false });
         }
-        return { compId: comp.id, hasPaid: false, hasTeam: false, enrolled: false };
-      });
-
-      const enrollments = await Promise.all(enrollmentPromises);
+      }
       const enrollmentMap = enrollments.reduce((acc, curr) => {
         acc[curr.compId] = curr.enrolled;
         return acc;
       }, {} as Record<string, boolean>);
 
       setUserEnrollments(enrollmentMap);
-      setCompetitions(data.competitions.map((c: any) => {
+      const loadedCompetitions = data.competitions.map((c: any) => {
         const enrollment = enrollments.find(e => e.compId === c.id);
         return {
           ...c,
@@ -116,7 +124,64 @@ export function CompetitionNavigator({
           hasPaid: enrollment?.hasPaid || false,
           hasTeam: enrollment?.hasTeam || false
         };
-      }).sort((a: Competition, b: Competition) => a.startDate.getTime() - b.startDate.getTime()));
+      }).sort((a: Competition, b: Competition) => a.startDate.getTime() - b.startDate.getTime());
+
+      setCompetitions(loadedCompetitions);
+
+      // ✅ UX FIX: Auto-selecionar rodada se nenhuma estiver selecionada
+      // Usar setTimeout para garantir que o estado já foi atualizado antes de auto-selecionar
+      if (!currentCompetitionId && loadedCompetitions.length > 0) {
+        setTimeout(() => {
+          console.log('🎯 Auto-selecionando rodada...');
+
+          // ✅ Helper para criar dados de enrollment
+          const getEnrollmentData = (comp: Competition): CompetitionEnrollmentData => ({
+            hasPaid: comp.hasPaid || false,
+            hasTeam: comp.hasTeam || false,
+            isEnrolled: comp.isEnrolled || false
+          });
+
+          // Prioridade 1: Rodada ACTIVE
+          const activeCompetition = loadedCompetitions.find((c: Competition) => c.status === 'ACTIVE');
+          if (activeCompetition) {
+            console.log('✅ Auto-selecionado: Rodada ACTIVE -', activeCompetition.name, '(com dados de enrollment)');
+            onSelectCompetition(activeCompetition.id, getEnrollmentData(activeCompetition));
+            return;
+          }
+
+          // Prioridade 2: Última COMPLETED com time do usuário (ordem reversa)
+          const completedWithTeam = [...loadedCompetitions]
+            .reverse()
+            .find((c: Competition) => c.status === 'COMPLETED' && c.hasTeam);
+          if (completedWithTeam) {
+            console.log('✅ Auto-selecionado: Última COMPLETED com time -', completedWithTeam.name, '(com dados de enrollment)');
+            onSelectCompetition(completedWithTeam.id, getEnrollmentData(completedWithTeam));
+            return;
+          }
+
+          // Prioridade 3: Primeira UPCOMING com inscrição
+          const upcomingWithEnrollment = loadedCompetitions.find(
+            (c: Competition) => c.status === 'UPCOMING' && c.isEnrolled
+          );
+          if (upcomingWithEnrollment) {
+            console.log('✅ Auto-selecionado: Primeira UPCOMING com inscrição -', upcomingWithEnrollment.name, '(com dados de enrollment)');
+            onSelectCompetition(upcomingWithEnrollment.id, getEnrollmentData(upcomingWithEnrollment));
+            return;
+          }
+
+          // Prioridade 4: Primeira UPCOMING sem inscrição
+          const firstUpcoming = loadedCompetitions.find((c: Competition) => c.status === 'UPCOMING');
+          if (firstUpcoming) {
+            console.log('✅ Auto-selecionado: Primeira UPCOMING -', firstUpcoming.name, '(com dados de enrollment)');
+            onSelectCompetition(firstUpcoming.id, getEnrollmentData(firstUpcoming));
+            return;
+          }
+
+          // Fallback: Primeira rodada de qualquer tipo
+          console.log('✅ Auto-selecionado: Primeira rodada (fallback) -', loadedCompetitions[0].name, '(com dados de enrollment)');
+          onSelectCompetition(loadedCompetitions[0].id, getEnrollmentData(loadedCompetitions[0]));
+        }, 100);
+      }
 
     } catch (error) {
       console.error('Error loading competitions:', error);
@@ -343,7 +408,11 @@ export function CompetitionNavigator({
             <Card
               key={comp.id}
               id={`comp-${comp.id}`}
-              onClick={() => onSelectCompetition(comp.id)}
+              onClick={() => onSelectCompetition(comp.id, {
+                hasPaid: comp.hasPaid || false,
+                hasTeam: comp.hasTeam || false,
+                isEnrolled: comp.isEnrolled || false
+              })}
               className={cn(
                 "transition-all cursor-pointer snap-center flex-shrink-0 border-2 flex flex-col relative overflow-hidden",
                 "min-w-[160px] w-[160px]",

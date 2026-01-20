@@ -6,13 +6,33 @@ import { type TokenMarketData } from '@/data/expanded-tokens';
 // Re-export TokenMarketData as Token for compatibility
 export type Token = TokenMarketData;
 
+// Tipo para os dados da competição retornados pela API
+export interface CompetitionData {
+  id: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  isEditingAllowed: boolean;
+}
+
+// Tipo para a resposta completa da API
+interface MarketApiResponse {
+  tokens: TokenMarketData[];
+  competition: CompetitionData | null;
+  count: number;
+  top100Count: number;
+  extraCount: number;
+  duration: number;
+  timestamp: string;
+}
+
 /**
- * Função que busca os tokens da API
- * 
+ * Função que busca os tokens e dados da competição da API
+ *
  * Essa função é chamada pelo React Query para buscar os dados.
  * Ela deve retornar os dados ou lançar um erro.
  */
-const fetchTokens = async (): Promise<TokenMarketData[]> => {
+const fetchTokensAndCompetition = async (): Promise<MarketApiResponse> => {
   try {
     // ✅ Chama a nova API Route /api/market (Static Draft Universe)
     const response = await fetch('/api/market');
@@ -36,21 +56,17 @@ const fetchTokens = async (): Promise<TokenMarketData[]> => {
 
     const data = await response.json();
 
-    // ✅ Nova API retorna { tokens: [...], competition: {...}, count: N }
-    // Extrair apenas o array de tokens
-    const tokensArray = data.tokens || data;
-
-    // ✅ Validação adicional: Garante que os dados são um array
-    if (!Array.isArray(tokensArray)) {
+    // ✅ Validação: Garante que os dados têm o formato esperado
+    if (!data.tokens || !Array.isArray(data.tokens)) {
       console.error('Formato inesperado de dados:', data);
-      throw new Error('Formato de dados inválido: esperado um array de tokens');
+      throw new Error('Formato de dados inválido: esperado um objeto com array de tokens');
     }
 
-    return tokensArray;
+    return data;
 
   } catch (error) {
     // ✅ Log detalhado para debug
-    console.error('❌ Erro ao buscar tokens:', error);
+    console.error('❌ Erro ao buscar tokens e competição:', error);
 
     // Re-lança o erro para o React Query poder capturá-lo
     throw error;
@@ -58,38 +74,39 @@ const fetchTokens = async (): Promise<TokenMarketData[]> => {
 };
 
 /**
- * Hook customizado para buscar tokens usando React Query
- * 
+ * Hook customizado para buscar tokens e dados da competição usando React Query
+ *
  * Configurações:
  * - queryKey: ['tokens'] - Chave única para este cache
- * - queryFn: fetchTokens - Função que busca os dados
+ * - queryFn: fetchTokensAndCompetition - Função que busca os dados
  * - refetchInterval: 5 minutos - Atualiza automaticamente a cada 5 minutos
  * - staleTime: 4 minutos - Considera dados "frescos" por 4 minutos
  * - refetchOnWindowFocus: true - Atualiza quando a janela ganha foco
- * 
- * @returns {Object} - { tokens, loading, error, refetch }
+ *
+ * @returns {Object} - { tokens, competition, loading, error, refetch }
  */
 export function useTokens() {
-  const { 
-    data: tokens,      // Renomeia 'data' para 'tokens'
+  const {
+    data,              // Dados completos da API
     isLoading: loading, // Renomeia 'isLoading' para 'loading' (compatibilidade)
     error,             // Estado de erro gerenciado pelo React Query
     refetch            // Função para forçar a atualização (para o botão Update)
   } = useQuery({
-    queryKey: ['tokens'],             // Chave única para este cache
-    queryFn: fetchTokens,             // Função que busca os dados
-    refetchInterval: 5 * 60 * 1000,   // ✅ Atualiza a cada 5 minutos (300000 ms)
-    staleTime: 4 * 60 * 1000,         // Considera dados "frescos" por 4 minutos (240000 ms)
-    refetchOnWindowFocus: true,       // Atualiza quando a janela ganha foco
-    retry: 2,                         // ✅ Tenta novamente 2 vezes em caso de erro
+    queryKey: ['tokens'],                  // Chave única para este cache
+    queryFn: fetchTokensAndCompetition,    // Função que busca os dados
+    refetchInterval: 5 * 60 * 1000,        // ✅ Atualiza a cada 5 minutos (300000 ms)
+    staleTime: 4 * 60 * 1000,              // Considera dados "frescos" por 4 minutos (240000 ms)
+    refetchOnWindowFocus: true,            // Atualiza quando a janela ganha foco
+    retry: 2,                              // ✅ Tenta novamente 2 vezes em caso de erro
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Backoff exponencial
-    refetchOnReconnect: true,         // ✅ Atualiza quando a conexão é restaurada
+    refetchOnReconnect: true,              // ✅ Atualiza quando a conexão é restaurada
   });
 
   // Retorna os dados e estados gerenciados pelo React Query
-  return { 
-    tokens: tokens || [], // Retorna array vazio se 'tokens' for undefined inicialmente
-    loading, 
+  return {
+    tokens: data?.tokens || [],           // Retorna array vazio se 'tokens' for undefined
+    competition: data?.competition || null, // Retorna dados da competição ou null
+    loading,
     error: error ? (error as Error).message : null, // Converte Error para string
     refetch // Retorna a função refetch para o botão Update
   };

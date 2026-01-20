@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCorsHeaders } from '@/lib/cors';
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 
 // ✅ CORREÇÃO DE SEGURANÇA: Interface apenas com campos NÃO-IDENTIDADE permitidos
 // Esta API não deve atualizar 'email' ou 'publicKey' para prevenir corrupção de dados
@@ -142,6 +144,12 @@ export async function GET(request: NextRequest) {
 
 // Handler para PUT - atualizar perfil do usuário
 export async function PUT(request: NextRequest) {
+  // 🔒 RATE LIMITING: Prevenir spam de atualizações de perfil
+  const rateLimitResult = await rateLimit(request, RATE_LIMITS.AUTHENTICATED);
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.reset);
+  }
+
   try {
     // Parse dos dados da requisição primeiro
     const body = await request.json();
@@ -306,13 +314,9 @@ export async function PUT(request: NextRequest) {
 }
 
 // Handler para OPTIONS (CORS)
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
+    headers: getCorsHeaders(request.headers.get('origin')),
   });
 }

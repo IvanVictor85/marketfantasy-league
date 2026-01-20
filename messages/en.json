@@ -32,7 +32,8 @@
     "new": "new",
     "today": "today",
     "update": "Update",
-    "filters": "Filters"
+    "filters": "Filters",
+    "errorLoadingTokens": "Error loading tokens:"
   },
   "navigation": {
     "home": "Home",
@@ -113,7 +114,23 @@
     "teamNameHelp": "The team name is based on your username. You can change it on your profile page.",
     "paymentConfirmed": "Payment confirmed",
     "nextRoundStartsIn": "Next round starts in:",
-    "roundInProgressTime": "Round in progress (Sun 9pm - Fri 9pm BRT | Mon 00:00 - Sat 00:00 UTC)"
+    "roundInProgressTime": "Round in progress (Sun 9pm - Fri 9pm BRT | Mon 00:00 - Sat 00:00 UTC)",
+    "loadingLeagues": "Loading leagues...",
+    "loading": "Loading...",
+    "verifyingPayment": "Verifying payment status and loading team...",
+    "selectLeague": "Select League",
+    "connectWalletFirst": "Please connect your wallet first.",
+    "vaultInitError": "Failed to initialize vault. Please try again.",
+    "paymentConfirmedMessage": "Payment of 0.025 SOL confirmed! You can now build your team.",
+    "processing": "Processing...",
+    "payAndJoin": "Pay {fee} SOL and Join",
+    "errorLoadingTokens": "Error loading tokens:",
+    "errorLoadingMainTeam": "Error loading main team",
+    "players": "Players",
+    "totalScoreLeague": "Total Score (League)",
+    "leagueRanking": "League Ranking",
+    "roundScore": "Round Score",
+    "roundRanking": "Round Ranking"
   },
   "market": {
     "title": "Token Market",
@@ -142,7 +159,8 @@
     "demoNotice": "This is a demo version. Data may not reflect real market values.",
     "searchPlaceholder": "Search token...",
     "period": "Period",
-    "priceHeader": "PRICE"
+    "priceHeader": "PRICE",
+    "periodLabel": "Period:"
   },
   "leagues": {
     "title": "Leagues",
@@ -176,7 +194,10 @@
     "leagueFinished": "League Finished",
     "connectWallet": "Connect Wallet",
     "linkWallet": "Link Wallet",
-    "linking": "Linking..."
+    "linking": "Linking...",
+    "teamsLocked": "Teams Locked! Round In Progress",
+    "waiting": "Waiting...",
+    "joinRound": "Join Round"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -260,7 +281,8 @@
     "participants": "Participants",
     "timeLeft": "Time Left",
     "connectWallet": "Connect Wallet",
-    "nextRound": "Next Round"
+    "nextRound": "Next Round",
+    "joinLeague": "Join League"
   },
   "HomePage": {
     "heroTitle": "The Crypto Universe Fantasy Game.",
@@ -357,7 +379,37 @@
     "amountSol": "Amount (SOL)",
     "cancel": "Cancel",
     "readyToPlay": "Ready to play!",
-    "noTokensInLineup": "No tokens in lineup"
+    "noTokensInLineup": "No tokens in lineup",
+    "totalScore": "Total Score",
+    "currentRound": "Current Round",
+    "selectLeague": "Select a league",
+    "myPerformance": "My Performance",
+    "checkRoundResults": "Check your results by round",
+    "selectLeagueLabel": "Select League",
+    "selectRoundLabel": "Select Round",
+    "season": "Season",
+    "live": "Live",
+    "noParticipation": "You did not participate in this round.",
+    "score": "Score",
+    "ranking": "Ranking",
+    "prize": "Prize",
+    "congratulations": "Congratulations! You won!",
+    "prizeEarnedText": "Your position #{position} earned you a prize of {amount} SOL.",
+    "claimed": "Claimed",
+    "claiming": "Claiming...",
+    "claimPrize": "Claim Prize",
+    "total": "Total",
+    "completed": "Completed",
+    "estimatedPrize": "Est. Prize",
+    "roundInProgress": "Round in Progress",
+    "partialPoints": "partial pts",
+    "roundBreakdown": "Round Breakdown",
+    "accumulatedPrizes": "Accumulated Prizes",
+    "totalEarnedRounds": "Total earned in completed rounds",
+    "estimatedFinalPrize": "Estimated Final Prize",
+    "maintainPosition": "If you maintain this position until the end",
+    "selectRoundToView": "Select a round to view results.",
+    "roundRankingLabel": "Round Ranking"
   },
   "ProfilePage": {
     "title": "Edit Profile",
@@ -445,7 +497,16 @@
     "loginRequired": "Login to access the ranking",
     "loginButton": "Login",
     "selectLeague": "Select league",
-    "noTeamsInLeague": "No teams found in the league"
+    "noTeamsInLeague": "No teams found in the league",
+    "seasonRanking": "Season Ranking",
+    "viewLabel": "View:",
+    "selectRound": "Select round",
+    "season": "Season",
+    "round": "Round",
+    "live": "LIVE",
+    "roundResetSuccess": "✅ Round reset successfully!",
+    "resetError": "Error executing reset",
+    "errorLabel": "❌ Error:"
   },
   "AiAnalysisPage": {
     "title": "AI Analysis Hub",
@@ -474,6 +535,52 @@
     "suggestion2": "Analyze the market sentiment for BTC",
     "suggestion3": "Which tokens have the most potential this week?",
     "loadingMarket": "Loading market data...",
-    "errorLoading": "Error loading market data. Using example data."
+    "errorLoading": "Error loading market data. Using example data.",
+    "teamAnalysisTitle": "Your Team Analysis",
+    "yourMainTeam": "Your Main Team",
+    "analyzeWithAI": "Analyze with AI",
+    "loadingYourTeam": "Loading your team...",
+    "noTeamCreated": "You don't have a team created yet",
+    "createMyTeam": "Create My Team",
+    "incompleteTeam": "Your team is incomplete ({count}/10 tokens)",
+    "completeTeamForAI": "Complete your team to use AI analysis",
+    "completeTeam": "Complete Team",
+    "needTenTokens": "Your team needs 10 tokens for analysis",
+    "defiInsights": "DeFi Insights",
+    "loadingDefiData": "Loading DeFi data...",
+    "trendingProtocols": "Trending Protocols",
+    "topEcosystems": "Top Ecosystems",
+    "tvlAlerts": "TVL Alerts",
+    "teamAnalysisModalTitle": "Your Team Analysis",
+    "aiGeneratedAnalysis": "AI-generated analysis of your token portfolio",
+    "analyzingTeam": "Analyzing your team...",
+    "yourCurrentTeam": "Your Current Team",
+    "close": "Close",
+    "whyProtocol": "Why is {name} {direction}?",
+    "growing": "growing",
+    "declining": "declining",
+    "aiProtocolAnalysis": "AI-generated analysis of protocol changes",
+    "generatingAnalysis": "Generating analysis..."
+  },
+  "competitions": {
+    "title": "League Rounds",
+    "subtitle": "Select a round to manage your team",
+    "noRounds": "No rounds available",
+    "selected": "Selected",
+    "enrolled": "You are enrolled",
+    "enrollmentPending": "Enrollment pending",
+    "statusActive": "In Progress",
+    "statusCompleted": "Completed",
+    "statusEnrolled": "Enrolled",
+    "statusUpcoming": "Upcoming",
+    "manageTeam": "Manage Team",
+    "editTeam": "Edit Team",
+    "payConfirm": "Pay and Confirm",
+    "buildTeam": "Build Team",
+    "enroll": "Enroll",
+    "viewResults": "View Results",
+    "enrollmentClosed": "Enrollment Closed",
+    "copyPrevious": "Copy team from previous round",
+    "teamWithoutPayment": "Team created without official payment"
   }
 }

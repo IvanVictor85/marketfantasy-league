@@ -109,6 +109,17 @@ export function TeamsContent() {
   const lastCheckRef = useRef<string | null>(null);
   const checkInProgressRef = useRef<boolean>(false);
   const isChangingLeagueRef = useRef<boolean>(false);
+  const loadTemplateInProgressRef = useRef<boolean>(false);
+
+  // 📦 Cache de enrollment para evitar chamadas duplicadas à API
+  const cachedEnrollmentRef = useRef<{
+    competitionId: string;
+    data: { hasPaid: boolean; hasTeam: boolean; isEnrolled: boolean };
+    timestamp: number;
+  } | null>(null);
+
+  // 🎯 Ref para rastrear qual rodada foi carregada com sucesso (evita recarregar)
+  const lastLoadedCompetitionRef = useRef<string | null>(null);
   
   // 🏆 Buscar ligas disponíveis da API
   useEffect(() => {
@@ -192,15 +203,16 @@ export function TeamsContent() {
 
     // ✅ NOVA LÓGICA: Também verificar se a competição está ACTIVE
     // Para template (main_template), sempre permitir edição (desde que no horário correto)
-    // Para ligas reais, bloquear se a competição estiver ACTIVE
+    // Para ligas reais, bloquear se a competição estiver ACTIVE ou COMPLETED
     let competitionAllowed = true;
     if (selectedLeagueId !== 'main_template') {
       // ✅ PRIORIZAR status da rodada SELECIONADA se existir
       const statusToCheck = selectedCompetitionStatus || competitionData?.status;
 
       if (statusToCheck) {
-        // Se a competição estiver ACTIVE, bloquear edição (comparação case-insensitive)
-        competitionAllowed = statusToCheck.toUpperCase() !== 'ACTIVE';
+        // Se a competição estiver ACTIVE ou COMPLETED, bloquear edição (comparação case-insensitive)
+        const status = statusToCheck.toUpperCase();
+        competitionAllowed = status !== 'ACTIVE' && status !== 'COMPLETED';
       }
     }
 
@@ -262,6 +274,12 @@ export function TeamsContent() {
 
   // 📋 Função NOVA para carregar template (sem verificação de pagamento)
   const loadMainTemplate = useCallback(async () => {
+    // 🛡️ SAFEGUARD: Evitar chamadas duplicadas
+    if (loadTemplateInProgressRef.current) {
+      console.log('🛡️ loadMainTemplate: Chamada em progresso, ignorando');
+      return;
+    }
+
     console.log('📋 loadMainTemplate: Carregando time principal (template)');
 
     if (!user || !isAuthenticated) {
@@ -269,6 +287,7 @@ export function TeamsContent() {
       return;
     }
 
+    loadTemplateInProgressRef.current = true;
     setIsLoadingTeam(true);
 
     try {
@@ -285,7 +304,7 @@ export function TeamsContent() {
 
           // Carregar jogadores com dados do CoinGecko
           const loadedPlayers: Player[] = teamData.team.tokens.map((symbol: string, index: number) => {
-            const tokenDetail = teamData.tokenDetails.find((t: any) => t.symbol === symbol);
+            const tokenDetail = teamData.tokenDetails.find((t: any) => t.symbol?.toUpperCase() === symbol?.toUpperCase());
             return {
               id: symbol,
               position: index + 1,
@@ -313,32 +332,39 @@ export function TeamsContent() {
       }
     } catch (error) {
       console.error('❌ loadMainTemplate: Erro:', error);
-      setPaymentError('Erro ao carregar time principal');
+      setPaymentError(t('errorLoadingMainTeam'));
     } finally {
       setIsLoadingTeam(false);
+      loadTemplateInProgressRef.current = false; // 🛡️ Liberar safeguard
     }
   }, [user, isAuthenticated]);
 
   // Função para verificar status de pagamento e carregar time existente
   const checkPaymentAndLoadTeam = useCallback(async () => {
-    // 🛡️ SAFEGUARD 1: Prevent duplicate calls
-    const checkKey = `${user?.id}-${selectedLeagueId}`;
-    if (checkInProgressRef.current || lastCheckRef.current === checkKey) {
-      console.log('🛡️ SAFEGUARD: Chamada duplicada bloqueada', { checkKey, inProgress: checkInProgressRef.current });
+    // Determinar competitionId efetivo ANTES de criar a chave
+    const effectiveCompetitionId = selectedCompetitionId || competitionData?.competitionId;
+
+    // 🛡️ SAFEGUARD 1: Prevent duplicate calls - incluir competitionId na chave
+    const checkKey = `${user?.id}-${selectedLeagueId}-${effectiveCompetitionId || 'no-comp'}`;
+    if (checkInProgressRef.current) {
+      console.log('🛡️ SAFEGUARD: Chamada em progresso bloqueada', { checkKey });
+      return;
+    }
+    if (lastCheckRef.current === checkKey) {
+      console.log('🛡️ SAFEGUARD: Mesma verificação já realizada', { checkKey });
       return;
     }
 
     console.log('🔍 checkPaymentAndLoadTeam: Verificando entrada na liga', {
       timestamp: new Date().toISOString(),
-      connected,
       userId: user?.id,
-      selectedLeagueId
+      selectedLeagueId,
+      effectiveCompetitionId
     });
 
     if (!user || !isAuthenticated) {
       console.log('DEBUG checkPaymentAndLoadTeam: Usuário não autenticado');
       setHasValidEntry(null);
-      checkInProgressRef.current = false;
       return;
     }
 
@@ -350,60 +376,53 @@ export function TeamsContent() {
     setPaymentError(null);
 
     try {
-      // 🎯 CORREÇÃO CRÍTICA: Buscar time vinculado à rodada específica
       console.log('DEBUG checkPaymentAndLoadTeam: Buscando time existente');
-
-      // Construir URL com competitionId se disponível
-      // Priorizar selectedCompetitionId (escolha manual do usuário) sobre competitionData.competitionId
-      const effectiveCompetitionId = selectedCompetitionId || competitionData?.competitionId;
-
-      console.log('DEBUG checkPaymentAndLoadTeam: IDs disponíveis:', {
-        selectedCompetitionId,
-        competitionDataId: competitionData?.competitionId,
-        effectiveCompetitionId
-      });
 
       let teamUrl = `/api/team?leagueId=${selectedLeagueId}`;
       if (effectiveCompetitionId) {
         teamUrl += `&competitionId=${effectiveCompetitionId}`;
         console.log('DEBUG checkPaymentAndLoadTeam: URL da API:', teamUrl);
-      } else {
-        console.log('⚠️ checkPaymentAndLoadTeam: Nenhum competitionId disponível!');
       }
 
       const teamResponse = await fetch(teamUrl);
 
-      console.log('DEBUG checkPaymentAndLoadTeam: Resposta da busca de time:', {
-        status: teamResponse.status,
-        ok: teamResponse.ok
-      });
+      console.log('DEBUG checkPaymentAndLoadTeam: Resposta:', { status: teamResponse.status });
 
       // Variável para armazenar o status de pagamento
       let hasValidPayment = false;
 
-      // ✅ Verificar entrada na competição SOMENTE se tivermos competitionId
-      // Priorizar selectedCompetitionId (escolha manual do usuário) sobre competitionData.competitionId
-      const effectiveCompetitionIdForEntry = selectedCompetitionId || competitionData?.competitionId;
+      // ✅ OTIMIZAÇÃO: Usar cache de enrollment se disponível e válido (5 min TTL)
+      const ENROLLMENT_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+      const cachedEnrollment = cachedEnrollmentRef.current;
+      const cacheValid = cachedEnrollment &&
+        cachedEnrollment.competitionId === effectiveCompetitionId &&
+        (Date.now() - cachedEnrollment.timestamp) < ENROLLMENT_CACHE_TTL;
 
-      if (effectiveCompetitionIdForEntry) {
-        console.log('DEBUG checkPaymentAndLoadTeam: Verificando entrada na competição:', effectiveCompetitionIdForEntry);
+      if (cacheValid) {
+        console.log('✅ CACHE HIT: Usando dados de enrollment cacheados');
+        hasValidPayment = cachedEnrollment.data.hasPaid;
+      } else if (effectiveCompetitionId) {
+        console.log('🌐 CACHE MISS: Buscando enrollment da API');
         const entryResponse = await fetch('/api/league/check-entry', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
           },
-          body: JSON.stringify({
-            competitionId: effectiveCompetitionIdForEntry
-          })
+          body: JSON.stringify({ competitionId: effectiveCompetitionId })
         });
 
         if (entryResponse.ok) {
           const entryData = await entryResponse.json();
           hasValidPayment = entryData.hasPaid;
-          console.log('DEBUG checkPaymentAndLoadTeam: Status de pagamento:', hasValidPayment);
-        } else {
-          console.log('DEBUG checkPaymentAndLoadTeam: Erro ao verificar entrada na liga');
+
+          // 💾 Salvar no cache
+          cachedEnrollmentRef.current = {
+            competitionId: effectiveCompetitionId,
+            data: { hasPaid: entryData.hasPaid, hasTeam: entryData.hasTeam, isEnrolled: entryData.isEnrolled },
+            timestamp: Date.now()
+          };
+          console.log('💾 Enrollment salvo no cache');
         }
       } else {
         console.log('⏳ checkPaymentAndLoadTeam: competitionId não disponível, pulando verificação de entrada');
@@ -430,7 +449,7 @@ export function TeamsContent() {
           if (teamData.tokenDetails && teamData.team.tokens) {
             console.log('DEBUG checkPaymentAndLoadTeam: Carregando players do time existente');
             const loadedPlayers: Player[] = teamData.team.tokens.map((symbol: string, index: number) => {
-              const tokenDetail = teamData.tokenDetails.find((t: any) => t.symbol === symbol || t.symbol === symbol);
+              const tokenDetail = teamData.tokenDetails.find((t: any) => t.symbol?.toUpperCase() === symbol?.toUpperCase());
               return {
                 id: symbol, // Usar símbolo como ID para consistência
                 position: index + 1,
@@ -448,6 +467,8 @@ export function TeamsContent() {
             });
             console.log('DEBUG checkPaymentAndLoadTeam: Players carregados:', loadedPlayers);
             setPlayers(loadedPlayers);
+            // 🎯 Marcar rodada como carregada com sucesso
+            lastLoadedCompetitionRef.current = effectiveCompetitionId || null;
           }
         } else {
           console.log('DEBUG checkPaymentAndLoadTeam: Nenhum time existente encontrado');
@@ -571,25 +592,86 @@ export function TeamsContent() {
   // Por enquanto, não aplicamos filtros fixos (isso dependerá de como as ligas serão categorizadas no futuro)
   const fixedFilter = undefined;
 
-  // Função para lidar com seleção de competição
-  const handleSelectCompetition = (competitionId: string) => {
-    console.log('🏆 handleSelectCompetition: Selecionando rodada:', competitionId);
+  // ✅ DEBOUNCING: Timer para evitar múltiplas requisições ao navegar rapidamente entre rodadas
+  const competitionSelectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Limpar refs de verificação para permitir nova carga
-    lastCheckRef.current = null;
-    checkInProgressRef.current = false;
+  // Função para lidar com seleção de competição (com debouncing)
+  const handleSelectCompetition = (competitionId: string, enrollmentData?: { hasPaid: boolean; hasTeam: boolean; isEnrolled: boolean }) => {
+    // ✅ OTIMIZAÇÃO: Ignorar se a mesma rodada já foi carregada com sucesso
+    const alreadyLoaded = lastLoadedCompetitionRef.current === competitionId && players.length > 0;
+    if (alreadyLoaded && !isLoadingTeam) {
+      console.log('🛡️ handleSelectCompetition: Rodada já carregada, ignorando', { competitionId, lastLoaded: lastLoadedCompetitionRef.current });
+      // Ainda cachear enrollment data se fornecido (para uso futuro)
+      if (enrollmentData) {
+        cachedEnrollmentRef.current = { competitionId, data: enrollmentData, timestamp: Date.now() };
+      }
+      // Garantir que o selectedCompetitionId está correto
+      if (selectedCompetitionId !== competitionId) {
+        setSelectedCompetitionId(competitionId);
+      }
+      return;
+    }
 
-    // Limpar estado anterior
-    setPlayers([]);
-    setExistingTeam(null);
-    setHasValidEntry(null);
-    setPaymentError(null);
-    setSuccessMessage(null);
-    setIsLoadingTeam(true);
+    console.log('🏆 handleSelectCompetition: Selecionando rodada:', competitionId, enrollmentData ? '(com enrollment data)' : '');
 
-    // Atualizar competição selecionada
-    setSelectedCompetitionId(competitionId);
+    // ✅ OTIMIZAÇÃO: Cachear enrollment data se recebido do CompetitionNavigator
+    if (enrollmentData) {
+      cachedEnrollmentRef.current = {
+        competitionId,
+        data: enrollmentData,
+        timestamp: Date.now()
+      };
+      console.log('💾 Enrollment data cacheado do Navigator');
+    }
+
+    // ✅ Cancelar timer pendente (debouncing)
+    if (competitionSelectTimerRef.current) {
+      clearTimeout(competitionSelectTimerRef.current);
+      console.log('⏸️ Debounce: Cancelando seleção anterior');
+    }
+
+    // ✅ Aguardar 150ms antes de processar (reduzido de 300ms)
+    competitionSelectTimerRef.current = setTimeout(() => {
+      // 🛡️ DOUBLE-CHECK: Verificar novamente se já não carregou enquanto esperava o debounce
+      if (lastLoadedCompetitionRef.current === competitionId && players.length > 0) {
+        console.log('🛡️ Debounce: Rodada já carregada durante espera, ignorando');
+        setSelectedCompetitionId(competitionId); // Garantir estado correto
+        return;
+      }
+
+      console.log('✅ Debounce: Processando seleção da rodada:', competitionId);
+
+      // 🛡️ NÃO limpar refs se há uma chamada em progresso - evita chamadas duplicadas
+      if (!checkInProgressRef.current) {
+        // Limpar refs de verificação para permitir nova carga (apenas se não há chamada em andamento)
+        lastCheckRef.current = null;
+
+        // Limpar estado anterior
+        setPlayers([]);
+        setExistingTeam(null);
+        setHasValidEntry(null);
+        setPaymentError(null);
+        setSuccessMessage(null);
+        setIsLoadingTeam(true);
+
+        // Atualizar competição selecionada
+        setSelectedCompetitionId(competitionId);
+      } else {
+        console.log('🛡️ Debounce: Chamada em progresso, apenas atualizando selectedCompetitionId');
+        // Apenas atualizar a competição selecionada, não limpar estado
+        setSelectedCompetitionId(competitionId);
+      }
+    }, 150); // 150ms de debounce (otimizado)
   };
+
+  // ✅ Cleanup: Limpar timer ao desmontar componente (evitar memory leak)
+  useEffect(() => {
+    return () => {
+      if (competitionSelectTimerRef.current) {
+        clearTimeout(competitionSelectTimerRef.current);
+      }
+    };
+  }, []);
 
   // Função para copiar time da rodada anterior
   const handleCopyFromPrevious = async (competitionId: string) => {
@@ -644,7 +726,7 @@ export function TeamsContent() {
 
       // 3. Copiar jogadores com dados do CoinGecko
       const copiedPlayers: Player[] = previousTeamData.team.tokens.map((symbol: string, index: number) => {
-        const tokenDetail = previousTeamData.tokenDetails?.find((t: any) => t.symbol === symbol);
+        const tokenDetail = previousTeamData.tokenDetails?.find((t: any) => t.symbol?.toUpperCase() === symbol?.toUpperCase());
         return {
           id: symbol,
           position: index + 1,
@@ -686,6 +768,11 @@ export function TeamsContent() {
     // 🛡️ SAFEGUARD: Limpar refs de verificação para permitir nova carga
     lastCheckRef.current = null;
     checkInProgressRef.current = false;
+    loadTemplateInProgressRef.current = false;
+
+    // 🧹 INVALIDAR CACHE: Enrollment data não é válido para outra liga
+    cachedEnrollmentRef.current = null;
+    lastLoadedCompetitionRef.current = null;
 
     // 🧹 LIMPEZA IMEDIATA DE ESTADO (UX Fix)
     // Remove dados antigos da tela ANTES de buscar novos dados
@@ -791,7 +878,7 @@ export function TeamsContent() {
 
       // Importar jogadores com dados do CoinGecko que já vêm da API
       const importedPlayers: Player[] = mainTeamTokens.slice(0, 10).map((symbol: string, index: number) => {
-        const tokenDetail = teamData.tokenDetails?.find((t: any) => t.symbol === symbol);
+        const tokenDetail = teamData.tokenDetails?.find((t: any) => t.symbol?.toUpperCase() === symbol?.toUpperCase());
         return {
           id: symbol,
           position: index + 1,
@@ -983,7 +1070,7 @@ export function TeamsContent() {
   const handlePayEntryFee = async () => {
     if (!program || !publicKey) {
       console.error("Programa Anchor ou carteira não estão prontos.");
-      setPaymentError("Por favor, conecte sua carteira primeiro.");
+      setPaymentError(t('connectWalletFirst'));
       return;
     }
 
@@ -1033,7 +1120,7 @@ export function TeamsContent() {
           console.log("✅ Inicialização confirmada!");
         } catch (initError) {
           console.error("❌ Erro ao inicializar vault:", initError);
-          throw new Error("Falha ao inicializar o vault. Tente novamente.");
+          throw new Error(t('vaultInitError'));
         }
       }
 
@@ -1130,7 +1217,7 @@ export function TeamsContent() {
 
       // 6. Atualizar a UI
       setHasValidEntry(true);
-      setSuccessMessage("Pagamento de 0.025 SOL confirmado! Você já pode escalar seu time.");
+      setSuccessMessage(t('paymentConfirmedMessage'));
 
       // 7. Recarregar dados do time para refletir hasValidEntry
       await checkPaymentAndLoadTeam();
@@ -1262,8 +1349,8 @@ export function TeamsContent() {
           console.log('🔄 handleSaveTeam: Atualizando players com dados da API');
           
           const updatedPlayers: Player[] = data.team.tokens.map((symbol: string, index: number) => {
-            const tokenDetail = data.tokenDetails.find((t: any) => t.symbol === symbol || t.symbol === symbol);
-            const existingPlayer = players.find(p => (p.symbol || p.symbol) === symbol);
+            const tokenDetail = data.tokenDetails.find((t: any) => t.symbol?.toUpperCase() === symbol?.toUpperCase());
+            const existingPlayer = players.find(p => p.symbol?.toUpperCase() === symbol?.toUpperCase());
 
             return {
               id: symbol, // Usar símbolo como ID para consistência
@@ -1361,7 +1448,7 @@ export function TeamsContent() {
             {/* Seletor de Liga */}
             <Select value={selectedLeagueId} onValueChange={handleLeagueChange} disabled={isLoadingLeagues || leagues.length === 0}>
               <SelectTrigger className="w-full sm:w-[240px]">
-                <SelectValue placeholder={isLoadingLeagues ? "Carregando ligas..." : "Selecionar Liga"} />
+                <SelectValue placeholder={isLoadingLeagues ? t('loadingLeagues') : t('selectLeague')} />
               </SelectTrigger>
               <SelectContent>
                 {/* Opção Template: Meu Time Principal */}
@@ -1408,7 +1495,7 @@ export function TeamsContent() {
                 {isLoadingTeam ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Carregando...
+                    {t('loading')}
                   </>
                 ) : (
                   <>
@@ -1458,7 +1545,7 @@ export function TeamsContent() {
           <Alert className="mb-6">
             <Loader2 className="h-4 w-4 animate-spin" />
             <AlertDescription>
-              Verificando status do pagamento e carregando time...
+              {t('verifyingPayment')}
             </AlertDescription>
           </Alert>
         )}
@@ -1497,7 +1584,7 @@ export function TeamsContent() {
                       disabled={isLoadingTeam}
                       className="text-orange-600 border-orange-300 hover:bg-orange-100"
                     >
-                      {isLoadingTeam ? "Processando..." : `Pagar ${currentLeague.entryFee} SOL e Entrar`}
+                      {isLoadingTeam ? t('processing') : t('payAndJoin', { fee: currentLeague.entryFee })}
                     </Button>
                   </div>
                 )}
@@ -1606,8 +1693,10 @@ export function TeamsContent() {
                       {t('teamSetup')}
                     </div>
 
-                    {/* ✅ CONTADOR UNIFICADO DA RODADA */}
-                    <CountdownTimer leagueId={selectedLeagueId} className="text-xs" />
+                    {/* ✅ CONTADOR UNIFICADO DA RODADA - Apenas para ligas reais, não template */}
+                    {selectedLeagueId !== 'main_template' && (
+                      <CountdownTimer leagueId={selectedLeagueId} className="text-xs" />
+                    )}
 
                   </div>
 
@@ -1657,10 +1746,11 @@ export function TeamsContent() {
                   selectedToken={selectedToken}
                   onTokenAdd={handleTokenAdd}
                   selectedPosition={selectedPosition}
-                  roundScore={existingTeam?.totalScore}
+                  roundScore={existingTeam?.totalPoints}
                   roundRank={existingTeam?.rank}
                   leagueTotalScore={leagueStats?.totalScore}
                   leagueRank={leagueStats?.rank}
+                  competitionStatus={selectedCompetitionStatus || competitionData?.status}
                 />
               </CardContent>
             </Card>
@@ -1678,9 +1768,16 @@ export function TeamsContent() {
                   {/* Pontuação da Rodada */}
                   <div className="text-center">
                     <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {existingTeam?.totalScore?.toFixed(2) || 'N/A'}
+                      {existingTeam?.totalPoints !== undefined ? existingTeam.totalPoints.toFixed(2) : 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300">Pontuação da Rodada</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                      {t('roundScore')}
+                      {selectedCompetitionStatus === 'ACTIVE' && existingTeam?.totalPoints === 0 && (
+                        <div className="text-xs text-orange-500 mt-1">
+                          (Aguardando conclusão)
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Ranking da Rodada */}
@@ -1688,7 +1785,14 @@ export function TeamsContent() {
                     <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {existingTeam?.rank ? `#${existingTeam.rank}` : 'N/A'}
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300">Ranking da Rodada</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                      {t('roundRanking')}
+                      {selectedCompetitionStatus === 'ACTIVE' && (
+                        <div className="text-xs text-orange-500 mt-1">
+                          (Aguardando conclusão)
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Melhor Ativo (baseado em change_7d) */}

@@ -14,7 +14,8 @@ import {
   BarChart3,
   Globe,
   Clock,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { useTokens, type Token } from '@/hooks/use-tokens';
 import { type TokenMarketData } from '@/data/expanded-tokens';
@@ -85,23 +86,27 @@ interface TokenMarketProps {
     label: string;
   };
   onAutoPosition?: (token: Token) => void;
+  isTemplateMode?: boolean; // Indica se está editando template (não mostra aviso de bloqueio)
 }
 
-export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, onTokenSelect, usedTokens = [], fixedFilter, onAutoPosition }: TokenMarketProps) {
+export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, onTokenSelect, usedTokens = [], fixedFilter, onAutoPosition, isTemplateMode = false }: TokenMarketProps) {
   const tCommon = useTranslations('common');
   const t = useTranslations('market');
 
   // Use different hooks based on filter type
   const isXStocks = fixedFilter?.type === 'xstocks';
-  
-  // Regular tokens hook
+
+  // Regular tokens hook - now also returns competition data
   const regularTokensData = useTokens();
-  
+
   // XStocks tokens hook
   const xstocksTokensData = useXstocksTokens({
     autoFetch: isXStocks,
     debug: false
   });
+
+  // Extract competition data (only available for regular tokens, not xStocks)
+  const competition = !isXStocks ? regularTokensData.competition : null;
   
   // Memoize the mapped xStocks tokens to prevent recreation on every render
   const mappedXStocksTokens = useMemo(() => {
@@ -350,7 +355,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-64">
-            <div className="text-red-500">Erro ao carregar tokens: {error}</div>
+            <div className="text-red-500">{tCommon('errorLoadingTokens')} {error}</div>
           </div>
         </CardContent>
       </Card>
@@ -373,7 +378,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
               </Badge>
             )}
           </div>
-          
+
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -394,7 +399,24 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
             </Button>
           </div>
         </div>
-        
+
+        {/* ⚠️ AVISO: Edição Bloqueada (não mostrar para templates) */}
+        {!isTemplateMode && competition && !competition.isEditingAllowed && (
+          <div className="mt-4 px-3 py-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-md">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                  Rodada em Andamento
+                </p>
+                <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
+                  A edição de times está bloqueada enquanto a competição está ATIVA. Você pode visualizar os tokens disponíveis, mas não poderá salvar alterações até a próxima rodada.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 flex flex-col md:flex-row gap-2 px-2 md:px-0">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -412,7 +434,7 @@ export function TokenMarket({ onSelectToken, selectedPosition, selectedToken, on
           >
             {timePeriods.map((period) => (
               <option key={period.value} value={period.value}>
-                Período: {period.label}
+                {t('periodLabel')} {period.label}
               </option>
             ))}
           </select>

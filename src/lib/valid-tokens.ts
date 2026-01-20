@@ -22,6 +22,7 @@ export const VALID_TOKEN_SYMBOLS = [
   'COAI',
   'CRO',
   'DAI',
+  'DASH',
   'DOGE',
   'DOT',
   'ENA',

@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
 
     const pendingCompetitions = await prisma.competition.findMany({
       where: {
-        status: 'pending',
-        startTime: {
+        status: 'PENDING',
+        startDate: {  // ✅ CORREÇÃO: startDate (não startTime)
           gte: oneDayAgo,
           lte: oneDayLater
         }

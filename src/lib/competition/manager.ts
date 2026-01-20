@@ -6,10 +6,12 @@
  * - Cálculo de pontuações
  * - Rankings
  * - Determinação de vencedores e prêmios
+ *
+ * ✅ REFATORADO: Agora usa UserTeam em vez de Team (legacy)
  */
 
 import { prisma } from '@/lib/prisma';
-import { getMarketDataByTokenIds, symbolsToIds } from '@/lib/services/coingecko.service';
+import { getMarketDataByIds, symbolsToIds } from '@/lib/services/cache';
 
 // ============================================
 // TYPES
@@ -57,36 +59,37 @@ export interface TeamScore {
 
 /**
  * Cria snapshot de preços no início da competição
- * Usa a nova função getMarketDataByTokenIds para buscar preços frescos
+ * ✅ REFATORADO: Usa UserTeam filtrado por competitionId
  */
 export async function createStartSnapshot(competitionId: string): Promise<TokenSnapshot[]> {
   console.log(`📸 Criando snapshot inicial para competição ${competitionId}...`);
 
   try {
-    // Buscar a competição
-    const competition = await prisma.competition.findUnique({
-      where: { id: competitionId },
+    // ✅ NOVO: Buscar UserTeams da competição diretamente
+    const userTeams = await prisma.userTeam.findMany({
+      where: { competitionId },
       include: {
-        league: {
-          include: {
-            teams: true
+        user: {
+          select: {
+            id: true,
+            name: true,
+            publicKey: true
           }
         }
       }
     });
 
-    if (!competition) {
-      throw new Error(`Competição ${competitionId} não encontrada`);
-    }
+    console.log(`👥 Encontrados ${userTeams.length} times na competição`);
 
     // Coletar todos os tokens únicos dos times
     const allTokens = new Set<string>();
-    competition.league.teams.forEach(team => {
+    userTeams.forEach(userTeam => {
       try {
-        const tokens = JSON.parse(team.tokens) as string[];
+        // ✅ IMPORTANTE: players já é JSON, não precisa de parse
+        const tokens = userTeam.players as string[];
         tokens.forEach(token => allTokens.add(token));
       } catch (error) {
-        console.error(`❌ Erro ao parsear tokens do time ${team.id}:`, error);
+        console.error(`❌ Erro ao processar tokens do time ${userTeam.id}:`, error);
       }
     });
 
@@ -99,7 +102,7 @@ export async function createStartSnapshot(competitionId: string): Promise<TokenS
     console.log(`🔄 Convertidos ${symbolsArray.length} símbolos → ${tokenIds.length} IDs`);
 
     // Buscar preços atuais da CoinGecko (dados frescos)
-    const marketTokens = await getMarketDataByTokenIds(tokenIds);
+    const marketTokens = await getMarketDataByIds(tokenIds);
 
     const snapshots: TokenSnapshot[] = [];
     const now = new Date();
@@ -114,7 +117,7 @@ export async function createStartSnapshot(competitionId: string): Promise<TokenS
       const price = priceMap.get(symbol.toUpperCase());
 
       if (price !== undefined) {
-        // Salvar no banco
+        // Salvar no PriceHistory
         await prisma.priceHistory.create({
           data: {
             tokenSymbol: symbol,
@@ -124,13 +127,44 @@ export async function createStartSnapshot(competitionId: string): Promise<TokenS
           }
         });
 
+        // ✅ CORREÇÃO DE BUG: Usar upsert em vez de updateMany
+        // Isso garante que tokens escalados em times mas fora do Top 100
+        // sejam criados no CompetitionToken se não existirem
+        const tokenData = marketTokens.find(t => t.symbol.toUpperCase() === symbol.toUpperCase());
+
+        if (tokenData) {
+          await prisma.competitionToken.upsert({
+            where: {
+              competitionId_tokenId: {
+                competitionId: competitionId,
+                tokenId: tokenData.id
+              }
+            },
+            update: {
+              priceStart: price,
+              priceStartDate: now
+            },
+            create: {
+              competitionId: competitionId,
+              tokenId: tokenData.id,
+              symbol: tokenData.symbol,
+              name: tokenData.name,
+              imageUrl: tokenData.image,
+              marketCapRank: tokenData.market_cap_rank,
+              priceStart: price,
+              priceStartDate: now
+            }
+          });
+          console.log(`  ✅ ${symbol}: $${price}`);
+        } else {
+          console.warn(`  ⚠️ Token ${symbol} não encontrado nos dados de mercado`);
+        }
+
         snapshots.push({
           symbol,
           price: price,
           timestamp: now
         });
-
-        console.log(`  ✅ ${symbol}: $${price}`);
       } else {
         console.warn(`  ⚠️ Token ${symbol} não encontrado no mercado`);
       }
@@ -147,36 +181,37 @@ export async function createStartSnapshot(competitionId: string): Promise<TokenS
 
 /**
  * Cria snapshot de preços no fim da competição
- * Usa a nova função getMarketDataByTokenIds para buscar preços frescos
+ * ✅ REFATORADO: Usa UserTeam filtrado por competitionId
  */
 export async function createEndSnapshot(competitionId: string): Promise<TokenSnapshot[]> {
   console.log(`📸 Criando snapshot final para competição ${competitionId}...`);
 
   try {
-    // Buscar a competição
-    const competition = await prisma.competition.findUnique({
-      where: { id: competitionId },
+    // ✅ NOVO: Buscar UserTeams da competição diretamente
+    const userTeams = await prisma.userTeam.findMany({
+      where: { competitionId },
       include: {
-        league: {
-          include: {
-            teams: true
+        user: {
+          select: {
+            id: true,
+            name: true,
+            publicKey: true
           }
         }
       }
     });
 
-    if (!competition) {
-      throw new Error(`Competição ${competitionId} não encontrada`);
-    }
+    console.log(`👥 Encontrados ${userTeams.length} times na competição`);
 
     // Coletar todos os tokens únicos
     const allTokens = new Set<string>();
-    competition.league.teams.forEach(team => {
+    userTeams.forEach(userTeam => {
       try {
-        const tokens = JSON.parse(team.tokens) as string[];
+        // ✅ IMPORTANTE: players já é JSON, não precisa de parse
+        const tokens = userTeam.players as string[];
         tokens.forEach(token => allTokens.add(token));
       } catch (error) {
-        console.error(`❌ Erro ao parsear tokens do time ${team.id}:`, error);
+        console.error(`❌ Erro ao processar tokens do time ${userTeam.id}:`, error);
       }
     });
 
@@ -189,7 +224,7 @@ export async function createEndSnapshot(competitionId: string): Promise<TokenSna
     console.log(`🔄 Convertidos ${symbolsArray.length} símbolos → ${tokenIds.length} IDs`);
 
     // Buscar preços atuais da CoinGecko (dados frescos)
-    const marketTokens = await getMarketDataByTokenIds(tokenIds);
+    const marketTokens = await getMarketDataByIds(tokenIds);
 
     const snapshots: TokenSnapshot[] = [];
     const now = new Date();
@@ -204,7 +239,7 @@ export async function createEndSnapshot(competitionId: string): Promise<TokenSna
       const price = priceMap.get(symbol.toUpperCase());
 
       if (price !== undefined) {
-        // Salvar no banco
+        // Salvar no PriceHistory
         await prisma.priceHistory.create({
           data: {
             tokenSymbol: symbol,
@@ -213,6 +248,28 @@ export async function createEndSnapshot(competitionId: string): Promise<TokenSna
             source: `competition_end_${competitionId}`
           }
         });
+
+        // ✅ CRÍTICO: Atualizar CompetitionToken.priceEnd e calcular percentChange
+        const competitionToken = await prisma.competitionToken.findFirst({
+          where: {
+            competitionId: competitionId,
+            symbol: symbol
+          }
+        });
+
+        if (competitionToken && competitionToken.priceStart) {
+          const priceStart = Number(competitionToken.priceStart);
+          const percentChange = ((price - priceStart) / priceStart) * 100;
+
+          await prisma.competitionToken.update({
+            where: { id: competitionToken.id },
+            data: {
+              priceEnd: price,
+              priceEndDate: now,
+              percentChange: percentChange
+            }
+          });
+        }
 
         snapshots.push({
           symbol,
@@ -241,26 +298,27 @@ export async function createEndSnapshot(competitionId: string): Promise<TokenSna
 
 /**
  * Calcula pontuação de todos os times na competição
+ * ✅ REFATORADO: Usa UserTeam e atualiza totalPoints
  */
 export async function calculateAllScores(competitionId: string): Promise<TeamScore[]> {
   console.log(`🧮 Calculando pontuações para competição ${competitionId}...`);
 
   try {
-    // Buscar a competição com times
-    const competition = await prisma.competition.findUnique({
-      where: { id: competitionId },
+    // ✅ NOVO: Buscar UserTeams diretamente
+    const userTeams = await prisma.userTeam.findMany({
+      where: { competitionId },
       include: {
-        league: {
-          include: {
-            teams: true
+        user: {
+          select: {
+            id: true,
+            name: true,
+            publicKey: true
           }
         }
       }
     });
 
-    if (!competition) {
-      throw new Error(`Competição ${competitionId} não encontrada`);
-    }
+    console.log(`👥 Encontrados ${userTeams.length} times na competição`);
 
     // Buscar snapshots de preços
     const startSnapshots = await prisma.priceHistory.findMany({
@@ -292,9 +350,10 @@ export async function calculateAllScores(competitionId: string): Promise<TeamSco
     const teamScores: TeamScore[] = [];
 
     // Calcular pontuação para cada time
-    for (const team of competition.league.teams) {
+    for (const userTeam of userTeams) {
       try {
-        const tokens = JSON.parse(team.tokens) as string[];
+        // ✅ IMPORTANTE: players já é JSON, não precisa de parse
+        const tokens = userTeam.players as string[];
         let totalScore = 0;
         const breakdown = [];
 
@@ -316,29 +375,29 @@ export async function calculateAllScores(competitionId: string): Promise<TeamSco
               percentChange
             });
           } else {
-            console.warn(`⚠️ Preços não encontrados para ${symbol} no time ${team.teamName}`);
+            console.warn(`⚠️ Preços não encontrados para ${symbol} no time ${userTeam.teamName}`);
           }
         }
 
-        // Atualizar pontuação no banco
-        await prisma.team.update({
-          where: { id: team.id },
-          data: { totalScore }
+        // ✅ NOVO: Atualizar totalPoints no UserTeam (SEM rank!)
+        await prisma.userTeam.update({
+          where: { id: userTeam.id },
+          data: { totalPoints: totalScore }
         });
 
         teamScores.push({
-          teamId: team.id,
-          teamName: team.teamName,
-          userWallet: team.userWallet,
+          teamId: userTeam.id,
+          teamName: userTeam.teamName || 'Time sem nome',
+          userWallet: userTeam.user.publicKey || '',
           tokens,
           totalScore,
           breakdown
         });
 
-        console.log(`  📊 ${team.teamName}: ${totalScore.toFixed(2)}%`);
+        console.log(`  📊 ${userTeam.teamName}: ${totalScore.toFixed(2)}%`);
 
       } catch (error) {
-        console.error(`❌ Erro ao calcular score do time ${team.id}:`, error);
+        console.error(`❌ Erro ao calcular score do time ${userTeam.id}:`, error);
       }
     }
 
@@ -352,49 +411,43 @@ export async function calculateAllScores(competitionId: string): Promise<TeamSco
 }
 
 /**
- * Atualiza rankings dos times baseado em totalScore
+ * Atualiza rankings dos times baseado em totalPoints
+ * ✅ REFATORADO: UserTeam não tem coluna rank, então essa função apenas ordena
+ * O rank será calculado em runtime nos endpoints que precisam dele
  */
 export async function updateRankings(competitionId: string): Promise<void> {
   console.log(`🏆 Atualizando rankings para competição ${competitionId}...`);
 
   try {
-    // Buscar competição com times
-    const competition = await prisma.competition.findUnique({
-      where: { id: competitionId },
+    // ✅ NOVO: Buscar UserTeams ordenados por totalPoints
+    const userTeams = await prisma.userTeam.findMany({
+      where: { competitionId },
       include: {
-        league: {
-          include: {
-            teams: {
-              orderBy: {
-                totalScore: 'desc'
-              }
-            }
+        user: {
+          select: {
+            name: true,
+            publicKey: true
           }
         }
+      },
+      orderBy: {
+        totalPoints: 'desc'
       }
     });
 
-    if (!competition) {
-      throw new Error(`Competição ${competitionId} não encontrada`);
-    }
+    console.log(`👥 Ranking da competição ${competitionId}:`);
 
-    // Atualizar rank de cada time
-    for (let i = 0; i < competition.league.teams.length; i++) {
-      const team = competition.league.teams[i];
-      const rank = i + 1;
+    // ✅ IMPORTANTE: Não salvamos rank no banco, apenas exibimos
+    userTeams.forEach((team, index) => {
+      const rank = index + 1;
+      const userName = team.user.name || 'Usuário sem nome';
+      console.log(`  🥇 #${rank}: ${team.teamName} (${userName}) - ${team.totalPoints.toString()}%`);
+    });
 
-      await prisma.team.update({
-        where: { id: team.id },
-        data: { rank }
-      });
-
-      console.log(`  🥇 #${rank}: ${team.teamName} (${team.totalScore?.toFixed(2)}%)`);
-    }
-
-    console.log(`✅ Rankings atualizados para ${competition.league.teams.length} times`);
+    console.log(`✅ Rankings processados para ${userTeams.length} times`);
 
   } catch (error) {
-    console.error(`❌ Erro ao atualizar rankings:`, error);
+    console.error(`❌ Erro ao processar rankings:`, error);
     throw error;
   }
 }
@@ -427,35 +480,41 @@ export function calculatePrize(
 
 /**
  * Determina vencedores e calcula prêmios
+ * ✅ REFATORADO: Usa UserTeam e calcula rank em runtime
  */
 export async function determineWinners(competitionId: string): Promise<Winner[]> {
   console.log(`🎯 Determinando vencedores para competição ${competitionId}...`);
 
   try {
-    // Buscar competição
+    // Buscar competição com league
     const competition = await prisma.competition.findUnique({
       where: { id: competitionId },
       include: {
-        league: {
-          include: {
-            teams: {
-              where: {
-                rank: {
-                  lte: 3
-                }
-              },
-              orderBy: {
-                rank: 'asc'
-              }
-            }
-          }
-        }
+        league: true
       }
     });
 
     if (!competition) {
       throw new Error(`Competição ${competitionId} não encontrada`);
     }
+
+    // ✅ NOVO: Buscar UserTeams ordenados por totalPoints
+    const userTeams = await prisma.userTeam.findMany({
+      where: { competitionId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            publicKey: true
+          }
+        }
+      },
+      orderBy: {
+        totalPoints: 'desc'
+      },
+      take: 3 // Top 3
+    });
 
     // Parse prize distribution
     let prizeDistribution: PrizeDistribution;
@@ -469,26 +528,26 @@ export async function determineWinners(competitionId: string): Promise<Winner[]>
     const winners: Winner[] = [];
 
     // Calcular prêmios para top 3
-    for (const team of competition.league.teams) {
-      if (team.rank && team.rank <= 3) {
-        const prize = calculatePrize(
-          competition.prizePool,
-          team.rank,
-          prizeDistribution
-        );
+    userTeams.forEach((team, index) => {
+      const position = index + 1; // ✅ Rank calculado em runtime
 
-        winners.push({
-          position: team.rank,
-          teamId: team.id,
-          teamName: team.teamName,
-          userWallet: team.userWallet,
-          totalScore: team.totalScore || 0,
-          prize
-        });
+      const prize = calculatePrize(
+        competition.prizePool,
+        position,
+        prizeDistribution
+      );
 
-        console.log(`  🏆 ${team.rank}º lugar: ${team.teamName} - ${prize} SOL`);
-      }
-    }
+      winners.push({
+        position,
+        teamId: team.id,
+        teamName: team.teamName || 'Time sem nome',
+        userWallet: team.user.publicKey || '',
+        totalScore: Number(team.totalPoints) || 0,
+        prize
+      });
+
+      console.log(`  🏆 ${position}º lugar: ${team.teamName} - ${prize} SOL`);
+    });
 
     // Salvar vencedores na competição
     await prisma.competition.update({
@@ -497,6 +556,32 @@ export async function determineWinners(competitionId: string): Promise<Winner[]>
         winners: JSON.stringify(winners)
       }
     });
+
+    // ✅ CRIAR PRIZE CLAIMS NO BANCO PARA CADA VENCEDOR
+    console.log('💾 Criando PrizeClaims no banco...');
+
+    for (const winner of winners) {
+      // Buscar userId do time
+      const team = await prisma.userTeam.findUnique({
+        where: { id: winner.teamId },
+        select: { userId: true }
+      });
+
+      if (team) {
+        await prisma.prizeClaim.create({
+          data: {
+            userId: team.userId,
+            competitionId: competitionId,
+            amount: winner.prize,
+            position: winner.position,
+            prizeType: 'ROUND_PRIZE',
+            claimed: false
+          }
+        });
+
+        console.log(`  💰 PrizeClaim criado: ${winner.position}º lugar - ${winner.teamName} - ${winner.prize} SOL`);
+      }
+    }
 
     console.log(`✅ Vencedores determinados: ${winners.length} times premiados`);
     return winners;
@@ -520,10 +605,10 @@ export async function canStartCompetition(competitionId: string): Promise<boolea
   });
 
   if (!competition) return false;
-  if (competition.status !== 'pending') return false;
+  if (competition.status !== 'PENDING') return false;  // ✅ CORREÇÃO: Status maiúsculo
 
   const now = new Date();
-  return now >= competition.startTime;
+  return now >= competition.startDate;  // ✅ CORREÇÃO: startDate (não startTime)
 }
 
 /**
@@ -535,8 +620,8 @@ export async function canEndCompetition(competitionId: string): Promise<boolean>
   });
 
   if (!competition) return false;
-  if (competition.status !== 'active') return false;
+  if (competition.status !== 'ACTIVE') return false;  // ✅ CORREÇÃO: Status maiúsculo
 
   const now = new Date();
-  return now >= competition.endTime;
+  return now >= competition.endDate;  // ✅ CORREÇÃO: endDate (não endTime)
 }

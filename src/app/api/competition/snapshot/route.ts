@@ -1,56 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * POST /api/competition/snapshot
+ *
+ * Gera snapshot diário de pontuações para histórico
+ * ✅ REFATORADO: Usa UserTeam em vez de Team (legacy)
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { leagueId } = body;
+    const { competitionId } = body;
 
-    console.log('📸 Iniciando snapshot da competição...', { leagueId });
+    console.log('📸 Iniciando snapshot da competição...', { competitionId });
 
-    // Buscar liga (principal se não especificada)
-    let mainLeague;
-    if (leagueId) {
-      mainLeague = await prisma.league.findUnique({
-        where: { id: leagueId }
-      });
-    } else {
-      mainLeague = await prisma.league.findFirst({
-        where: {
-          leagueType: 'MAIN',
-          isActive: true
-        }
-      });
-    }
-
-    if (!mainLeague) {
+    if (!competitionId) {
       return NextResponse.json(
-        { error: 'Liga principal não encontrada' },
-        { status: 404 }
+        { error: 'competitionId é obrigatório' },
+        { status: 400 }
       );
     }
 
-    // Buscar todos os times da liga
-    const teams = await prisma.team.findMany({
-      where: {
-        leagueId: mainLeague.id,
-        hasValidEntry: true
-      },
+    // Verificar se a competição existe
+    const competition = await prisma.competition.findUnique({
+      where: { id: competitionId },
       include: {
-        user: {
+        league: {
           select: {
-            name: true,
-            email: true
+            id: true,
+            name: true
           }
         }
       }
     });
 
-    console.log(`📊 Encontrados ${teams.length} times para pontuação`);
-
-    if (teams.length === 0) {
+    if (!competition) {
       return NextResponse.json(
-        { error: 'Nenhum time encontrado na liga' },
+        { error: 'Competição não encontrada' },
+        { status: 404 }
+      );
+    }
+
+    // ✅ NOVO: Buscar UserTeams da competição
+    const userTeams = await prisma.userTeam.findMany({
+      where: {
+        competitionId: competitionId
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            publicKey: true
+          }
+        }
+      }
+    });
+
+    console.log(`📊 Encontrados ${userTeams.length} times para pontuação`);
+
+    if (userTeams.length === 0) {
+      return NextResponse.json(
+        { error: 'Nenhum time encontrado na competição' },
         { status: 404 }
       );
     }
@@ -94,22 +105,16 @@ export async function POST(request: NextRequest) {
     // ============================================================
     // CALCULAR PONTUAÇÕES DOS TIMES (SOMA DOS change_7d)
     // ============================================================
-    const teamsWithScores = teams.map(team => {
-      console.log(`\n🎯 Calculando pontuação para: ${team.teamName}`);
+    const teamsWithScores = userTeams.map(userTeam => {
+      console.log(`\n🎯 Calculando pontuação para: ${userTeam.teamName}`);
 
-      // Parse dos tokens do time
-      let teamTokens: string[] = [];
-      try {
-        teamTokens = JSON.parse(team.tokens);
-      } catch (error) {
-        console.error(`❌ Erro ao parsear tokens do time ${team.teamName}:`, error);
-        teamTokens = [];
-      }
+      // ✅ IMPORTANTE: players já é JSON, não precisa de parse
+      const teamTokens = userTeam.players as string[];
 
       if (teamTokens.length === 0) {
-        console.log(`⚠️ Time ${team.teamName} sem tokens válidos`);
+        console.log(`⚠️ Time ${userTeam.teamName} sem tokens válidos`);
         return {
-          ...team,
+          ...userTeam,
           totalScore: 0
         };
       }
@@ -124,49 +129,48 @@ export async function POST(request: NextRequest) {
         console.log(`   ${index + 1}. ${tokenSymbol}: ${change7d > 0 ? '+' : ''}${change7d.toFixed(2)}%`);
       });
 
-      // Pontuação final = soma direta dos percentuais (Opção 2a)
+      // Pontuação final = soma direta dos percentuais
       const totalScore = totalTeamPoints;
 
       console.log(`   📊 Total: ${totalScore.toFixed(2)} pontos (soma dos change_7d)`);
 
       return {
-        ...team,
+        ...userTeam,
         totalScore: Math.round(totalScore * 100) / 100 // Arredondar para 2 casas decimais
       };
     });
-    
+
     // Ordenar por pontuação (decrescente)
     teamsWithScores.sort((a, b) => b.totalScore - a.totalScore);
-    
+
     console.log('🏆 Ranking calculado:');
     teamsWithScores.forEach((team, index) => {
       console.log(`   ${index + 1}. ${team.teamName}: ${team.totalScore} pontos`);
     });
-    
-    // Atualizar times no banco com pontuação e ranking
+
+    // ✅ NOVO: Atualizar totalPoints em UserTeam (SEM rank)
     for (let i = 0; i < teamsWithScores.length; i++) {
       const team = teamsWithScores[i];
-      const rank = i + 1;
-      
-      await prisma.team.update({
+
+      await prisma.userTeam.update({
         where: { id: team.id },
         data: {
-          totalScore: team.totalScore,
-          rank: rank
+          totalPoints: team.totalScore
+          // ✅ IMPORTANTE: Não salvamos rank no banco (calculado em runtime)
         }
       });
     }
-    
-    // Atualizar estatísticas da liga
+
+    // Calcular estatísticas da rodada
     const avgScore = teamsWithScores.reduce((sum, team) => sum + team.totalScore, 0) / teamsWithScores.length;
     const maxScore = Math.max(...teamsWithScores.map(team => team.totalScore));
     const minScore = Math.min(...teamsWithScores.map(team => team.totalScore));
-    
+
     console.log(`\n📈 Estatísticas da rodada:`);
     console.log(`   🎯 Pontuação média: ${avgScore.toFixed(2)}`);
     console.log(`   🏆 Maior pontuação: ${maxScore}`);
     console.log(`   📉 Menor pontuação: ${minScore}`);
-    
+
     return NextResponse.json({
       success: true,
       message: 'Snapshot da competição realizado com sucesso',
@@ -177,13 +181,13 @@ export async function POST(request: NextRequest) {
         minScore
       },
       ranking: teamsWithScores.map((team, index) => ({
-        rank: index + 1,
+        rank: index + 1, // ✅ Rank calculado em runtime
         teamName: team.teamName,
         totalScore: team.totalScore,
         user: team.user.name
       }))
     });
-    
+
   } catch (error) {
     console.error('❌ Erro no snapshot:', error);
     return NextResponse.json(

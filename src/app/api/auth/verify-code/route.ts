@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { getCorsHeaders } from '@/lib/cors';
 
 // Função para gerar token de sessão
 function generateSessionToken(): string {
@@ -201,13 +202,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    headers: getCorsHeaders(request.headers.get('origin')),
   });
 }

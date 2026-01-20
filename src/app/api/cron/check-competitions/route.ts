@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
 
     const pendingCompetitions = await prisma.competition.findMany({
       where: {
-        status: 'pending',
-        startTime: {
+        status: 'PENDING',
+        startDate: {  // ✅ CORREÇÃO: startDate (não startTime)
           lte: oneHourLater
         }
       },
@@ -128,8 +128,8 @@ export async function POST(request: NextRequest) {
 
     const activeCompetitions = await prisma.competition.findMany({
       where: {
-        status: 'active',
-        endTime: {
+        status: 'ACTIVE',
+        endDate: {  // ✅ CORREÇÃO: endDate (não endTime)
           lte: oneHourLater
         }
       },

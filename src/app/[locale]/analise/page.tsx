@@ -121,12 +121,20 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
         )
       
       case 'social':
+        // Mapear sentimentos para chaves de tradução
+        const sentimentMap: { [key: string]: string } = {
+          '🔥 Muito Positivo': `🔥 ${t('veryPositive')}`,
+          '📈 Positivo': `📈 ${t('positive')}`,
+          '⚡ Neutro': `⚡ ${t('neutral')}`
+        };
+        const translatedSentiment = sentimentMap[item.sentiment] || item.sentiment;
+
         return (
           <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-full overflow-hidden bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 flex items-center justify-center">
-                <img 
-                  src={item.logoUrl} 
+                <img
+                  src={item.logoUrl}
                   alt={`${item.name} logo`}
                   className="w-6 h-6 object-contain"
                   onError={(e) => {
@@ -147,19 +155,27 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-slate-900 dark:text-white">{item.sentiment}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{translatedSentiment}</p>
               <p className="text-xs text-slate-500 dark:text-gray-400">{item.mentions} {t('mentions')}</p>
             </div>
           </div>
         )
       
       case 'trend':
+        // Mapear tendências para chaves de tradução
+        const trendMap: { [key: string]: string } = {
+          '🚀 Tendência de Alta': `🚀 ${t('uptrend')}`,
+          '📊 Consolidação': `📊 ${t('consolidation')}`,
+          '🎯 Acumulação': `🎯 ${t('accumulation')}`
+        };
+        const translatedTrend = trendMap[item.trend] || item.trend;
+
         return (
           <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-gray-800 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-full overflow-hidden bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 flex items-center justify-center">
-                <img 
-                  src={item.logoUrl} 
+                <img
+                  src={item.logoUrl}
                   alt={`${item.name} logo`}
                   className="w-6 h-6 object-contain"
                   onError={(e) => {
@@ -180,7 +196,7 @@ function InsightCard({ title, icon, items, type, t }: InsightCardProps) {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-slate-900 dark:text-white">{item.trend}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{translatedTrend}</p>
               <p className="text-xs text-slate-500 dark:text-gray-400">{t('confidence')}: {item.confidence}</p>
             </div>
           </div>
@@ -361,7 +377,7 @@ export default function AnalisePage() {
   // Handler para analisar time com IA
   const handleAnalyzeTeam = async () => {
     if (mainTeam.length !== 10) {
-      alert('Seu time precisa ter 10 tokens para análise');
+      alert(t('needTenTokens'));
       return;
     }
 
@@ -485,7 +501,7 @@ Agradecemos sua compreensão! 🙏`)
         {isAuthenticated && (
           <div className="mb-16">
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8 text-center">
-              🎯 Análise do Seu Time
+              🎯 {t('teamAnalysisTitle')}
             </h2>
 
             <Card className="bg-white dark:bg-gray-900 rounded-xl shadow-md border-slate-200 dark:border-gray-700">
@@ -493,7 +509,7 @@ Agradecemos sua compreensão! 🙏`)
                 <CardTitle className="flex items-center justify-between dark:text-white">
                   <div className="flex items-center space-x-2">
                     <Brain className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    <span>Seu Time Principal</span>
+                    <span>{t('yourMainTeam')}</span>
                   </div>
                   {mainTeam.length === 10 && (
                     <Button
@@ -501,7 +517,7 @@ Agradecemos sua compreensão! 🙏`)
                       className="bg-purple-600 hover:bg-purple-700"
                     >
                       <Brain className="w-4 h-4 mr-2" />
-                      Analisar com IA
+                      {t('analyzeWithAI')}
                     </Button>
                   )}
                 </CardTitle>
@@ -510,25 +526,25 @@ Agradecemos sua compreensão! 🙏`)
                 {isLoadingTeam ? (
                   <div className="flex justify-center items-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-600 dark:text-purple-400" />
-                    <span className="ml-2 text-slate-600 dark:text-gray-300">Carregando seu time...</span>
+                    <span className="ml-2 text-slate-600 dark:text-gray-300">{t('loadingYourTeam')}</span>
                   </div>
                 ) : mainTeam.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-slate-600 dark:text-gray-300 mb-4">Você ainda não tem um time criado</p>
+                    <p className="text-slate-600 dark:text-gray-300 mb-4">{t('noTeamCreated')}</p>
                     <Button asChild>
-                      <Link href="/teams">Criar Meu Time</Link>
+                      <Link href="/teams">{t('createMyTeam')}</Link>
                     </Button>
                   </div>
                 ) : mainTeam.length !== 10 ? (
                   <div className="text-center py-12">
                     <p className="text-slate-600 dark:text-gray-300 mb-4">
-                      Seu time está incompleto ({mainTeam.length}/10 tokens)
+                      {t('incompleteTeam', { count: mainTeam.length })}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
-                      Complete seu time para usar a análise da IA
+                      {t('completeTeamForAI')}
                     </p>
                     <Button asChild>
-                      <Link href="/teams">Completar Time</Link>
+                      <Link href="/teams">{t('completeTeam')}</Link>
                     </Button>
                   </div>
                 ) : (
@@ -581,13 +597,13 @@ Agradecemos sua compreensão! 🙏`)
         {/* Nova Seção: DeFi Insights */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8 text-center">
-            🏦 Insights DeFi
+            🏦 {t('defiInsights')}
           </h2>
 
           {isLoadingDefi ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-[#2A9D8F]" />
-              <span className="ml-2 text-slate-600">Carregando dados DeFi...</span>
+              <span className="ml-2 text-slate-600">{t('loadingDefiData')}</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -596,7 +612,7 @@ Agradecemos sua compreensão! 🙏`)
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                     <Flame className="w-6 h-6 text-orange-500" />
-                    <span className="text-lg font-bold">🚀 Protocolos Bombando</span>
+                    <span className="text-lg font-bold">🚀 {t('trendingProtocols')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -652,7 +668,7 @@ Agradecemos sua compreensão! 🙏`)
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                     <Layers className="w-6 h-6 text-blue-500" />
-                    <span className="text-lg font-bold">🔥 Ecossistemas Top</span>
+                    <span className="text-lg font-bold">🔥 {t('topEcosystems')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -685,7 +701,7 @@ Agradecemos sua compreensão! 🙏`)
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-white">
                     <AlertTriangle className="w-6 h-6 text-red-500" />
-                    <span className="text-lg font-bold">⚠️ Alertas TVL</span>
+                    <span className="text-lg font-bold">⚠️ {t('tvlAlerts')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -745,10 +761,10 @@ Agradecemos sua compreensão! 🙏`)
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <Brain className="h-6 w-6 text-purple-600" />
-                <span>Análise do Seu Time</span>
+                <span>{t('teamAnalysisModalTitle')}</span>
               </DialogTitle>
               <DialogDescription>
-                Análise gerada por IA sobre seu portfólio de tokens
+                {t('aiGeneratedAnalysis')}
               </DialogDescription>
             </DialogHeader>
 
@@ -756,13 +772,13 @@ Agradecemos sua compreensão! 🙏`)
               {teamAnalysisLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-purple-600 mr-3" />
-                  <span className="text-slate-600">Analisando seu time...</span>
+                  <span className="text-slate-600">{t('analyzingTeam')}</span>
                 </div>
               ) : (
                 <div className="space-y-6">
                   {/* Resumo dos Tokens */}
                   <div className="bg-slate-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-slate-900 mb-3">Seu Time Atual</h3>
+                    <h3 className="font-semibold text-slate-900 mb-3">{t('yourCurrentTeam')}</h3>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                       {mainTeam.map((player, index) => (
                         <div key={index} className="flex items-center space-x-2 bg-white rounded p-2 border border-slate-200">
@@ -789,7 +805,7 @@ Agradecemos sua compreensão! 🙏`)
 
             <DialogFooter>
               <Button onClick={() => setTeamAnalysisModalOpen(false)} variant="outline">
-                Fechar
+                {t('close')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -801,10 +817,13 @@ Agradecemos sua compreensão! 🙏`)
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <Brain className="h-6 w-6 text-purple-600" />
-                <span>Por que {selectedProtocol?.name} está {selectedProtocol && selectedProtocol.change_1d > 0 ? 'crescendo' : 'caindo'}?</span>
+                <span>{t('whyProtocol', {
+                  name: selectedProtocol?.name,
+                  direction: selectedProtocol && selectedProtocol.change_1d > 0 ? t('growing') : t('declining')
+                })}</span>
               </DialogTitle>
               <DialogDescription>
-                Análise gerada por IA sobre as mudanças no protocolo
+                {t('aiProtocolAnalysis')}
               </DialogDescription>
             </DialogHeader>
 
@@ -812,7 +831,7 @@ Agradecemos sua compreensão! 🙏`)
               {aiLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin text-purple-600 mr-3" />
-                  <span className="text-slate-600">Gerando análise...</span>
+                  <span className="text-slate-600">{t('generatingAnalysis')}</span>
                 </div>
               ) : (
                 <div className="prose prose-slate max-w-none">
@@ -855,7 +874,7 @@ Agradecemos sua compreensão! 🙏`)
 
             <DialogFooter>
               <Button onClick={() => setAiModalOpen(false)} variant="outline">
-                Fechar
+                {t('close')}
               </Button>
             </DialogFooter>
           </DialogContent>

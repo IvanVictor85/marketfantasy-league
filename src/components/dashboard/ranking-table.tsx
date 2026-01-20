@@ -10,6 +10,7 @@ interface Team {
   id: string;
   teamName: string;
   totalScore: number | null;
+  liveScore?: number; // Score calculado em tempo real para competições ACTIVE
   rank: number | null;
   tokens: string[];
   user: {
@@ -22,9 +23,10 @@ interface RankingTableProps {
   teams: Team[];
   currentUserId?: string;
   currentUserEmail?: string;
+  onTeamClick?: (team: Team) => void;
 }
 
-export function RankingTable({ teams, currentUserId, currentUserEmail }: RankingTableProps) {
+export function RankingTable({ teams, currentUserId, currentUserEmail, onTeamClick }: RankingTableProps) {
   const t = useTranslations('RankingPage');
 
   const getRankIcon = (rank: number | null) => {
@@ -70,14 +72,19 @@ export function RankingTable({ teams, currentUserId, currentUserEmail }: Ranking
           {teams.map((team, index) => {
             // CORREÇÃO: Comparar email do time com email do usuário logado
             const isCurrentUser = currentUserEmail && team.user.email === currentUserEmail;
-            const hasScore = team.totalScore !== null;
-            
+
+            // ✅ CORREÇÃO: Usar liveScore para competições ACTIVE, senão usar totalScore
+            const displayScore = team.liveScore !== undefined ? team.liveScore : team.totalScore;
+            const hasScore = displayScore !== null;
+            const isLiveScore = team.liveScore !== undefined;
+
             return (
               <div
                 key={team.id}
-                className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                  isCurrentUser 
-                    ? 'bg-primary/10 border-primary/20' 
+                onClick={() => onTeamClick?.(team)}
+                className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
+                  isCurrentUser
+                    ? 'bg-primary/10 border-primary/20'
                     : 'bg-card hover:bg-muted/50'
                 }`}
               >
@@ -85,7 +92,7 @@ export function RankingTable({ teams, currentUserId, currentUserEmail }: Ranking
                   <div className="flex items-center justify-center w-8 h-8">
                     {getRankIcon(team.rank)}
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold">{team.teamName}</h3>
@@ -94,18 +101,23 @@ export function RankingTable({ teams, currentUserId, currentUserEmail }: Ranking
                           {t('yourTeamBadge')}
                         </Badge>
                       )}
+                      {isLiveScore && (
+                        <Badge variant="outline" className="text-xs">
+                          🔴 AO VIVO
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {team.user.name}
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="text-right">
                   {hasScore ? (
                     <>
                       <div className="text-lg font-bold">
-                        {team.totalScore?.toFixed(2)} pts
+                        {displayScore?.toFixed(2)} pts
                       </div>
                       <Badge variant={getRankBadgeVariant(team.rank)}>
                         {team.rank ? `#${team.rank}` : 'N/A'}

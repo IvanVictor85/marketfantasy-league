@@ -1,116 +1,119 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getMarketDataByTokenIds, getTop100Tokens } from '@/lib/services/coingecko.service';
+import {
+  getTop100TokensWithSWR,
+  getMarketDataByIds,
+  SYMBOL_TO_ID_MAP,
+} from '@/lib/services/cache';
+import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/market
  *
- * Retorna os tokens disponíveis para draft baseado no "Static Draft Universe":
+ * Retorna os tokens disponíveis para seleção:
  *
- * 1. Busca a competição atual (ativa ou pendente)
- * 2. Lê o cardápio CONGELADO de tokens da tabela CompetitionTokens
- * 3. Busca preços FRESCOS da CoinGecko usando getMarketDataByTokenIds
- * 4. Retorna os 100 tokens com preços atualizados
+ * 1. SEMPRE busca Top 100 tokens do CoinGecko por market cap
+ * 2. Adiciona tokens que estão em times existentes mas caíram fora do Top 100
+ * 3. Retorna lista completa ordenada por market cap rank
  *
- * O cardápio é TRAVADO na criação da competição (domingo 21h),
- * garantindo que o draft seja justo durante toda a semana.
+ * A TRAVA de edição acontece no frontend/backend baseado no status da competição (ACTIVE)
+ * Os tokens disponíveis NUNCA são travados - sempre mostra Top 100 + tokens em uso
  */
 export async function GET(request: Request) {
+  // 🔒 RATE LIMITING: Prevenir spam na API pública de tokens
+  const rateLimitResult = await rateLimit(request as NextRequest, RATE_LIMITS.PUBLIC_API);
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.reset);
+  }
+
   const startTime = Date.now();
 
   try {
-    console.log('🔍 API /api/market: Buscando cardápio da competição atual...');
+    console.log('🔍 API /api/market: Buscando Top 100 tokens + tokens em uso...');
 
-    // Buscar competição atual (pending ou active)
-    // Pending = draft aberto (sex 21h → dom 21h)
-    // Active = rodada em andamento (dom 21h → próximo dom 21h)
+    // 1️⃣ SEMPRE buscar Top 100 do CoinGecko (com SWR - retorna rápido se stale)
+    const top100Tokens = await getTop100TokensWithSWR();
+
+    if (!top100Tokens || top100Tokens.length === 0) {
+      console.error('❌ CoinGecko retornou array vazio');
+      return NextResponse.json({
+        error: 'Serviço de dados de mercado temporariamente indisponível',
+        details: 'Não foi possível buscar dados da CoinGecko API. Tente novamente em alguns minutos.',
+        tokens: [],
+        count: 0
+      }, { status: 503 });
+    }
+
+    console.log(`✅ Top 100 tokens obtidos: ${top100Tokens.length}`);
+
+    // 2️⃣ Buscar todos os tokens únicos em uso nos times existentes
+    const userTeams = await prisma.userTeam.findMany({
+      select: {
+        players: true
+      }
+    });
+
+    // Extrair símbolos únicos de todos os times
+    const tokensInUse = new Set<string>();
+    userTeams.forEach(team => {
+      if (Array.isArray(team.players)) {
+        team.players.forEach((symbol: string) => {
+          tokensInUse.add(symbol.toUpperCase());
+        });
+      }
+    });
+
+    console.log(`📊 Tokens em uso nos times: ${tokensInUse.size}`);
+
+    // 3️⃣ Identificar tokens em uso que NÃO estão no Top 100
+    const top100Ids = new Set(top100Tokens.map(t => t.id));
+    const top100Symbols = new Set(top100Tokens.map(t => t.symbol.toUpperCase()));
+
+    // Usar mapa de símbolos do serviço de cache
+    const tokenMapping = SYMBOL_TO_ID_MAP;
+
+    // Tokens em uso que NÃO estão no Top 100
+    const extraTokenSymbols = Array.from(tokensInUse).filter(symbol =>
+      !top100Symbols.has(symbol)
+    );
+
+    console.log(`➕ Tokens extras (fora do Top 100): ${extraTokenSymbols.length}`, extraTokenSymbols);
+
+    // 4️⃣ Buscar dados dos tokens extras do CoinGecko
+    let extraTokens: any[] = [];
+    if (extraTokenSymbols.length > 0) {
+      const extraTokenIds = extraTokenSymbols
+        .map(symbol => tokenMapping[symbol])
+        .filter(Boolean);
+
+      if (extraTokenIds.length > 0) {
+        console.log(`🌐 Buscando dados de ${extraTokenIds.length} tokens extras (com cache SWR)...`);
+        const extraData = await getMarketDataByIds(extraTokenIds);
+        extraTokens = extraData || [];
+        console.log(`✅ ${extraTokens.length} tokens extras obtidos`);
+      }
+    }
+
+    // 5️⃣ Combinar Top 100 + Tokens Extras
+    const allTokens = [...top100Tokens, ...extraTokens];
+
+    // MODO 1: Se há competição ativa, incluir info dela
     const competition = await prisma.competition.findFirst({
       where: {
         OR: [
-          { status: 'pending' },
-          { status: 'active' }
+          { status: 'PENDING' },
+          { status: 'ACTIVE' }
         ]
       },
       orderBy: {
-        startTime: 'desc' // Mais recente primeiro
-      },
-      include: {
-        tokens: true // Incluir CompetitionTokens
+        startDate: 'desc'
       }
     });
 
-    // MODO 1: Competição ativa com tokens cadastrados
-    if (competition && competition.tokens && competition.tokens.length > 0) {
-      console.log(`✅ Competição encontrada: ${competition.id} (status: ${competition.status})`);
-
-    console.log(`🔒 Cardápio TRAVADO: ${competition.tokens.length} tokens`);
-
-    // Extrair IDs dos tokens
-    const tokenIds = competition.tokens.map(t => t.tokenId);
-
-    // Buscar preços FRESCOS da CoinGecko
-    console.log('🌐 Buscando preços frescos da CoinGecko...');
-    const marketData = await getMarketDataByTokenIds(tokenIds);
-
-    // Criar mapa de preços por ID
-    const priceMap = new Map(marketData.map(token => [token.id, token]));
-
-    // Combinar dados: cardápio travado + preços frescos
-    const tokens = competition.tokens.map(competitionToken => {
-      const liveData = priceMap.get(competitionToken.tokenId);
-
-      const imageUrl = competitionToken.imageUrl || liveData?.image || '/icons/coinx.svg';
-      return {
-        id: competitionToken.tokenId,
-        symbol: competitionToken.symbol,
-        name: competitionToken.name,
-        image: imageUrl,
-        logoUrl: imageUrl, // Compatibilidade com market-analysis.ts
-        currentPrice: liveData?.current_price || 0,
-        priceChange1h: liveData?.price_change_percentage_1h_in_currency || 0,
-        priceChange24h: liveData?.price_change_percentage_24h || 0,
-        priceChange7d: liveData?.price_change_percentage_7d_in_currency || 0,
-        priceChange30d: liveData?.price_change_percentage_30d_in_currency || 0,
-        marketCap: liveData?.market_cap || 0,
-        totalVolume: liveData?.total_volume || 0,
-        marketCapRank: competitionToken.marketCapRank || liveData?.market_cap_rank || null
-      };
-    });
-
-    const duration = Date.now() - startTime;
-
-    console.log(`✅ API /api/market: ${tokens.length} tokens retornados em ${duration}ms`);
-    console.log(`   📅 Competição: ${competition.id}`);
-    console.log(`   🔒 Status: ${competition.status}`);
-    console.log(`   📊 Tokens: ${tokens.length}`);
-
-    return NextResponse.json({
-      tokens,
-      competition: {
-        id: competition.id,
-        status: competition.status,
-        startTime: competition.startTime,
-        endTime: competition.endTime
-      },
-      count: tokens.length,
-      duration,
-      timestamp: new Date().toISOString()
-    }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
-      }
-    });
-    }
-
-    // MODO 2: Fallback - Top 100 da CoinGecko
-    console.warn("⚠️ Nenhuma competição com tokens encontrada");
-    console.log("🌐 FALLBACK: Buscando Top 100 tokens da CoinGecko...");
-
-    const top100Tokens = await getTop100Tokens();
-
-    const tokens = top100Tokens.map(token => ({
+    // 6️⃣ Formatar resposta
+    const tokens = allTokens.map(token => ({
       id: token.id,
       symbol: token.symbol,
       name: token.name,
@@ -128,19 +131,33 @@ export async function GET(request: Request) {
 
     const duration = Date.now() - startTime;
 
-    console.log(`✅ API /api/market (MODO FALLBACK): ${tokens.length} tokens em ${duration}ms`);
+    console.log(`✅ API /api/market: ${tokens.length} tokens retornados em ${duration}ms`);
+    console.log(`   Top 100: ${top100Tokens.length}`);
+    console.log(`   Extras: ${extraTokens.length}`);
+    console.log(`   Total: ${tokens.length}`);
+
+    if (competition) {
+      console.log(`   📅 Competição: ${competition.id}`);
+      console.log(`   🔒 Status: ${competition.status}`);
+    }
 
     return NextResponse.json({
       tokens,
-      competition: null,
+      competition: competition ? {
+        id: competition.id,
+        status: competition.status,
+        startDate: competition.startDate,
+        endDate: competition.endDate,
+        isEditingAllowed: competition.status !== 'ACTIVE' // ✅ Trava de edição
+      } : null,
       count: tokens.length,
-      mode: "fallback",
-      warning: "Nenhuma competição ativa. Exibindo Top 100 tokens.",
+      top100Count: top100Tokens.length,
+      extraCount: extraTokens.length,
       duration,
       timestamp: new Date().toISOString()
     }, {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300"
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
       }
     });
 
