@@ -368,53 +368,8 @@ export function RoundPerformance({ leagueId, userId, selectedCompetitionId, onCo
         </div>
       )}
 
-      {/* Single Round View */}
-      {selectedCompetitionId !== 'SEASON' && selectedCompetitionId !== 'all' && roundData && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>{roundData.competitionName}</CardTitle>
-              {getStatusBadge(roundData.competitionStatus)}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {formatDate(roundData.startDate)} - {formatDate(roundData.endDate)}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-orange-600">
-                  {roundData.points.toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {roundData.competitionStatus === 'ACTIVE' ? 'Pontos Parciais' : 'Pontos Finais'}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">
-                  {roundData.rank ? `#${roundData.rank}` : 'N/A'}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Ranking</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <p className="text-2xl font-bold text-gray-600">
-                  {roundData.totalParticipants}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Participantes</p>
-              </div>
-            </div>
-
-            {roundData.competitionStatus === 'ACTIVE' && (
-              <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Rodada em andamento - pontuação parcial atualizada em tempo real
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Single Round View - Card removido (redundante com "Resumo da Rodada Selecionada" no Dashboard) */}
+      {/* O card detalhado é exibido diretamente no DashboardContent */}
 
       {/* Overview */}
       {selectedCompetitionId === 'all' && (

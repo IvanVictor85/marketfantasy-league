@@ -186,7 +186,7 @@ const ValuePropositionSection = () => {
           {t('advantageTitle')}
         </h2>
         <p className="text-lg text-muted-foreground dark:text-gray-400 max-w-2xl mx-auto">
-          Tecnologia blockchain combinada com a emoção do fantasy
+          A emoção do fantasy esportivo aplicada ao universo cripto
         </p>
       </div>
 

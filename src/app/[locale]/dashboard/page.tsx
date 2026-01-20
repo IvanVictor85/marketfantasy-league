@@ -971,7 +971,7 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange, userId, 
                 priceChange7d: marketToken?.priceChange7d || found?.priceChange7d || 0,
                 priceChangeRound: roundChange, // Variação da rodada
                 roundPoints: roundPoints, // Pontuação na rodada
-                imageUrl: marketToken?.image || snapshot?.imageUrl || found?.imageUrl || '', // ✅ Usar image do /api/market
+                imageUrl: snapshot?.imageUrl || marketToken?.image || found?.imageUrl || '', // ✅ Priorizar snapshot (tokens fora do Top 100 como DASH)
                 priceStart: snapshot?.priceStart,
                 priceEnd: snapshot?.priceEnd
               };

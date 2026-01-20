@@ -243,6 +243,11 @@ const TOKEN_IMAGE_FALLBACKS: Record<string, string> = {
   'polkadot': 'https://coin-images.coingecko.com/coins/images/12171/small/polkadot.png',
   'chainlink': 'https://coin-images.coingecko.com/coins/images/877/small/chainlink-new-logo.png',
   'uniswap': 'https://coin-images.coingecko.com/coins/images/12504/small/uni.jpg',
+  'dash': 'https://coin-images.coingecko.com/coins/images/19/small/dash-logo.png',
+  'zcash': 'https://coin-images.coingecko.com/coins/images/486/small/circle-zcash-color.png',
+  'monero': 'https://coin-images.coingecko.com/coins/images/69/small/monero_logo.png',
+  'bitcoin-cash': 'https://coin-images.coingecko.com/coins/images/780/small/bitcoin-cash-circle.png',
+  'ethereum-classic': 'https://coin-images.coingecko.com/coins/images/453/small/ethereum-classic-logo.png',
 };
 
 /**
