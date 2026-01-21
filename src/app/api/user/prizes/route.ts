@@ -96,6 +96,8 @@ export async function GET(request: Request) {
                       (prize.seasonId && seasonMap[prize.seasonId]) ||
                       'Prêmio',
       seasonId: prize.seasonId || null,
+      seasonName: prize.seasonId ? seasonMap[prize.seasonId] : null,
+      prizeType: prize.prizeType, // ROUND_PRIZE ou SEASON_PRIZE
       amount: parseFloat(prize.amount.toString()),
       position: prize.position,
       claimed: prize.claimed,

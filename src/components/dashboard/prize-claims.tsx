@@ -4,15 +4,17 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Gift, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Trophy, Gift, CheckCircle2, Clock, AlertCircle, Crown, Medal } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PrizeClaim {
   id: string;
   userId: string;
-  competitionId: string;
+  competitionId: string | null;
   competitionName: string;
   seasonId: string | null;
+  seasonName?: string;
+  prizeType?: 'ROUND_PRIZE' | 'SEASON_PRIZE';
   amount: number;
   position: number;
   claimed: boolean;
@@ -156,14 +158,26 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
             </h4>
             {unclaimedPrizes.map((prize) => {
               const badge = getPositionBadge(prize.position);
+              const isSeasonPrize = prize.seasonId && !prize.competitionId;
+
               return (
                 <div
                   key={prize.id}
-                  className="p-4 border-2 border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg"
+                  className={`p-4 border-2 rounded-lg ${
+                    isSeasonPrize
+                      ? 'border-purple-300 bg-gradient-to-br from-purple-50 to-yellow-50 dark:from-purple-950/30 dark:to-yellow-950/20'
+                      : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20'
+                  }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
+                        {isSeasonPrize && (
+                          <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                            <Crown className="h-3 w-3 mr-1" />
+                            Temporada
+                          </Badge>
+                        )}
                         <Badge variant="outline" className={`${badge.color} border-2`}>
                           {badge.emoji} {prize.position}º Lugar
                         </Badge>
@@ -174,7 +188,7 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-yellow-600">
+                      <p className={`text-2xl font-bold ${isSeasonPrize ? 'text-purple-600' : 'text-yellow-600'}`}>
                         {prize.amount.toFixed(4)} SOL
                       </p>
                     </div>
@@ -183,7 +197,7 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
                   <Button
                     onClick={() => handleClaim(prize.id)}
                     disabled={claiming === prize.id}
-                    className="w-full bg-yellow-600 hover:bg-yellow-700"
+                    className={`w-full ${isSeasonPrize ? 'bg-purple-600 hover:bg-purple-700' : 'bg-yellow-600 hover:bg-yellow-700'}`}
                     size="sm"
                   >
                     {claiming === prize.id ? (
@@ -193,8 +207,8 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
                       </>
                     ) : (
                       <>
-                        <Gift className="h-4 w-4 mr-2" />
-                        Resgatar Prêmio
+                        {isSeasonPrize ? <Crown className="h-4 w-4 mr-2" /> : <Gift className="h-4 w-4 mr-2" />}
+                        Resgatar Prêmio {isSeasonPrize ? 'da Temporada' : ''}
                       </>
                     )}
                   </Button>
@@ -213,6 +227,8 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
             </h4>
             {claimedPrizes.map((prize) => {
               const badge = getPositionBadge(prize.position);
+              const isSeasonPrize = prize.seasonId && !prize.competitionId;
+
               return (
                 <div
                   key={prize.id}
@@ -221,6 +237,12 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
+                        {isSeasonPrize && (
+                          <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">
+                            <Crown className="h-3 w-3 mr-1" />
+                            Temporada
+                          </Badge>
+                        )}
                         <Badge variant="outline" className={badge.color}>
                           {badge.emoji} {prize.position}º Lugar
                         </Badge>
