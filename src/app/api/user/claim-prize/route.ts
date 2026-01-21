@@ -5,16 +5,39 @@ import { claimPrize } from '@/lib/solana/program';
 
 const prisma = new PrismaClient();
 
-// ⚠️ DEVELOPMENT ONLY: Create admin keypair for server-side transactions
-// In production, this should be loaded from secure environment variables or a secret manager
+/**
+ * Get admin keypair for server-side transactions
+ *
+ * ADMIN_PRIVATE_KEY deve ser configurado no Vercel como:
+ * - Array JSON de 64 bytes: [1,2,3,...,64]
+ * - Ou Base58 encoded string
+ *
+ * Para gerar: solana-keygen new --outfile admin-keypair.json
+ * O conteúdo do arquivo pode ser copiado diretamente para ADMIN_PRIVATE_KEY
+ */
 function getAdminKeypair(): Keypair {
-  // For devnet testing, use a deterministic seed
-  // In production, use: Keypair.fromSecretKey(new Uint8Array(JSON.parse(process.env.ADMIN_PRIVATE_KEY!)))
-  const seed = new Uint8Array(32);
-  for (let i = 0; i < 32; i++) {
-    seed[i] = (i * 13 + 42) % 256;
+  const adminPrivateKey = process.env.ADMIN_PRIVATE_KEY;
+
+  if (!adminPrivateKey) {
+    console.error('❌ ADMIN_PRIVATE_KEY não configurado!');
+    throw new Error('ADMIN_PRIVATE_KEY environment variable is required for prize distribution');
   }
-  return Keypair.fromSeed(seed);
+
+  try {
+    // Tentar como JSON array primeiro (formato do solana-keygen)
+    if (adminPrivateKey.startsWith('[')) {
+      const secretKey = new Uint8Array(JSON.parse(adminPrivateKey));
+      return Keypair.fromSecretKey(secretKey);
+    }
+
+    // Tentar como Base58 string
+    const bs58 = require('bs58');
+    const secretKey = bs58.decode(adminPrivateKey);
+    return Keypair.fromSecretKey(secretKey);
+  } catch (error) {
+    console.error('❌ Erro ao parsear ADMIN_PRIVATE_KEY:', error);
+    throw new Error('Invalid ADMIN_PRIVATE_KEY format. Use JSON array [1,2,3...] or Base58 string');
+  }
 }
 
 // Create a mock wallet context for server-side signing
