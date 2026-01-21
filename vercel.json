@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/test-end",
-      "schedule": "0 0 * * *"
+      "schedule": "21 2 * * *"
     }
   ],
   "headers": [

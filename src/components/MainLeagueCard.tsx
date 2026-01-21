@@ -673,133 +673,186 @@ export function MainLeagueCard() {
     );
   }
 
+  // Calcular estado da competição para exibição
+  const competitionState = getCompetitionState(
+    leagueData.status,
+    leagueData.startDate,
+    leagueData.endDate
+  );
+
+  // Verificar se usuário está inscrito na rodada atual
+  const isEnrolledInCurrentRound = entryStatus?.hasPaid && !isMismatched;
+
   return (
-    <Card className="border-accent border-2 bg-card">
-      <CardHeader className="pb-2 pt-3 px-3">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{leagueData.name}</h3>
-          <Badge className="bg-secondary text-secondary-foreground font-bold text-xs">
+    <Card className="border-accent border-2 bg-card overflow-hidden">
+      {/* Header */}
+      <CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-accent/5 to-accent/10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{leagueData.name}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{leagueData.description}</p>
+          </div>
+          <Badge className="bg-accent text-white font-bold text-xs px-3 py-1">
             {tLeagues("officialBadge")}
           </Badge>
         </div>
-        {leagueData.season && (
-          <p className="text-xs text-gray-600 dark:text-gray-400">
-            {leagueData.season.name} • Rodada {leagueData.season.currentRoundNumber || '-'}/{leagueData.season.totalRounds} • {leagueData.season.completedRounds} completadas
-          </p>
-        )}
       </CardHeader>
-      
-      <CardContent className="pb-4">
-        <div className="mb-4">
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{leagueData.name}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{leagueData.description}</p>
-        </div>
 
-        {/* ✅ NOVO: Informações da Temporada */}
+      <CardContent className="pb-4 pt-4">
+        {/* ══════════════════════════════════════════════════════════════════
+            SEÇÃO 1: TEMPORADA (Compacto com Logo)
+        ══════════════════════════════════════════════════════════════════ */}
         {leagueData.season && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                  {leagueData.season.name}
-                </span>
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                {leagueData.season.status === 'ACTIVE' ? '🔴 Ativa' : '✅ Finalizada'}
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Rodada:</span>
-                <span className="font-bold text-gray-900 dark:text-gray-100">
-                  {leagueData.season.currentRoundNumber || '-'} / {leagueData.season.totalRounds}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Prêmio Total:</span>
-                <span className="font-bold text-yellow-600 dark:text-yellow-400">
-                  {leagueData.season.prizePool.toFixed(3)} SOL
-                </span>
-              </div>
-            </div>
-
-            {/* Barra de progresso das rodadas */}
-            <div className="mt-2">
-              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                <span>Progresso</span>
-                <span>{leagueData.season.completedRounds} completadas</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${(leagueData.season.completedRounds / leagueData.season.totalRounds) * 100}%`
+          <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
+            <div className="flex items-center gap-3">
+              {/* Logo da Liga */}
+              <div className="flex-shrink-0">
+                <Image
+                  src="/league-logos/main-league.png"
+                  alt="Liga Principal"
+                  width={56}
+                  height={56}
+                  className="rounded-lg border-2 border-yellow-300 dark:border-yellow-700"
+                  onError={(e) => {
+                    // Fallback se imagem não existir
+                    (e.target as HTMLImageElement).src = '/icons/trophy.svg';
                   }}
                 />
               </div>
+
+              {/* Info da Temporada */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                    {leagueData.season.name}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] ml-2 flex-shrink-0">
+                    {leagueData.season.status === 'ACTIVE' ? '🔴 Ativa' : '✅ Fim'}
+                  </Badge>
+                </div>
+
+                {/* Barra de progresso compacta */}
+                <div className="mt-1.5">
+                  <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
+                    <span>Rodada {leagueData.season.currentRoundNumber || '-'}/{leagueData.season.totalRounds}</span>
+                    <span className="font-bold text-yellow-600 dark:text-yellow-400">
+                      {leagueData.season.prizePool.toFixed(3)} SOL
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${(leagueData.season.completedRounds / leagueData.season.totalRounds) * 100}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* League Stats */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="flex items-center space-x-2">
-            <Coins className="h-4 w-4 text-accent" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">{t('entry')}</span>
+        {/* ══════════════════════════════════════════════════════════════════
+            SEÇÃO 2: RODADA ATUAL
+        ══════════════════════════════════════════════════════════════════ */}
+        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <div className="p-2 bg-accent/10 rounded-lg">
+                <Clock className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 block">
+                  Rodada {leagueData.season?.currentRoundNumber || 'Atual'}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <RoundTimerInline />
+                </span>
+              </div>
+            </div>
+            <Badge
+              variant="outline"
+              className={`text-xs ${
+                competitionState === 'LOCKED'
+                  ? 'border-red-300 text-red-600 bg-red-50 dark:bg-red-950/20'
+                  : competitionState === 'DRAFT_OPEN'
+                  ? 'border-green-300 text-green-600 bg-green-50 dark:bg-green-950/20'
+                  : 'border-gray-300 text-gray-600'
+              }`}
+            >
+              {competitionState === 'LOCKED' && '🔒 Rodada em Andamento'}
+              {competitionState === 'DRAFT_OPEN' && '✏️ Inscrições Abertas'}
+              {competitionState === 'FINISHED' && '✅ Finalizada'}
+              {competitionState === 'UNKNOWN' && '⏳ Aguardando'}
+            </Badge>
           </div>
-          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-            {leagueData.entryFee} SOL
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Trophy className="h-4 w-4 text-accent" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">{t('totalPrize')}</span>
-          </div>
-          <div className="text-sm font-bold text-accent">
-            {leagueData.totalPrizePool} SOL
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Users className="h-4 w-4 text-accent" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">{t('participants')}</span>
-          </div>
-          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-            {leagueData.participantCount}
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Clock className="h-4 w-4 text-accent" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">{t('nextRound')}</span>
-          </div>
-          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-            <RoundTimerInline />
-          </div>
-        </div>
 
-        {/* Entry Status */}
-        {entryStatus?.hasPaid && !isMismatched && (
-          <Alert className="mb-4 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              {tLeagues('alreadyJoined')} 
-              <span className="font-medium ml-1">
-                {tLeagues('transaction')}: {entryStatus.entry?.transactionHash.slice(0, 8)}...
+          {/* Info da Rodada - Grid */}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg">
+              <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <Users className="h-3 w-3" /> Participantes
               </span>
-            </AlertDescription>
-          </Alert>
-        )}
+              <span className="font-bold text-gray-900 dark:text-gray-100">
+                {leagueData.participantCount}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg">
+              <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <Trophy className="h-3 w-3" /> Prêmio (70%)
+              </span>
+              <span className="font-bold text-accent">
+                {(leagueData.totalPrizePool * 0.7).toFixed(3)} SOL
+              </span>
+            </div>
+          </div>
+
+          {/* Entrada - Só mostra se NÃO está inscrito */}
+          {!isEnrolledInCurrentRound && competitionState === 'DRAFT_OPEN' && (
+            <div className="mt-3 p-3 bg-accent/5 border border-accent/20 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Coins className="h-4 w-4 text-accent" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Entrada por Rodada:</span>
+                </div>
+                <span className="text-lg font-bold text-accent">
+                  {leagueData.entryFee} SOL
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                70% vai para prêmios da rodada • 15% acumula na temporada • 15% protocolo
+              </p>
+            </div>
+          )}
+
+          {/* Status de Inscrição - Destaque se inscrito */}
+          {isEnrolledInCurrentRound && (
+            <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <div>
+                  <span className="text-sm font-bold text-green-700 dark:text-green-300 block">
+                    Você está inscrito nesta rodada!
+                  </span>
+                  <span className="text-xs text-green-600 dark:text-green-400">
+                    Tx: {entryStatus.entry?.transactionHash.slice(0, 12)}...
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Error Display */}
         {error && (
-          <Alert className="mb-4 border-yellow-200 bg-yellow-50">
+          <Alert className="mb-4 border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
             <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800 flex items-center justify-between">
+            <AlertDescription className="text-yellow-800 dark:text-yellow-200 flex items-center justify-between">
               <span>{error}</span>
               {error.includes('offline') && (
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="outline"
                   onClick={() => {
                     setLoading(true);
@@ -816,27 +869,39 @@ export function MainLeagueCard() {
         )}
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2 pt-2">
         {/* Loading inicial da verificação de entrada */}
         {isCheckingEntry ? (
           <Button
             disabled
-            className="w-full bg-gray-500 text-white cursor-not-allowed"
+            className="w-full bg-gray-400 text-white cursor-not-allowed"
           >
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             {tLeagues('verifying')}
           </Button>
         )
 
-        /* Usuário já pagou e está na liga */
-        : entryStatus?.hasPaid && profileWallet && !isMismatched ? (
-          <Button
-            asChild
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-          >
-            <LocalizedLink href="/teams?league=main">
-              {tLeagues("viewMyTeam")}
-            </LocalizedLink>
-          </Button>
+        /* Usuário já pagou e está na rodada atual */
+        : isEnrolledInCurrentRound && profileWallet ? (
+          <div className="w-full space-y-2">
+            <Button
+              asChild
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+            >
+              <LocalizedLink href="/teams?league=main">
+                ⚽ {tLeagues("viewMyTeam")}
+              </LocalizedLink>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="w-full"
+            >
+              <LocalizedLink href="/ranking">
+                📊 Ver Ranking da Rodada
+              </LocalizedLink>
+            </Button>
+          </div>
         )
 
         /* Carteira incompatível (mismatch) */
@@ -845,28 +910,22 @@ export function MainLeagueCard() {
             disabled
             className="w-full bg-red-600 text-white cursor-not-allowed"
           >
-            Carteira Incompatível
+            ⚠️ Carteira Incompatível
           </Button>
         )
 
-        /* ✅ REFATORAÇÃO: LÓGICA DE 4 ESTADOS */
+        /* ✅ LÓGICA DE ESTADOS PARA USUÁRIOS NÃO INSCRITOS */
 
-        /* ESTADO 1: VINCULADO (profileWallet existe) */
+        /* ESTADO 1: VINCULADO (profileWallet existe) mas NÃO inscrito */
         : profileWallet ? (
           (() => {
-            const competitionState = getCompetitionState(
-              leagueData.status,
-              leagueData.startDate,
-              leagueData.endDate
-            );
-
             // Estado: Draft Aberto (pode entrar)
             if (competitionState === 'DRAFT_OPEN') {
               return (
                 <Button
                   onClick={handleActionClick}
                   disabled={transactionLoading}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+                  className="w-full bg-accent hover:bg-accent/90 text-white disabled:opacity-50 h-12 text-base"
                 >
                   {transactionLoading ? (
                     <>
@@ -874,7 +933,9 @@ export function MainLeagueCard() {
                       {tLeagues('processing')}
                     </>
                   ) : (
-                    `${tLeagues("joinRound")} (${leagueData.entryFee} SOL)`
+                    <>
+                      🎮 Entrar na Rodada {leagueData.season?.currentRoundNumber || ''} ({leagueData.entryFee} SOL)
+                    </>
                   )}
                 </Button>
               );
@@ -883,25 +944,47 @@ export function MainLeagueCard() {
             // Estado: Rodada em Andamento (times trancados)
             if (competitionState === 'LOCKED') {
               return (
-                <Button
-                  disabled
-                  className="w-full bg-red-600 text-white cursor-not-allowed"
-                >
-                  🔒 {tLeagues('teamsLocked')}
-                </Button>
+                <div className="w-full space-y-2">
+                  <Button
+                    disabled
+                    className="w-full bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed"
+                  >
+                    🔒 Inscrições Encerradas - Rodada em Andamento
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <LocalizedLink href="/ranking">
+                      📊 Acompanhar Ranking ao Vivo
+                    </LocalizedLink>
+                  </Button>
+                </div>
               );
             }
 
             // Estado: Rodada Finalizada
             if (competitionState === 'FINISHED') {
               return (
-                <Button
-                  disabled
-                  variant="outline"
-                  className="w-full cursor-not-allowed"
-                >
-                  {tLeagues('leagueFinished')}
-                </Button>
+                <div className="w-full space-y-2">
+                  <Button
+                    disabled
+                    variant="outline"
+                    className="w-full cursor-not-allowed"
+                  >
+                    ✅ Rodada Finalizada
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <LocalizedLink href="/ranking">
+                      🏆 Ver Resultados
+                    </LocalizedLink>
+                  </Button>
+                </div>
               );
             }
 
@@ -912,7 +995,7 @@ export function MainLeagueCard() {
                 variant="outline"
                 className="w-full cursor-not-allowed"
               >
-                {tLeagues('waiting')}
+                ⏳ {tLeagues('waiting')}
               </Button>
             );
           })()
@@ -922,9 +1005,9 @@ export function MainLeagueCard() {
         : !connected ? (
           <Button
             onClick={handleActionClick}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full bg-accent hover:bg-accent/90 text-white h-12 text-base"
           >
-            {tLeagues('connectWallet')}
+            🔗 {tLeagues('connectWallet')}
           </Button>
         )
 
@@ -933,7 +1016,7 @@ export function MainLeagueCard() {
           <Button
             onClick={handleActionClick}
             disabled={isLinking}
-            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50"
+            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50 h-12"
           >
             {isLinking ? (
               <>
@@ -941,7 +1024,7 @@ export function MainLeagueCard() {
                 {tLeagues('linking')}
               </>
             ) : (
-              tLeagues('linkWallet')
+              <>🔗 {tLeagues('linkWallet')}</>
             )}
           </Button>
         )
@@ -950,9 +1033,9 @@ export function MainLeagueCard() {
         : (
           <Button
             onClick={() => setVisible(true)}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full bg-accent hover:bg-accent/90 text-white h-12"
           >
-            {tLeagues('connectWallet')}
+            🔗 {tLeagues('connectWallet')}
           </Button>
         )}
       </CardFooter>

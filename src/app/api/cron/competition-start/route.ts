@@ -148,14 +148,19 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/cron/competition-start
  *
- * Permite execução manual via browser (útil para desenvolvimento)
+ * Handler para Vercel Cron (crons usam GET por padrão)
+ * Passa o header de autorização para o POST
  */
-export async function GET() {
-  console.log('🔄 Execução Manual: Iniciando competições...');
+export async function GET(request: NextRequest) {
+  console.log('🔄 Cron GET: Iniciando competições...');
 
-  const request = new NextRequest('http://localhost:3000/api/cron/competition-start', {
-    method: 'POST'
+  // Criar nova request com o mesmo header de autorização
+  const authHeader = request.headers.get('authorization');
+
+  const internalRequest = new NextRequest('http://localhost:3000/api/cron/competition-start', {
+    method: 'POST',
+    headers: authHeader ? { 'authorization': authHeader } : {}
   });
 
-  return POST(request);
+  return POST(internalRequest);
 }
