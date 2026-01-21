@@ -710,9 +710,9 @@ export function MainLeagueCard() {
                 <Image
                   src="/league-logos/main-league-trophy.png"
                   alt="Liga Principal"
-                  width={56}
-                  height={56}
-                  className="rounded-lg border-2 border-yellow-300 dark:border-yellow-700 bg-white"
+                  width={140}
+                  height={140}
+                  className="rounded-xl border-2 border-yellow-300 dark:border-yellow-700 bg-white shadow-md"
                 />
               </div>
 
