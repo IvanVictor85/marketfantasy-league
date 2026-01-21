@@ -57,3 +57,4 @@ programs/**/Cargo.lock
 # Anchor tests (não incluir no build do Next.js)
 tests/
 Anchor.toml
+admin-keypair.json
