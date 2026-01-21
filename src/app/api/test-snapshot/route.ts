@@ -48,9 +48,10 @@ export async function GET(request: NextRequest) {
       console.log(`🧪 [TEST] Iniciando snapshot de fim para competicao ${competitionId}...`);
 
       // Chamar endpoint de fim com skipTimeValidation
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000';
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+      console.log(`🌐 [TEST] Usando baseUrl: ${baseUrl}`);
 
       const response = await fetch(`${baseUrl}/api/competition/end`, {
         method: 'POST',
@@ -73,9 +74,10 @@ export async function GET(request: NextRequest) {
     if (action === 'start') {
       console.log(`🧪 [TEST] Iniciando snapshot de inicio para competicao ${competitionId}...`);
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000';
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+      console.log(`🌐 [TEST] Usando baseUrl: ${baseUrl}`);
 
       const response = await fetch(`${baseUrl}/api/competition/start`, {
         method: 'POST',
