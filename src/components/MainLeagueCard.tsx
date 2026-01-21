@@ -708,15 +708,11 @@ export function MainLeagueCard() {
               {/* Logo da Liga */}
               <div className="flex-shrink-0">
                 <Image
-                  src="/league-logos/main-league.png"
+                  src="/league-logos/main-league-trophy.png"
                   alt="Liga Principal"
                   width={56}
                   height={56}
-                  className="rounded-lg border-2 border-yellow-300 dark:border-yellow-700"
-                  onError={(e) => {
-                    // Fallback se imagem não existir
-                    (e.target as HTMLImageElement).src = '/icons/trophy.svg';
-                  }}
+                  className="rounded-lg border-2 border-yellow-300 dark:border-yellow-700 bg-white"
                 />
               </div>
 
