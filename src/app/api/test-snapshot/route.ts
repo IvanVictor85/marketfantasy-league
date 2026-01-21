@@ -47,9 +47,13 @@ export async function GET(request: NextRequest) {
     if (action === 'end') {
       console.log(`🧪 [TEST] Iniciando snapshot de fim para competicao ${competitionId}...`);
 
+      // Debug: mostrar variáveis de ambiente
+      console.log(`🔍 [DEBUG] NEXT_PUBLIC_APP_URL: "${process.env.NEXT_PUBLIC_APP_URL}"`);
+      console.log(`🔍 [DEBUG] VERCEL_URL: "${process.env.VERCEL_URL}"`);
+
       // Chamar endpoint de fim com skipTimeValidation
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+      // Usar domínio hardcoded para garantir funcionamento
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mflprotocol.xyz';
 
       console.log(`🌐 [TEST] Usando baseUrl: ${baseUrl}`);
 
@@ -74,8 +78,8 @@ export async function GET(request: NextRequest) {
     if (action === 'start') {
       console.log(`🧪 [TEST] Iniciando snapshot de inicio para competicao ${competitionId}...`);
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+      // Usar domínio hardcoded para garantir funcionamento
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mflprotocol.xyz';
 
       console.log(`🌐 [TEST] Usando baseUrl: ${baseUrl}`);
 
