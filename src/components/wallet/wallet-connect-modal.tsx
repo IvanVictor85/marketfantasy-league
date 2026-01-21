@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -29,6 +29,7 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
   const [isLinking, setIsLinking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [wasConnectedBefore, setWasConnectedBefore] = useState(false);
 
   // Reset state quando o modal abre
   useEffect(() => {
@@ -36,17 +37,28 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
       setIsLinking(false);
       setError('');
       setSuccess(false);
+      // Guardar se já estava conectado ao abrir o modal
+      setWasConnectedBefore(connected);
     }
-  }, [isOpen]);
+  }, [isOpen, connected]);
 
-  // Quando a carteira conectar, vincular automaticamente
+  // Quando a carteira conectar (transição de desconectado para conectado), vincular automaticamente
   useEffect(() => {
-    if (connected && publicKey && isOpen && !isLinking && !success) {
+    // Só vincular se: modal aberto, carteira conectou agora (não estava conectada antes), não está vinculando, não teve sucesso ainda
+    const justConnected = connected && publicKey && !wasConnectedBefore;
+
+    if (justConnected && isOpen && !isLinking && !success) {
+      console.log('🔗 [MODAL] Carteira detectada, iniciando vinculação automática...');
       handleLinkWallet();
     }
-  }, [connected, publicKey, isOpen]);
 
-  const handleLinkWallet = async () => {
+    // Atualizar o estado anterior
+    if (connected) {
+      setWasConnectedBefore(true);
+    }
+  }, [connected, publicKey, isOpen, wasConnectedBefore, isLinking, success, handleLinkWallet]);
+
+  const handleLinkWallet = useCallback(async () => {
     if (!publicKey) {
       setError('Nenhuma carteira conectada');
       return;
@@ -82,17 +94,29 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
       setSuccess(true);
       toast.success('Carteira conectada com sucesso!');
 
-      // Aguardar um pouco para mostrar o sucesso antes de fechar
+      // Fechar o modal rapidamente após sucesso
       setTimeout(() => {
         if (onSuccess) {
           onSuccess();
         }
         onClose();
-      }, 1500);
+      }, 500); // Reduzido de 1500ms para 500ms
 
     } catch (err) {
       console.error('❌ [MODAL] Erro ao vincular carteira:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao conectar carteira';
+
+      // Se carteira já está vinculada, considerar como sucesso
+      if (errorMessage.includes('já está vinculada') || errorMessage.includes('already linked')) {
+        setSuccess(true);
+        toast.success('Carteira já conectada!');
+        setTimeout(() => {
+          if (onSuccess) onSuccess();
+          onClose();
+        }, 500);
+        return;
+      }
+
       setError(errorMessage);
       toast.error(errorMessage);
 
@@ -103,7 +127,7 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
     } finally {
       setIsLinking(false);
     }
-  };
+  }, [publicKey, connectWalletToUser, onSuccess, onClose, connected, disconnect]);
 
   const handleClose = () => {
     if (!isLinking) {
