@@ -4,7 +4,14 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Gift, CheckCircle2, Clock, AlertCircle, Crown, Medal } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Trophy, Gift, CheckCircle2, Clock, AlertCircle, Crown, Medal, ExternalLink, PartyPopper, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PrizeClaim {
@@ -28,10 +35,17 @@ interface PrizeClaimsProps {
   refreshTrigger?: string | null; // Trigger para forçar atualização quando muda de rodada
 }
 
+interface ClaimSuccessData {
+  amount: number;
+  txHash: string;
+  prizeName: string;
+}
+
 export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsProps) {
   const [prizes, setPrizes] = useState<PrizeClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
+  const [successModal, setSuccessModal] = useState<ClaimSuccessData | null>(null);
 
   useEffect(() => {
     fetchPrizes();
@@ -73,7 +87,13 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
         throw new Error(data.error || 'Erro ao resgatar prêmio');
       }
 
-      toast.success(`Prêmio de ${data.amount} SOL resgatado com sucesso!`);
+      // Mostrar modal de sucesso com hash da transação
+      setSuccessModal({
+        amount: data.amount,
+        txHash: data.prize?.txHash || data.txHash || '',
+        prizeName: data.prize?.name || 'Prêmio'
+      });
+
       await fetchPrizes(); // Atualizar lista
     } catch (error: any) {
       console.error('Erro ao resgatar prêmio:', error);
@@ -81,6 +101,16 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
     } finally {
       setClaiming(null);
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Hash copiado!');
+  };
+
+  const getExplorerUrl = (txHash: string) => {
+    const network = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet';
+    return `https://explorer.solana.com/tx/${txHash}?cluster=${network}`;
   };
 
   const getPositionBadge = (position: number) => {
@@ -286,6 +316,74 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
           )}
         </div>
       </CardContent>
+
+      {/* Modal de Sucesso */}
+      <Dialog open={!!successModal} onOpenChange={() => setSuccessModal(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-center justify-center">
+              <PartyPopper className="h-6 w-6 text-yellow-500" />
+              Parabéns!
+              <PartyPopper className="h-6 w-6 text-yellow-500" />
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center py-6 space-y-4">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+              <CheckCircle2 className="h-12 w-12 text-white" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-lg font-medium">
+                Seu prêmio foi enviado para sua carteira!
+              </p>
+              <p className="text-3xl font-bold text-green-600">
+                +{successModal?.amount.toFixed(4)} SOL
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {successModal?.prizeName}
+              </p>
+            </div>
+
+            {successModal?.txHash && (
+              <div className="w-full space-y-2">
+                <p className="text-xs text-muted-foreground text-center">
+                  Hash da Transação:
+                </p>
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                  <code className="text-xs flex-1 truncate">
+                    {successModal.txHash}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => copyToClipboard(successModal.txHash)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => window.open(getExplorerUrl(successModal.txHash), '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Ver no Solana Explorer
+                </Button>
+              </div>
+            )}
+
+            <Button
+              className="w-full bg-green-600 hover:bg-green-700"
+              onClick={() => setSuccessModal(null)}
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
