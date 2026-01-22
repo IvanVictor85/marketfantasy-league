@@ -1,18 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Trophy, Gift, CheckCircle2, Clock, AlertCircle, Crown, Medal, ExternalLink, PartyPopper, Copy } from 'lucide-react';
+import { Trophy, Gift, CheckCircle2, Clock, Crown, ExternalLink, Copy, Share2, ImageIcon, Twitter } from 'lucide-react';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
+import html2canvas from 'html2canvas';
 
 interface PrizeClaim {
   id: string;
@@ -32,7 +33,7 @@ interface PrizeClaim {
 interface PrizeClaimsProps {
   userId: string;
   leagueId?: string;
-  refreshTrigger?: string | null; // Trigger para forçar atualização quando muda de rodada
+  refreshTrigger?: string | null;
 }
 
 interface ClaimSuccessData {
@@ -46,10 +47,44 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [successModal, setSuccessModal] = useState<ClaimSuccessData | null>(null);
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const victoryCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchPrizes();
-  }, [userId, leagueId, refreshTrigger]); // ✅ Adicionar refreshTrigger como dependência
+  }, [userId, leagueId, refreshTrigger]);
+
+  // Dispara confete quando o modal abre
+  useEffect(() => {
+    if (successModal) {
+      // Confete dourado e verde (cores da marca)
+      const duration = 3000;
+      const end = Date.now() + duration;
+
+      const colors = ['#FFD700', '#14F195', '#9945FF', '#FFFFFF'];
+
+      (function frame() {
+        confetti({
+          particleCount: 4,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: colors
+        });
+        confetti({
+          particleCount: 4,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: colors
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
+    }
+  }, [successModal]);
 
   const fetchPrizes = async () => {
     try {
@@ -87,14 +122,13 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
         throw new Error(data.error || 'Erro ao resgatar prêmio');
       }
 
-      // Mostrar modal de sucesso com hash da transação
       setSuccessModal({
         amount: data.amount,
         txHash: data.prize?.txHash || data.txHash || '',
         prizeName: data.prize?.name || 'Prêmio'
       });
 
-      await fetchPrizes(); // Atualizar lista
+      await fetchPrizes();
     } catch (error: any) {
       console.error('Erro ao resgatar prêmio:', error);
       toast.error(error.message || 'Erro ao resgatar prêmio');
@@ -108,9 +142,60 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
     toast.success('Hash copiado!');
   };
 
+  const truncateHash = (hash: string) => {
+    if (!hash || hash.length < 16) return hash;
+    return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
+  };
+
   const getExplorerUrl = (txHash: string) => {
     const network = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet';
     return `https://explorer.solana.com/tx/${txHash}?cluster=${network}`;
+  };
+
+  const shareOnTwitter = () => {
+    if (!successModal) return;
+
+    const text = `Acabei de ganhar ${successModal.amount.toFixed(4)} SOL no ${successModal.prizeName} do @MFLProtocol! 🏆⚽\n\n#MFL #Solana #Web3Gaming #RWA #CryptoFantasy`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'width=600,height=400');
+  };
+
+  const generateVictoryImage = async () => {
+    if (!victoryCardRef.current || !successModal) return;
+
+    setGeneratingImage(true);
+    try {
+      const canvas = await html2canvas(victoryCardRef.current, {
+        backgroundColor: '#0a0a0a',
+        scale: 2,
+        useCORS: true,
+      });
+
+      // Converter para blob e copiar para clipboard
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            toast.success('Imagem copiada! Cole no seu post.');
+          } catch (err) {
+            // Fallback: download da imagem
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `mfl-victory-${successModal.amount.toFixed(4)}SOL.png`;
+            link.href = url;
+            link.click();
+            toast.success('Imagem baixada!');
+          }
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      toast.error('Erro ao gerar imagem');
+    } finally {
+      setGeneratingImage(false);
+    }
   };
 
   const getPositionBadge = (position: number) => {
@@ -317,69 +402,130 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
         </div>
       </CardContent>
 
-      {/* Modal de Sucesso */}
+      {/* Modal de Sucesso - Estilo Gaming/Fantasy Sports */}
       <Dialog open={!!successModal} onOpenChange={() => setSuccessModal(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-center justify-center">
-              <PartyPopper className="h-6 w-6 text-yellow-500" />
-              Parabéns!
-              <PartyPopper className="h-6 w-6 text-yellow-500" />
-            </DialogTitle>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden bg-gradient-to-b from-[#0d1117] to-[#161b22] border-2 border-[#14F195]/30">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Prêmio Resgatado</DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col items-center py-6 space-y-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-              <CheckCircle2 className="h-12 w-12 text-white" />
+          {/* Card de Vitória (para captura de imagem) */}
+          <div
+            ref={victoryCardRef}
+            className="relative p-6 bg-gradient-to-b from-[#0d1117] to-[#161b22]"
+          >
+            {/* Header com padrão de estádio */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 bg-[url('/images/field-pattern.png')] bg-repeat opacity-20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-transparent to-[#0d1117]" />
             </div>
 
-            <div className="text-center space-y-2">
-              <p className="text-lg font-medium">
-                Seu prêmio foi enviado para sua carteira!
-              </p>
-              <p className="text-3xl font-bold text-green-600">
-                +{successModal?.amount.toFixed(4)} SOL
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {successModal?.prizeName}
-              </p>
-            </div>
+            {/* Conteúdo */}
+            <div className="relative z-10 flex flex-col items-center text-center">
+              {/* Troféu animado */}
+              <div className="relative mb-4">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FFD700] via-[#FFA500] to-[#FFD700] flex items-center justify-center shadow-lg shadow-yellow-500/30 animate-pulse">
+                  <Trophy className="h-14 w-14 text-[#0d1117]" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-8 h-8 bg-[#14F195] rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-[#0d1117]" />
+                </div>
+              </div>
 
+              {/* Texto de parabéns */}
+              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] via-[#14F195] to-[#9945FF] mb-2 tracking-tight">
+                PARABÉNS!
+              </h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Seu prêmio foi enviado para sua carteira
+              </p>
+
+              {/* Valor do prêmio - Destaque principal */}
+              <div className="relative mb-4">
+                <div className="absolute inset-0 bg-[#14F195]/20 blur-xl rounded-full" />
+                <div className="relative px-8 py-4 bg-gradient-to-r from-[#14F195]/10 via-[#14F195]/20 to-[#14F195]/10 border border-[#14F195]/30 rounded-2xl">
+                  <span className="text-5xl font-black text-[#14F195] tracking-tighter" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                    +{successModal?.amount.toFixed(4)}
+                  </span>
+                  <span className="text-2xl font-bold text-[#14F195]/80 ml-2">SOL</span>
+                </div>
+              </div>
+
+              {/* Nome do prêmio */}
+              <div className="flex items-center gap-2 px-4 py-2 bg-[#9945FF]/20 border border-[#9945FF]/30 rounded-full mb-4">
+                <Crown className="h-4 w-4 text-[#9945FF]" />
+                <span className="text-sm font-semibold text-[#9945FF]">
+                  {successModal?.prizeName}
+                </span>
+              </div>
+
+              {/* Logo MFL */}
+              <div className="flex items-center gap-2 text-gray-500 text-xs">
+                <span className="font-bold text-gray-400">MFL</span>
+                <span>Protocol</span>
+                <span className="text-[#14F195]">•</span>
+                <span>Powered by Solana</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Seção de Hash e Ações */}
+          <div className="px-6 pb-6 space-y-4">
+            {/* Hash da Transação */}
             {successModal?.txHash && (
-              <div className="w-full space-y-2">
-                <p className="text-xs text-muted-foreground text-center">
-                  Hash da Transação:
-                </p>
-                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                  <code className="text-xs flex-1 truncate">
-                    {successModal.txHash}
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500 text-center">Hash da Transação</p>
+                <div className="flex items-center gap-2 p-3 bg-[#1c2128] border border-[#30363d] rounded-lg">
+                  <code className="flex-1 text-xs font-mono text-gray-400 text-center">
+                    {truncateHash(successModal.txHash)}
                   </code>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#30363d]"
                     onClick={() => copyToClipboard(successModal.txHash)}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#30363d]"
+                    onClick={() => window.open(getExplorerUrl(successModal.txHash), '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
                 </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => window.open(getExplorerUrl(successModal.txHash), '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Ver no Solana Explorer
-                </Button>
               </div>
             )}
 
+            {/* Botões de Compartilhamento */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 bg-[#1DA1F2]/10 border-[#1DA1F2]/30 text-[#1DA1F2] hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2]"
+                onClick={shareOnTwitter}
+              >
+                <Twitter className="h-4 w-4 mr-2" />
+                Compartilhar no X
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 bg-[#9945FF]/10 border-[#9945FF]/30 text-[#9945FF] hover:bg-[#9945FF]/20 hover:text-[#9945FF]"
+                onClick={generateVictoryImage}
+                disabled={generatingImage}
+              >
+                <ImageIcon className="h-4 w-4 mr-2" />
+                {generatingImage ? 'Gerando...' : 'Copiar Imagem'}
+              </Button>
+            </div>
+
+            {/* Botão Fechar */}
             <Button
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full bg-gradient-to-r from-[#14F195] to-[#9945FF] hover:from-[#14F195]/90 hover:to-[#9945FF]/90 text-[#0d1117] font-bold"
               onClick={() => setSuccessModal(null)}
             >
-              Fechar
+              Continuar
             </Button>
           </div>
         </DialogContent>
