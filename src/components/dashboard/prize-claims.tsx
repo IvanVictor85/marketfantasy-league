@@ -248,6 +248,18 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
   const unclaimedPrizes = prizes.filter(p => !p.claimed);
   const claimedPrizes = prizes.filter(p => p.claimed);
 
+  const [showTestButton, setShowTestButton] = useState(false);
+
+  // Verificar se deve mostrar botão de teste (dev ou ?testModal=true na URL)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isTestMode = urlParams.get('testModal') === 'true';
+      const isDev = process.env.NODE_ENV === 'development';
+      setShowTestButton(isDev || isTestMode);
+    }
+  }, []);
+
   // Função de teste do modal
   const testSuccessModal = () => {
     setSuccessModal({
@@ -256,12 +268,6 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
       prizeName: 'Rodada 5 - Liga Cripto'
     });
   };
-
-  // Verificar se deve mostrar botão de teste (dev ou ?testModal=true na URL)
-  const showTestButton = typeof window !== 'undefined' && (
-    process.env.NODE_ENV === 'development' ||
-    new URLSearchParams(window.location.search).get('testModal') === 'true'
-  );
 
   return (
     <Card>
