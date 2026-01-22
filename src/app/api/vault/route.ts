@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         ? 'https://api.mainnet-beta.solana.com'
         : 'https://api.devnet.solana.com');
 
-    const programId = process.env.NEXT_PUBLIC_PROGRAM_ID || '11111111111111111111111111111112';
+    const programId = process.env.NEXT_PUBLIC_PROGRAM_ID || 'KFbqeVcH7WemKHghyjdFByDpKSJQarWr378oK2ASfR5';
 
     // Criar conexão
     const connection = new Connection(rpcUrl, 'confirmed');

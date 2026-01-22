@@ -103,30 +103,30 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
     }
   }, [publicKey, connectWalletToUser, onSuccess, onClose, connected, disconnect]);
 
-  // Reset state quando o modal abre
+  // Reset state quando o modal abre (NÃO quando connected muda!)
   useEffect(() => {
     if (isOpen) {
       setIsLinking(false);
       setError('');
       setSuccess(false);
-      // Guardar se já estava conectado ao abrir o modal
+      // Guardar se já estava conectado ao abrir o modal (captura valor atual de connected)
       setWasConnectedBefore(connected);
     }
-  }, [isOpen, connected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Removido 'connected' para não resetar quando carteira conecta
 
   // Quando a carteira conectar (transição de desconectado para conectado), vincular automaticamente
   useEffect(() => {
     // Só vincular se: modal aberto, carteira conectou agora (não estava conectada antes), não está vinculando, não teve sucesso ainda
     const justConnected = connected && publicKey && !wasConnectedBefore;
 
+    console.log('🔍 [MODAL] Estado:', { connected, publicKey: publicKey?.toString()?.slice(0, 8), wasConnectedBefore, isLinking, success, justConnected, isOpen });
+
     if (justConnected && isOpen && !isLinking && !success) {
       console.log('🔗 [MODAL] Carteira detectada, iniciando vinculação automática...');
-      handleLinkWallet();
-    }
-
-    // Atualizar o estado anterior
-    if (connected) {
+      // Atualizar wasConnectedBefore ANTES de chamar handleLinkWallet para evitar chamadas duplicadas
       setWasConnectedBefore(true);
+      handleLinkWallet();
     }
   }, [connected, publicKey, isOpen, wasConnectedBefore, isLinking, success, handleLinkWallet]);
 

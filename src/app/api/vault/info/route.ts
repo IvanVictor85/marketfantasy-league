@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         : 'https://api.devnet.solana.com');
 
     const programId = new PublicKey(
-      process.env.NEXT_PUBLIC_PROGRAM_ID || '7QHMrTeoLTggAy11kTTEwtoRzcvK8rEeY1TRu4oUdgGP'
+      process.env.NEXT_PUBLIC_PROGRAM_ID || 'KFbqeVcH7WemKHghyjdFByDpKSJQarWr378oK2ASfR5'
     );
 
     const connection = new Connection(rpcUrl, 'confirmed');

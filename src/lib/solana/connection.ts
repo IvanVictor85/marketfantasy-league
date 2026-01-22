@@ -41,8 +41,8 @@ const getOptimalRpcUrl = () => {
 
 export const RPC_URL = getOptimalRpcUrl();
 
-// Program ID (will be updated after deployment)
-export const PROGRAM_ID = new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID || '11111111111111111111111111111112');
+// Program ID (deployed to devnet)
+export const PROGRAM_ID = new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID || 'KFbqeVcH7WemKHghyjdFByDpKSJQarWr378oK2ASfR5');
 
 // Create connection instance with better configuration
 let connection = new Connection(RPC_URL, {
