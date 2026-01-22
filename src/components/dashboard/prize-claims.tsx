@@ -248,6 +248,21 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
   const unclaimedPrizes = prizes.filter(p => !p.claimed);
   const claimedPrizes = prizes.filter(p => p.claimed);
 
+  // Função de teste do modal
+  const testSuccessModal = () => {
+    setSuccessModal({
+      amount: 0.0625,
+      txHash: '3aodeqqnQQy4xKp7mNz8wVhJ2nY9fBcDrEgHiJkLmNoPqRsTuVwXyZ1234567890abcdef',
+      prizeName: 'Rodada 5 - Liga Cripto'
+    });
+  };
+
+  // Verificar se deve mostrar botão de teste (dev ou ?testModal=true na URL)
+  const showTestButton = typeof window !== 'undefined' && (
+    process.env.NODE_ENV === 'development' ||
+    new URLSearchParams(window.location.search).get('testModal') === 'true'
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -400,6 +415,20 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
             </div>
           )}
         </div>
+
+        {/* Botão de Teste - Dev ou ?testModal=true */}
+        {showTestButton && (
+          <div className="pt-4 border-t mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs border-dashed border-orange-300 text-orange-600 hover:bg-orange-50"
+              onClick={testSuccessModal}
+            >
+              [TEST] Testar Modal de Sucesso
+            </Button>
+          </div>
+        )}
       </CardContent>
 
       {/* Modal de Sucesso - Estilo Gaming/Fantasy Sports */}
