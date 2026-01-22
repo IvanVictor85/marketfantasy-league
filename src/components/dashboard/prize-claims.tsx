@@ -48,11 +48,22 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
   const [claiming, setClaiming] = useState<string | null>(null);
   const [successModal, setSuccessModal] = useState<ClaimSuccessData | null>(null);
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [showTestButton, setShowTestButton] = useState(false);
   const victoryCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchPrizes();
   }, [userId, leagueId, refreshTrigger]);
+
+  // Verificar se deve mostrar botão de teste (dev ou ?testModal=true na URL)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isTestMode = urlParams.get('testModal') === 'true';
+      const isDev = process.env.NODE_ENV === 'development';
+      setShowTestButton(isDev || isTestMode);
+    }
+  }, []);
 
   // Dispara confete quando o modal abre
   useEffect(() => {
@@ -247,18 +258,6 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
 
   const unclaimedPrizes = prizes.filter(p => !p.claimed);
   const claimedPrizes = prizes.filter(p => p.claimed);
-
-  const [showTestButton, setShowTestButton] = useState(false);
-
-  // Verificar se deve mostrar botão de teste (dev ou ?testModal=true na URL)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const isTestMode = urlParams.get('testModal') === 'true';
-      const isDev = process.env.NODE_ENV === 'development';
-      setShowTestButton(isDev || isTestMode);
-    }
-  }, []);
 
   // Função de teste do modal
   const testSuccessModal = () => {
