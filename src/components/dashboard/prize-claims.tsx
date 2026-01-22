@@ -466,9 +466,9 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
                 </div>
               </div>
 
-              {/* Texto de parabéns */}
-              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] via-[#14F195] to-[#9945FF] mb-2 tracking-tight">
-                PARABÉNS!
+              {/* Texto de parabéns - cor sólida para compatibilidade com html2canvas */}
+              <h2 className="text-2xl font-black text-[#FFD700] mb-2 tracking-tight drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
+                🏆 PARABÉNS! 🏆
               </h2>
               <p className="text-gray-400 text-sm mb-4">
                 Seu prêmio foi enviado para sua carteira
