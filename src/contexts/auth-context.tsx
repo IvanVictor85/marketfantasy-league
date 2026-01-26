@@ -32,6 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ✅ CORREÇÃO: Ref para prevenir múltiplas tentativas de login com a mesma carteira
   const loginAttemptRef = useRef<string | null>(null);
 
+  // ✅ CORREÇÃO: Ref para prevenir múltiplas tentativas de VÍNCULO com a mesma carteira
+  const linkAttemptRef = useRef<string | null>(null);
+
   // ✅ Flag para identificar se acabou de fazer login (para redirecionamento)
   const justLoggedInRef = useRef<boolean>(false);
 
@@ -154,8 +157,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // MAS SÓ redireciona se acabou de fazer login (justLoggedInRef = true)
       const homePathPt = '/pt';
       const homePathEn = '/en';
+      const loginPathPt = '/pt/login';
+      const loginPathEn = '/en/login';
 
-      if ((pathname === homePathPt || pathname === homePathEn || pathname === '/') && justLoggedInRef.current) {
+      // ✅ NÃO redirecionar se estiver na página de login - ela tem sua própria lógica
+      const isOnLoginPage = pathname === loginPathPt || pathname === loginPathEn;
+      const isOnHomePage = pathname === homePathPt || pathname === homePathEn || pathname === '/';
+
+      console.log('[AUTH] Verificando redirecionamento pós-login:', { pathname, isOnLoginPage, isOnHomePage, justLoggedIn: justLoggedInRef.current });
+
+      if (isOnHomePage && !isOnLoginPage && justLoggedInRef.current) {
         console.log('[AUTH] Usuário acabou de logar na home. Redirecionando para /dashboard...');
         // Redireciona para o dashboard no idioma correto
         const targetDashboard = pathname.startsWith('/en') ? '/en/dashboard' : '/pt/dashboard';
@@ -507,11 +518,20 @@ Carteira: ${walletAddress}`;
 
     } catch (error: any) {
       console.error('❌ [SIWS-LINK] Erro ao vincular carteira:', error.message);
+      
+      // ✅ CORREÇÃO: Desconectar carteira quando usuário cancela/rejeita
+      if (error.message?.includes('rejected') || error.message?.includes('cancelled')) {
+        console.log('🔌 [SIWS-LINK] Usuário cancelou - desconectando carteira...');
+        if (connected && disconnect) {
+          disconnect();
+        }
+      }
+      
       throw new Error(error.message || 'Falha ao vincular carteira');
     } finally {
       setIsLoading(false);
     }
-  }, [user, publicKey, signMessage]); // ✅ CORREÇÃO: Remover setIsLoading e setUser (são estáveis)
+  }, [user, publicKey, signMessage, connected, disconnect]); // ✅ Adicionar disconnect às dependências
 
   // useEffect para gerenciar conexão/desconexão de carteira
   useEffect(() => {
@@ -540,12 +560,14 @@ Carteira: ${walletAddress}`;
       });
     }
 
-    // ✅ CORREÇÃO: Resetar ref quando usuário faz login com sucesso ou desconecta
+    // ✅ CORREÇÃO: Resetar refs quando usuário faz login com sucesso ou desconecta
     if (user && user.publicKey) {
       loginAttemptRef.current = null;
+      linkAttemptRef.current = null; // Resetar também ref de vínculo quando vincular com sucesso
     }
     if (!connected) {
       loginAttemptRef.current = null;
+      linkAttemptRef.current = null; // Resetar também ref de vínculo quando desconectar
     }
 
     // REGRA 2: FORÇAR LOGOUT POR DESCONEXÃO
@@ -561,9 +583,25 @@ Carteira: ${walletAddress}`;
     // Se o usuário está logado (com email) E conectou uma carteira
     // E a conta dele AINDA NÃO TEM uma carteira vinculada
     if (isClient && connected && publicKey && signMessage && user && user.loginMethod === 'email' && !user.publicKey && !isLoading) {
+      const walletAddress = publicKey.toString();
+
+      // ✅ CORREÇÃO: Prevenir múltiplas tentativas de vínculo com a mesma carteira
+      if (linkAttemptRef.current === walletAddress) {
+        console.log('⏭️ [AUTH] Já tentamos vincular esta carteira, pulando...');
+        return;
+      }
+
       console.log('🔗 [AUTH] Usuário de email conectou carteira. Iniciando fluxo de VÍNCULO (SIWS)...');
+      linkAttemptRef.current = walletAddress;
+
       connectWalletToUser().catch((error) => {
         console.error('❌ [AUTH] Erro ao iniciar vínculo automático:', error);
+        // ✅ IMPORTANTE: Em caso de erro (ex: usuário cancelou), resetar após delay
+        // para permitir nova tentativa se o usuário quiser tentar novamente mais tarde
+        setTimeout(() => {
+          console.log('🔄 [AUTH] Resetando ref de vínculo após erro para permitir nova tentativa');
+          linkAttemptRef.current = null;
+        }, 5000); // 5 segundos de cooldown
       });
     }
 
