@@ -25,6 +25,7 @@ interface Competition {
   status: 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
   startDate: Date;
   endDate: Date;
+  seasonId?: string;
   hasTeam?: boolean;
   hasPaid?: boolean;
   isEnrolled?: boolean;
@@ -137,6 +138,7 @@ export function CompetitionNavigator({
           ...c,
           startDate: new Date(c.startDate),
           endDate: new Date(c.endDate),
+          seasonId: c.seasonId,
           isEnrolled: enrollment?.enrolled || false,
           hasPaid: enrollment?.hasPaid || false,
           hasTeam: enrollment?.hasTeam || false
@@ -144,6 +146,15 @@ export function CompetitionNavigator({
       }).sort((a: Competition, b: Competition) => a.startDate.getTime() - b.startDate.getTime());
 
       setCompetitions(loadedCompetitions);
+
+      // Auto-selecionar temporada da primeira competição ACTIVE ou mais recente
+      if (!selectedSeasonId && loadedCompetitions.length > 0) {
+        const activeComp = loadedCompetitions.find((c: Competition) => c.status === 'ACTIVE');
+        const defaultComp = activeComp || loadedCompetitions[0];
+        if (defaultComp.seasonId) {
+          setSelectedSeasonId(defaultComp.seasonId);
+        }
+      }
 
       // ✅ UX FIX: Auto-selecionar rodada se nenhuma estiver selecionada
       // Usar setTimeout para garantir que o estado já foi atualizado antes de auto-selecionar
