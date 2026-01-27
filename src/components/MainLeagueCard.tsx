@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useLocaleNavigation } from '@/hooks/useLocaleNavigation';
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useTranslations } from 'next-intl';
+import { SeasonSelector } from '@/components/rounds/season-selector';
 
 interface MainLeagueData {
   id: string;
@@ -684,7 +685,7 @@ export function MainLeagueCard() {
   const isEnrolledInCurrentRound = entryStatus?.hasPaid && !isMismatched;
 
   return (
-    <Card className="border-accent border-2 bg-card overflow-hidden">
+    <Card className="border-accent border-2 bg-card">
       {/* Header */}
       <CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-accent/5 to-accent/10">
         <div className="flex items-center justify-between">
@@ -698,55 +699,15 @@ export function MainLeagueCard() {
         </div>
       </CardHeader>
 
-      <CardContent className="pb-4 pt-4">
+      <CardContent className="pb-4 pt-4 space-y-4">
         {/* ══════════════════════════════════════════════════════════════════
-            SEÇÃO 1: TEMPORADA (Compacto com Logo)
+            SEÇÃO 1: SELETOR DE TEMPORADA
         ══════════════════════════════════════════════════════════════════ */}
-        {leagueData.season && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
-            <div className="flex items-center gap-3">
-              {/* Logo da Liga */}
-              <div className="flex-shrink-0">
-                <Image
-                  src="/league-logos/main-league-trophy.png"
-                  alt="Liga Principal"
-                  width={140}
-                  height={140}
-                  className="rounded-xl border-2 border-yellow-300 dark:border-yellow-700 bg-white shadow-md"
-                />
-              </div>
-
-              {/* Info da Temporada */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
-                    {leagueData.season.name}
-                  </span>
-                  <Badge variant="secondary" className="text-[10px] ml-2 flex-shrink-0">
-                    {leagueData.season.status === 'ACTIVE' ? '🔴 Ativa' : '✅ Fim'}
-                  </Badge>
-                </div>
-
-                {/* Barra de progresso compacta */}
-                <div className="mt-1.5">
-                  <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
-                    <span>Rodada {leagueData.season.currentRoundNumber || '-'}/{leagueData.season.totalRounds}</span>
-                    <span className="font-bold text-yellow-600 dark:text-yellow-400">
-                      {leagueData.season.prizePool.toFixed(3)} SOL
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-500"
-                      style={{
-                        width: `${(leagueData.season.completedRounds / leagueData.season.totalRounds) * 100}%`
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        {leagueData.id && (
+          <SeasonSelector
+            leagueId={leagueData.id}
+            className="mb-0"
+          />
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
