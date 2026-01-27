@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
-import { SeasonSelector } from './season-selector';
+import { SeasonSelectorInline } from './season-selector-inline';
 
 interface Competition {
   id: string;
@@ -56,11 +56,13 @@ export function CompetitionNavigator({
   refreshTrigger
 }: CompetitionNavigatorProps) {
   const t = useTranslations('competitions');
+  const tSeasons = useTranslations('seasons');
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [filteredCompetitions, setFilteredCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [userEnrollments, setUserEnrollments] = useState<Record<string, boolean>>({});
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | undefined>();
+  const [selectedSeasonStatus, setSelectedSeasonStatus] = useState<'ACTIVE' | 'COMPLETED' | 'UPCOMING' | undefined>();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -416,20 +418,40 @@ export function CompetitionNavigator({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Seletor de Temporada */}
-      <SeasonSelector
-        leagueId={leagueId}
-        currentSeasonId={selectedSeasonId}
-        onSelectSeason={setSelectedSeasonId}
-      />
-
+    <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-base font-semibold flex items-center gap-2">
           <Calendar className="w-4 h-4" />
           {t('title')}
         </h3>
+        
+        {/* Seletor de Temporada Inline */}
+        <SeasonSelectorInline
+          leagueId={leagueId}
+          currentSeasonId={selectedSeasonId}
+          onSelectSeason={(seasonId, status) => {
+            setSelectedSeasonId(seasonId);
+            setSelectedSeasonStatus(status);
+          }}
+        />
       </div>
+
+      {/* Alerta de Temporada Encerrada */}
+      {selectedSeasonStatus === 'COMPLETED' && (
+        <div className="px-3 py-2 bg-gray-500/10 border border-gray-500/20 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-gray-600 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                {tSeasons('seasonEndedTitle')}
+              </p>
+              <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5">
+                {tSeasons('seasonEndedMessage')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Carrossel de Cards */}
       <div 
