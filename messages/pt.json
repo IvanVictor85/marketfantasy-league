@@ -130,7 +130,15 @@
     "totalScoreLeague": "Pontuação Total (Liga)",
     "leagueRanking": "Ranking da Liga",
     "roundScore": "Pontuação da Rodada",
-    "roundRanking": "Ranking da Rodada"
+    "roundRanking": "Ranking da Rodada",
+    "roundCompletedTitle": "Esta rodada já está encerrada",
+    "roundCompletedMessage": "Não é possível entrar em rodadas finalizadas. Selecione uma rodada futura para participar.",
+    "roundActiveTitle": "Esta rodada já está em andamento",
+    "roundActiveMessage": "Não é possível entrar em rodadas que já iniciaram. Aguarde a próxima rodada.",
+    "roundClosedToast": "Rodada encerrada",
+    "roundClosedToastDesc": "Não é possível entrar em rodadas finalizadas. Selecione uma rodada futura.",
+    "roundActiveToast": "Rodada em andamento",
+    "roundActiveToastDesc": "Não é possível entrar em rodadas que já iniciaram. Aguarde a próxima rodada."
   },
   "market": {
     "title": "Mercado de Tokens",

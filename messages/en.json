@@ -130,7 +130,15 @@
     "totalScoreLeague": "Total Score (League)",
     "leagueRanking": "League Ranking",
     "roundScore": "Round Score",
-    "roundRanking": "Round Ranking"
+    "roundRanking": "Round Ranking",
+    "roundCompletedTitle": "This round has already ended",
+    "roundCompletedMessage": "You cannot join completed rounds. Select an upcoming round to participate.",
+    "roundActiveTitle": "This round is already in progress",
+    "roundActiveMessage": "You cannot join rounds that have already started. Wait for the next round.",
+    "roundClosedToast": "Round ended",
+    "roundClosedToastDesc": "You cannot join completed rounds. Select an upcoming round.",
+    "roundActiveToast": "Round in progress",
+    "roundActiveToastDesc": "You cannot join rounds that have already started. Wait for the next round."
   },
   "market": {
     "title": "Token Market",

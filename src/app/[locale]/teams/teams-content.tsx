@@ -1072,15 +1072,15 @@ export function TeamsContent() {
     // ✅ NOVO: Verificar se a rodada está encerrada ou ativa
     const status = selectedCompetitionStatus?.toUpperCase();
     if (status === 'COMPLETED') {
-      toast.error('Rodada encerrada', {
-        description: 'Não é possível entrar em rodadas finalizadas. Selecione uma rodada UPCOMING.',
+      toast.error(t('roundClosedToast'), {
+        description: t('roundClosedToastDesc'),
         duration: 5000,
       });
       return;
     }
     if (status === 'ACTIVE') {
-      toast.error('Rodada em andamento', {
-        description: 'Não é possível entrar em rodadas que já iniciaram. Aguarde a próxima rodada.',
+      toast.error(t('roundActiveToast'), {
+        description: t('roundActiveToastDesc'),
         duration: 5000,
       });
       return;
@@ -1589,10 +1589,8 @@ export function TeamsContent() {
             <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
             <AlertDescription className="text-red-800 dark:text-red-300">
               <div className="flex flex-col gap-2">
-                <span className="font-medium">Esta rodada já está encerrada</span>
-                <span className="text-sm">
-                  Não é possível entrar em rodadas finalizadas. Selecione uma rodada UPCOMING para participar.
-                </span>
+                <span className="font-medium">{t('roundCompletedTitle')}</span>
+                <span className="text-sm">{t('roundCompletedMessage')}</span>
               </div>
             </AlertDescription>
           </Alert>
@@ -1604,10 +1602,8 @@ export function TeamsContent() {
             <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
             <AlertDescription className="text-orange-800 dark:text-orange-300">
               <div className="flex flex-col gap-2">
-                <span className="font-medium">Esta rodada já está em andamento</span>
-                <span className="text-sm">
-                  Não é possível entrar em rodadas que já iniciaram. Aguarde a próxima rodada UPCOMING.
-                </span>
+                <span className="font-medium">{t('roundActiveTitle')}</span>
+                <span className="text-sm">{t('roundActiveMessage')}</span>
               </div>
             </AlertDescription>
           </Alert>
