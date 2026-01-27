@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useRouter, usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import bs58 from 'bs58';
+import { toast } from 'sonner';
 // import { signIn, getSession } from 'next-auth/react'; // Temporariamente desabilitado
 import { SendCodeResponse, User, AuthContextType } from '@/types/auth';
 
@@ -583,6 +584,18 @@ Carteira: ${walletAddress}`;
       // Chama a função que tem as 5 etapas (a que já confirmamos que existe)
       loginWithWallet().catch((error) => {
         console.error('❌ [AUTH] Erro ao iniciar login automático:', error);
+        
+        // ✅ NOVO: Mostrar notificação visual para o usuário
+        const errorMessage = error?.message || 'Erro ao fazer login';
+        
+        if (!errorMessage.includes('rejected') && !errorMessage.includes('cancelled') && !errorMessage.includes('User rejected')) {
+          // Mostrar toast apenas se não for cancelamento pelo usuário
+          toast.error('Erro ao fazer login com carteira', {
+            description: errorMessage,
+            duration: 5000,
+          });
+        }
+        
         // NÃO resetar loginAttemptRef aqui - queremos evitar loops mesmo em caso de erro
       });
     }
@@ -623,6 +636,24 @@ Carteira: ${walletAddress}`;
 
       connectWalletToUser().catch((error) => {
         console.error('❌ [AUTH] Erro ao iniciar vínculo automático:', error);
+        
+        // ✅ NOVO: Mostrar notificação visual para o usuário
+        const errorMessage = error?.message || 'Erro ao conectar carteira';
+        
+        if (errorMessage.includes('já está vinculada')) {
+          // Mensagem específica para carteira em uso
+          toast.error('Esta carteira já está em uso', {
+            description: errorMessage,
+            duration: 6000,
+          });
+        } else if (!errorMessage.includes('rejected') && !errorMessage.includes('cancelled')) {
+          // Outros erros (exceto cancelamento pelo usuário)
+          toast.error('Erro ao conectar carteira', {
+            description: errorMessage,
+            duration: 5000,
+          });
+        }
+        
         // ✅ IMPORTANTE: Em caso de erro (ex: usuário cancelou), resetar após delay
         // para permitir nova tentativa se o usuário quiser tentar novamente mais tarde
         setTimeout(() => {
