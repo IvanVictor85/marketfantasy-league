@@ -497,8 +497,6 @@ Carteira: ${walletAddress}`;
       const nonceRes = await fetch('/api/auth/nonce');
       if (!nonceRes.ok) throw new Error('Falha ao buscar nonce');
       const { nonce } = await nonceRes.json();
-      
-      const walletAddress = publicKey.toString();
 
       // 2. Criar a Mensagem
       const message = `Bem-vindo ao MFL!
