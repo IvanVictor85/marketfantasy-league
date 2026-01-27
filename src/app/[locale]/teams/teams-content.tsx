@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { useGuardedActionHook } from '@/hooks/useGuardedActionHook';
 import { useCompetitionStatus } from '@/hooks/useCompetitionStatus';
@@ -1068,6 +1069,23 @@ export function TeamsContent() {
   // ✅ REMOVIDO: Função isEditingAllowed() movida para useEffect acima para evitar hydration mismatch
   // Função para pagar a taxa de entrada via smart contract
   const handlePayEntryFee = async () => {
+    // ✅ NOVO: Verificar se a rodada está encerrada ou ativa
+    const status = selectedCompetitionStatus?.toUpperCase();
+    if (status === 'COMPLETED') {
+      toast.error('Rodada encerrada', {
+        description: 'Não é possível entrar em rodadas finalizadas. Selecione uma rodada UPCOMING.',
+        duration: 5000,
+      });
+      return;
+    }
+    if (status === 'ACTIVE') {
+      toast.error('Rodada em andamento', {
+        description: 'Não é possível entrar em rodadas que já iniciaram. Aguarde a próxima rodada.',
+        duration: 5000,
+      });
+      return;
+    }
+
     if (!program || !publicKey) {
       console.error("Programa Anchor ou carteira não estão prontos.");
       setPaymentError(t('connectWalletFirst'));
@@ -1565,8 +1583,39 @@ export function TeamsContent() {
           </Alert>
         )}
 
-        {/* Alerta de pagamento reativado */}
-        {connected && hasValidEntry === false && paymentError && (
+        {/* ✅ NOVO: Alerta de rodada encerrada (não permite pagamento) */}
+        {connected && hasValidEntry === false && selectedCompetitionStatus === 'COMPLETED' && (
+          <Alert className="mb-6 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800">
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-red-800 dark:text-red-300">
+              <div className="flex flex-col gap-2">
+                <span className="font-medium">Esta rodada já está encerrada</span>
+                <span className="text-sm">
+                  Não é possível entrar em rodadas finalizadas. Selecione uma rodada UPCOMING para participar.
+                </span>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* ✅ NOVO: Alerta de rodada ativa (não permite pagamento) */}
+        {connected && hasValidEntry === false && selectedCompetitionStatus === 'ACTIVE' && (
+          <Alert className="mb-6 border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800">
+            <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            <AlertDescription className="text-orange-800 dark:text-orange-300">
+              <div className="flex flex-col gap-2">
+                <span className="font-medium">Esta rodada já está em andamento</span>
+                <span className="text-sm">
+                  Não é possível entrar em rodadas que já iniciaram. Aguarde a próxima rodada UPCOMING.
+                </span>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Alerta de pagamento (só mostra se rodada for UPCOMING ou indefinida) */}
+        {connected && hasValidEntry === false && paymentError && 
+         selectedCompetitionStatus !== 'COMPLETED' && selectedCompetitionStatus !== 'ACTIVE' && (
           <Alert className="mb-6 border-orange-200 bg-orange-50">
             <AlertCircle className="h-4 w-4 text-orange-600" />
             <AlertDescription className="text-orange-800">
