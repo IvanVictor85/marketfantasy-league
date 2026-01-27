@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { rateLimit, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { getCorsHeaders } from '@/lib/cors';
+import { applyReferralCode, ensureReferralCode } from '@/lib/referral-service';
 
 // Função para gerar token de sessão
 function generateSessionToken(): string {
@@ -147,6 +148,23 @@ export async function POST(request: NextRequest) {
       email: user.email,
       name: user.name
     });
+
+    // ✅ NOVO: Aplicar código de referral se presente
+    const referralCode = request.cookies.get('referral_code')?.value;
+    if (referralCode && !user.referredById) {
+      console.log(`🔗 [VERIFY] Código de referral detectado: ${referralCode}`);
+      const referralResult = await applyReferralCode(user.id, referralCode);
+      
+      if (referralResult.success) {
+        console.log(`✅ [VERIFY] Referral aplicado com sucesso! Referenciador: ${referralResult.referrerId}`);
+      } else {
+        console.log(`⚠️ [VERIFY] Falha ao aplicar referral: ${referralResult.error}`);
+      }
+    }
+
+    // ✅ NOVO: Garantir que o usuário tem um código de referral
+    const userReferralCode = await ensureReferralCode(user.id);
+    console.log(`✅ [VERIFY] Código de referral do usuário: ${userReferralCode}`);
 
     // Gerar token de sessão
     const sessionToken = generateSessionToken();
