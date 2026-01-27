@@ -590,5 +590,20 @@
     "enrollmentClosed": "Inscrições Encerradas",
     "copyPrevious": "Copiar time da rodada anterior",
     "teamWithoutPayment": "Time criado sem pagamento oficial"
+  },
+  "seasons": {
+    "title": "Temporadas",
+    "active": "Ativa",
+    "ended": "Encerrada",
+    "upcoming": "Próxima",
+    "seasonActive": "Temporada Ativa",
+    "seasonEnded": "Temporada Encerrada",
+    "seasonUpcoming": "Próxima Temporada",
+    "seasonEndedTitle": "Esta temporada foi finalizada",
+    "seasonEndedMessage": "Todas as rodadas desta temporada foram concluídas. Você pode ver os resultados finais ou aguardar a próxima temporada.",
+    "newSeasonSoon": "Nova temporada em breve",
+    "newSeasonMessage": "Estamos preparando uma nova temporada emocionante! Em breve você poderá participar de novas rodadas e competir por prêmios.",
+    "roundsCompleted": "rodadas concluídas",
+    "selectSeason": "Selecionar Temporada"
   }
 }

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { SeasonSelector } from './season-selector';
 
 interface Competition {
   id: string;
@@ -55,22 +56,38 @@ export function CompetitionNavigator({
 }: CompetitionNavigatorProps) {
   const t = useTranslations('competitions');
   const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [filteredCompetitions, setFilteredCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [userEnrollments, setUserEnrollments] = useState<Record<string, boolean>>({});
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | undefined>();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (currentCompetitionId && scrollContainerRef.current && competitions.length > 0) {
+    if (currentCompetitionId && scrollContainerRef.current && filteredCompetitions.length > 0) {
       const selectedElement = document.getElementById(`comp-${currentCompetitionId}`);
       if (selectedElement) {
         selectedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     }
-  }, [currentCompetitionId, competitions.length]);
+  }, [currentCompetitionId, filteredCompetitions.length]);
 
   useEffect(() => {
     loadCompetitions();
   }, [leagueId, refreshTrigger]);
+
+  // Filtrar competições por temporada
+  useEffect(() => {
+    if (!selectedSeasonId) {
+      setFilteredCompetitions(competitions);
+      return;
+    }
+
+    const filtered = competitions.filter(comp => {
+      // Assumimos que competitions já vem com seasonId da API
+      return (comp as any).seasonId === selectedSeasonId;
+    });
+    setFilteredCompetitions(filtered);
+  }, [selectedSeasonId, competitions]);
 
   async function loadCompetitions() {
     try {
@@ -388,7 +405,14 @@ export function CompetitionNavigator({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      {/* Seletor de Temporada */}
+      <SeasonSelector
+        leagueId={leagueId}
+        currentSeasonId={selectedSeasonId}
+        onSelectSeason={setSelectedSeasonId}
+      />
+
       <div className="flex items-center justify-between px-1">
         <h3 className="text-base font-semibold flex items-center gap-2">
           <Calendar className="w-4 h-4" />
@@ -401,7 +425,7 @@ export function CompetitionNavigator({
         ref={scrollContainerRef}
         className="flex overflow-x-auto pb-4 gap-3 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent px-1"
       >
-        {competitions.map((comp) => {
+        {filteredCompetitions.map((comp) => {
           const isSelected = comp.id === currentCompetitionId;
 
           return (
@@ -465,7 +489,7 @@ export function CompetitionNavigator({
         })}
       </div>
 
-      {competitions.length === 0 && (
+      {filteredCompetitions.length === 0 && !loading && (
         <div className="text-center py-8 text-muted-foreground text-sm">
           {t('noRounds')}
         </div>

@@ -590,5 +590,20 @@
     "enrollmentClosed": "Enrollment Closed",
     "copyPrevious": "Copy team from previous round",
     "teamWithoutPayment": "Team created without official payment"
+  },
+  "seasons": {
+    "title": "Seasons",
+    "active": "Active",
+    "ended": "Ended",
+    "upcoming": "Upcoming",
+    "seasonActive": "Active Season",
+    "seasonEnded": "Season Ended",
+    "seasonUpcoming": "Upcoming Season",
+    "seasonEndedTitle": "This season has ended",
+    "seasonEndedMessage": "All rounds in this season have been completed. You can view the final results or wait for the next season.",
+    "newSeasonSoon": "New season coming soon",
+    "newSeasonMessage": "We're preparing an exciting new season! Soon you'll be able to participate in new rounds and compete for prizes.",
+    "roundsCompleted": "rounds completed",
+    "selectSeason": "Select Season"
   }
 }
