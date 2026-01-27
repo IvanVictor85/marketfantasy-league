@@ -467,6 +467,32 @@ Carteira: ${walletAddress}`;
     setIsLoading(true);
 
     try {
+      // ✅ NOVO: Verificar ANTES se a carteira já está em uso
+      const walletAddress = publicKey.toString();
+      console.log('🔍 [SIWS-LINK] Verificando disponibilidade da carteira...');
+      
+      const checkResponse = await fetch(`/api/wallet/check?publicKey=${walletAddress}`);
+      const checkData = await checkResponse.json();
+
+      if (!checkData.available) {
+        console.error('❌ [SIWS-LINK] Carteira já em uso:', checkData);
+        
+        // Desconectar carteira
+        if (connected && disconnect) {
+          console.log('🔌 [SIWS-LINK] Desconectando carteira em uso...');
+          disconnect();
+        }
+
+        throw new Error(
+          `Esta carteira já está vinculada à conta "${checkData.accountName}". ` +
+          `${checkData.accountHint ? `(${checkData.accountHint})` : ''}\n\n` +
+          `Use uma carteira diferente ou faça login com a conta existente.`
+        );
+      }
+
+      console.log('✅ [SIWS-LINK] Carteira disponível, prosseguindo com vinculação...');
+
+      // Continuar com o fluxo normal...
       // 1. Obter o Nonce
       const nonceRes = await fetch('/api/auth/nonce');
       if (!nonceRes.ok) throw new Error('Falha ao buscar nonce');
@@ -519,12 +545,15 @@ Carteira: ${walletAddress}`;
     } catch (error: any) {
       console.error('❌ [SIWS-LINK] Erro ao vincular carteira:', error.message);
       
-      // ✅ CORREÇÃO: Desconectar carteira quando usuário cancela/rejeita
-      if (error.message?.includes('rejected') || error.message?.includes('cancelled')) {
-        console.log('🔌 [SIWS-LINK] Usuário cancelou - desconectando carteira...');
-        if (connected && disconnect) {
-          disconnect();
-        }
+      // ✅ CORREÇÃO: Desconectar carteira em casos de erro
+      const shouldDisconnect = 
+        error.message?.includes('rejected') || 
+        error.message?.includes('cancelled') ||
+        error.message?.includes('já está vinculada');
+
+      if (shouldDisconnect && connected && disconnect) {
+        console.log('🔌 [SIWS-LINK] Desconectando carteira...');
+        disconnect();
       }
       
       throw new Error(error.message || 'Falha ao vincular carteira');

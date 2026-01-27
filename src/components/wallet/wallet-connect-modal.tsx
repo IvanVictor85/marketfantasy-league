@@ -97,19 +97,17 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
       console.error('❌ [MODAL] Erro ao vincular carteira:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao conectar carteira';
 
-      // Se carteira já está vinculada, considerar como sucesso
-      if (errorMessage.includes('já está vinculada') || errorMessage.includes('already linked')) {
-        setSuccess(true);
-        toast.success('Carteira já conectada!');
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-          onClose();
-        }, 500);
-        return;
-      }
-
       setError(errorMessage);
-      toast.error(errorMessage);
+      
+      // ✅ Mensagem de erro mais amigável para carteira em uso
+      if (errorMessage.includes('já está vinculada')) {
+        toast.error('Carteira já em uso em outra conta', {
+          description: 'Por favor, use uma carteira diferente ou faça login com a conta que possui essa carteira.',
+          duration: 5000,
+        });
+      } else {
+        toast.error(errorMessage);
+      }
 
       // Desconectar a carteira se houver erro
       if (connected) {
