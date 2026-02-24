@@ -423,8 +423,8 @@ Categoria: ${protocol.category}
 ✅ Identificar tendências de yield farming
 ✅ Insights sobre sentimento do mercado
 
-Agradecemos sua compreensão! 🙏`)
-  }
+Agradecemos sua compreensão! 🙏`);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-6">
