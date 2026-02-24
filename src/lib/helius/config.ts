@@ -33,14 +33,18 @@ export const HELIUS_CONFIG = {
 
 // Get API key from environment
 export const getHeliusApiKey = (): string => {
-  const apiKey = process.env.NEXT_PUBLIC_HELIUS_API_KEY || process.env.HELIUS_API_KEY;
-  
-  if (!apiKey || apiKey === 'demo') {
-    console.warn('⚠️ [HELIUS] API key não configurada. Usando RPC público do Solana.');
-    return 'public'; // Usar RPC público em vez de demo
+  // Server-side: Prioritize private key
+  if (typeof window === 'undefined') {
+    const apiKey = process.env.HELIUS_API_KEY || process.env.NEXT_PUBLIC_HELIUS_API_KEY;
+    if (!apiKey || apiKey === 'demo') {
+      console.warn('⚠️ [HELIUS] API key não configurada. Usando RPC público do Solana.');
+      return 'public';
+    }
+    return apiKey;
   }
-  
-  return apiKey;
+
+  // Client-side: Nunca expor a chave. Sempre usar proxy.
+  return 'proxy';
 };
 
 // Get current network
@@ -61,6 +65,10 @@ export const buildApiUrl = (endpoint: string, params?: Record<string, string>): 
   const baseUrl = HELIUS_CONFIG.baseUrl[network];
   const apiKey = getHeliusApiKey();
   
+  // If using proxy, we might need a different approach for API calls
+  // For now, if apiKey is 'proxy', we might fail or need a proxy for API too.
+  // This is a limitation of the current fix.
+  
   let url = `${baseUrl}${endpoint}?api-key=${apiKey}`;
   
   if (params) {
@@ -73,6 +81,11 @@ export const buildApiUrl = (endpoint: string, params?: Record<string, string>): 
 
 // Build RPC URL with key
 export const buildRpcUrl = (): string => {
+  // ✅ SECURITY: Use proxy on client-side to hide API Key
+  if (typeof window !== 'undefined') {
+    return '/api/helius/rpc';
+  }
+
   const network = getCurrentNetwork();
   const apiKey = getHeliusApiKey();
   

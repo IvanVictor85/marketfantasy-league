@@ -396,7 +396,37 @@ export async function GET(request: NextRequest) {
 
     // Buscar dados de mercado (com dedupe)
     const marketData = await getMarketDataWithFallback(teamTokens);
-    const tokenDetails = mapMarketDataToResponse(marketData, teamTokens);
+    let tokenDetails = mapMarketDataToResponse(marketData, teamTokens);
+
+    // ✅ NOVO: Se for uma rodada específica, tentar buscar pontuação histórica (CompetitionToken)
+    if (targetCompetitionId) {
+      const competitionTokens = await prisma.competitionToken.findMany({
+        where: {
+          competitionId: targetCompetitionId,
+          symbol: { in: teamTokens }
+        }
+      });
+
+      if (competitionTokens.length > 0) {
+        console.log(`✅ [TEAM-GET] Encontrados ${competitionTokens.length} tokens históricos para pontuação`);
+        
+        tokenDetails = tokenDetails.map(token => {
+          const histToken = competitionTokens.find(ct => ct.symbol === token.symbol);
+          if (histToken && histToken.percentChange !== null) {
+            // Substituir variação/pontuação pelos dados históricos
+            return {
+              ...token,
+              // Usar percentChange histórico como "score" e "priceChange7d" para exibição correta
+              priceChange7d: Number(histToken.percentChange),
+              priceChange24h: 0, // Zerar para não confundir
+              currentPrice: Number(histToken.priceEnd || histToken.priceStart || token.currentPrice),
+              isHistorical: true // Flag para o frontend saber
+            };
+          }
+          return token;
+        });
+      }
+    }
 
     console.log(`✅ [TEAM-GET] Time encontrado: ${userTeam.id}`);
 

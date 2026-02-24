@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     const tokensInUse = new Set<string>();
     userTeams.forEach(team => {
       if (Array.isArray(team.players)) {
-        team.players.forEach((symbol: string) => {
+        (team.players as string[]).forEach((symbol) => {
           tokensInUse.add(symbol.toUpperCase());
         });
       }

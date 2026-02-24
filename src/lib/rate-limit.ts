@@ -127,6 +127,12 @@ export const RATE_LIMITS = {
     interval: 60000, // 1 minuto
     uniqueTokenPerInterval: 60, // 60 requisições por minuto
   },
+
+  // Proxy RPC (Helius) - proteção contra abuso
+  RPC_PROXY: {
+    interval: 60000, // 1 minuto
+    uniqueTokenPerInterval: 20, // 20 requisições por minuto por IP
+  },
 };
 
 /**

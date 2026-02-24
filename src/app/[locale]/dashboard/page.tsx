@@ -843,16 +843,16 @@ const DashboardSidebar = ({ userData, selectedTeamData, savedMascot, isLoading, 
         <CardContent className="p-6">
           <div className="space-y-2">
             <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/ligas" prefetch={false}>
+              <LocalizedLink href="/ligas" prefetch={false}>
                 <Trophy className="h-4 w-4 mr-2 text-[#F4A261]" />
                 {t('myLeagues')}
-              </Link>
+              </LocalizedLink>
             </Button>
             <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/help" prefetch={false}>
+              <LocalizedLink href="/help" prefetch={false}>
                 <HelpCircle className="h-4 w-4 mr-2 text-[#F4A261]" />
                 {t('understandGame')}
-              </Link>
+              </LocalizedLink>
             </Button>
           </div>
         </CardContent>
@@ -1437,22 +1437,35 @@ const DashboardContent = ({ userData, selectedTeamData, onLeagueChange, userId, 
         </Card>
       )}
 
-      {/* Card Social / Convide Amigos */}
-      <Card className="bg-[#2A9D8F]/5">
-        <CardContent className="p-6 flex flex-col md:flex-row items-center gap-4">
-          <div className="rounded-full bg-[#2A9D8F]/20 p-4">
-            <Gift className="h-8 w-8 text-[#2A9D8F]" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold mb-1">{t('betterWithFriends')}</h3>
-            <p className="text-muted-foreground mb-4">
-              {t('inviteFriendsDesc')} <span className="text-orange-600 font-semibold">({t('inviteComingSoon')})</span>
-            </p>
-            <Button className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90" disabled>
-              {t('inviteLearnMore')}
-            </Button>
-          </div>
-        </CardContent>
+      {/* Card Social / Convide Amigos - Programa de Indicação */}
+      <Card className="overflow-hidden border-0 shadow-lg dark:shadow-none">
+        <div className="bg-gradient-to-r from-[#9945FF]/20 via-[#14F195]/20 to-[#FFD700]/20 dark:from-[#9945FF]/10 dark:via-[#14F195]/10 dark:to-[#FFD700]/10 p-[1px]">
+          <CardContent className="p-6 flex flex-col md:flex-row items-center gap-4 bg-white dark:bg-[#0d1117] rounded-[inherit]">
+            <div className="rounded-full bg-gradient-to-br from-[#9945FF] via-[#14F195] to-[#FFD700] p-4 shadow-lg shadow-[#14F195]/20">
+              <Gift className="h-8 w-8 text-white" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex items-center gap-2 justify-center md:justify-start mb-1">
+                <h3 className="text-xl font-bold">{t('betterWithFriends')}</h3>
+                <span className="px-2 py-0.5 text-xs font-bold bg-[#14F195]/20 text-[#14F195] dark:text-[#14F195] rounded-full animate-pulse">
+                  PONTOS
+                </span>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                {t('inviteFriendsDesc')} Ganhe <span className="text-[#14F195] font-bold">+50 pontos</span> por cada amigo!
+              </p>
+              <Button
+                asChild
+                className="bg-gradient-to-r from-[#9945FF] to-[#14F195] hover:opacity-90 text-white font-semibold shadow-lg shadow-[#9945FF]/20"
+              >
+                <LocalizedLink href="/rewards">
+                  <Gift className="h-4 w-4 mr-2" />
+                  Ver Programa de Indicação
+                </LocalizedLink>
+              </Button>
+            </div>
+          </CardContent>
+        </div>
       </Card>
     </div>
   );

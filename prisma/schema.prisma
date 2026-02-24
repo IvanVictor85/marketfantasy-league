@@ -233,6 +233,12 @@ model User {
   // ✅ O "TIME PRINCIPAL" (Template do Utilizador)
   mainTeam   Json?    // ["BTC", "ETH", "SOL", ...]
 
+  // ✅ SISTEMA DE REFERRAL (Airdrop)
+  referralCode   String?  @unique  // Código único de indicação (ex: "CRYPTO2024")
+  referredById   String?           // ID do usuário que indicou
+  referredBy     User?    @relation("Referrals", fields: [referredById], references: [id])
+  referrals      User[]   @relation("Referrals")  // Usuários que este indicou
+
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -243,6 +249,10 @@ model User {
   leagueEntries  LeagueEntry[]
   prizeClaims    PrizeClaim[]  // ← NOVO: Prêmios disponíveis para claim
   legacyTeams    Team[]   @relation("LegacyTeams")
+
+  // ✅ Relações de Pontos (Airdrop)
+  referralPoints ReferralPoint?
+  pointLogs      PointLog[]
 
   @@map("users")
 }
@@ -297,8 +307,65 @@ model PrizeClaim {
   @@map("prize_claims")
 }
 
-// Adicionar relação no User
-// (Já existe em User model, adicionar: prizeClaims PrizeClaim[])
+// ============================================
+// SISTEMA DE REFERRAL E PONTOS (AIRDROP)
+// ============================================
+
+// 12. PONTOS DE REFERRAL (ReferralPoint) - Saldo de Pontos do Usuário
+model ReferralPoint {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ✅ Saldo de pontos para airdrop
+  totalPoints     Int      @default(0)
+
+  // ✅ Tier baseado em pontos
+  // BRONZE: 0-499 | SILVER: 500-1499 | GOLD: 1500-4999 | PLATINUM: 5000-9999 | DIAMOND: 10000+
+  tier            String   @default("BRONZE")
+
+  // Estatísticas
+  totalReferrals  Int      @default(0)  // Quantos usuários indicou
+  activeReferrals Int      @default(0)  // Quantos indicados estão ativos (jogaram)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("referral_points")
+}
+
+// 13. LOG DE PONTOS (PointLog) - Histórico de Ganhos
+model PointLog {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ✅ Tipo de evento que gerou pontos
+  // SIGNUP: Indicado se cadastrou (+50)
+  // ROUND_PLAYED: Indicado participou de rodada (+10)
+  // SOCIAL_SHARE: Compartilhou no Twitter (+5)
+  // FIRST_WIN: Indicado ganhou primeira vez (+25)
+  // STREAK_BONUS: Bônus de sequência (+20)
+  eventType       String
+
+  // Pontos ganhos/perdidos
+  points          Int
+  description     String?  // Descrição amigável
+
+  // Referências opcionais
+  referredUserId  String?  // ID do usuário indicado (se aplicável)
+  competitionId   String?  // ID da competição (se aplicável)
+
+  // Metadados
+  metadata        Json?    // Dados extras (ex: tweet URL, tx hash)
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("point_logs")
+}
 
 // ============================================
 // MODELOS DE SUPORTE (Autenticação, Histórico)

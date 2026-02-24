@@ -161,8 +161,9 @@ export function CompetitionNavigator({
       // ✅ UX FIX: Auto-selecionar rodada se nenhuma estiver selecionada
       // Usar setTimeout para garantir que o estado já foi atualizado antes de auto-selecionar
       if (!currentCompetitionId && loadedCompetitions.length > 0) {
+        // Delay aumentado para 300ms para garantir estabilidade do pai
         setTimeout(() => {
-          console.log('🎯 Auto-selecionando rodada...');
+          console.log('🎯 Auto-selecionando rodada (delayed)...', { currentCompetitionId });
 
           // ✅ Helper para criar dados de enrollment
           const getEnrollmentData = (comp: Competition): CompetitionEnrollmentData => ({
@@ -174,7 +175,7 @@ export function CompetitionNavigator({
           // Prioridade 1: Rodada ACTIVE
           const activeCompetition = loadedCompetitions.find((c: Competition) => c.status === 'ACTIVE');
           if (activeCompetition) {
-            console.log('✅ Auto-selecionado: Rodada ACTIVE -', activeCompetition.name, '(com dados de enrollment)');
+            console.log('✅ Auto-selecionado: Rodada ACTIVE -', activeCompetition.name);
             onSelectCompetition(activeCompetition.id, getEnrollmentData(activeCompetition));
             return;
           }
@@ -184,7 +185,7 @@ export function CompetitionNavigator({
             .reverse()
             .find((c: Competition) => c.status === 'COMPLETED' && c.hasTeam);
           if (completedWithTeam) {
-            console.log('✅ Auto-selecionado: Última COMPLETED com time -', completedWithTeam.name, '(com dados de enrollment)');
+            console.log('✅ Auto-selecionado: Última COMPLETED com time -', completedWithTeam.name);
             onSelectCompetition(completedWithTeam.id, getEnrollmentData(completedWithTeam));
             return;
           }
@@ -194,7 +195,7 @@ export function CompetitionNavigator({
             (c: Competition) => c.status === 'UPCOMING' && c.isEnrolled
           );
           if (upcomingWithEnrollment) {
-            console.log('✅ Auto-selecionado: Primeira UPCOMING com inscrição -', upcomingWithEnrollment.name, '(com dados de enrollment)');
+            console.log('✅ Auto-selecionado: Primeira UPCOMING com inscrição -', upcomingWithEnrollment.name);
             onSelectCompetition(upcomingWithEnrollment.id, getEnrollmentData(upcomingWithEnrollment));
             return;
           }
@@ -202,15 +203,15 @@ export function CompetitionNavigator({
           // Prioridade 4: Primeira UPCOMING sem inscrição
           const firstUpcoming = loadedCompetitions.find((c: Competition) => c.status === 'UPCOMING');
           if (firstUpcoming) {
-            console.log('✅ Auto-selecionado: Primeira UPCOMING -', firstUpcoming.name, '(com dados de enrollment)');
+            console.log('✅ Auto-selecionado: Primeira UPCOMING -', firstUpcoming.name);
             onSelectCompetition(firstUpcoming.id, getEnrollmentData(firstUpcoming));
             return;
           }
 
           // Fallback: Primeira rodada de qualquer tipo
-          console.log('✅ Auto-selecionado: Primeira rodada (fallback) -', loadedCompetitions[0].name, '(com dados de enrollment)');
+          console.log('✅ Auto-selecionado: Primeira rodada (fallback) -', loadedCompetitions[0].name);
           onSelectCompetition(loadedCompetitions[0].id, getEnrollmentData(loadedCompetitions[0]));
-        }, 100);
+        }, 300);
       }
 
     } catch (error) {

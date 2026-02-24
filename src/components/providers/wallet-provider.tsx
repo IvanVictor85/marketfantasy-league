@@ -10,7 +10,6 @@ import { WalletAdapterNetwork, WalletError, Adapter } from '@solana/wallet-adapt
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
-  TorusWalletAdapter,
   LedgerWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import {
@@ -45,39 +44,15 @@ export const useTransactionState = () => {
 // Wrapper interno para acessar o useWallet hook
 const WalletConnectHandler: FC<{ children: ReactNode }> = ({ children }) => {
   const { select, connect, connected, publicKey, wallets } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { setVisible, visible } = useWalletModal();
 
+  // ✅ CRÍTICO: Fechar o modal do wallet-adapter quando a carteira conectar
   useEffect(() => {
-    const handlePhantomClick = async (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const button = target.closest('button');
-      if (button?.textContent?.includes('Phantom')) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Encontra o adapter Phantom
-        const phantomWallet = wallets.find(w =>
-          w.adapter.name === 'Phantom' || w.adapter.name === 'PhantomDetected'
-        );
-
-        if (phantomWallet) {
-          try {
-            await select(phantomWallet.adapter.name);
-            // Aguardar um pouco para garantir que a seleção completou
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await connect();
-            // Fechar o modal após conexão bem-sucedida
-            setVisible(false);
-          } catch (err) {
-            console.error('❌ Erro ao conectar:', err);
-          }
-        }
-      }
-    };
-
-    document.addEventListener('click', handlePhantomClick, true);
-    return () => document.removeEventListener('click', handlePhantomClick, true);
-  }, [select, connect, wallets, setVisible]);
+    if (connected && publicKey && visible) {
+      console.log('✅ [WALLET] Carteira conectada, fechando modal do wallet-adapter');
+      setVisible(false);
+    }
+  }, [connected, publicKey, visible, setVisible]);
 
   useEffect(() => {
     if (connected && publicKey) {
@@ -111,7 +86,6 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
     () => [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
-      new TorusWalletAdapter(),
       new LedgerWalletAdapter(),
     ],
     []
@@ -161,7 +135,8 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
     } else if (error.message?.includes('Blockhash not found')) {
       console.error('❌ Network error - blockhash not found, please retry');
     } else if (error.message === 'Unexpected error' || !error.message || error.message.trim() === '') {
-      console.error('❌ Unexpected wallet error - check wallet connection and network', error);
+      // autoConnect pode gerar este erro quando a extensão não está pronta - ignorar silenciosamente
+      console.log('⚠️ [WALLET] Erro genérico ignorado (provavelmente autoConnect):', error.name);
     } else {
       console.error('❌ Wallet error:', error.message, error);
     }
@@ -172,7 +147,7 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
       <ConnectionProvider endpoint={endpoint}>
         <WalletProvider
           wallets={wallets}
-          autoConnect={true}
+          autoConnect={false}
           onError={onError}
           onConnect={handleConnect}
           onDisconnect={handleDisconnect}

@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Trophy, Users, Coins, Clock, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAppWalletStatus } from '@/hooks/useAppWalletStatus';
 import { useGuardedActionHook } from '@/hooks/useGuardedActionHook';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useWalletModal } from '@/contexts/wallet-modal-context';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { LocalizedLink } from '@/components/ui/localized-link';
 import { useAuth } from '@/contexts/auth-context';
@@ -143,7 +143,7 @@ export function MainLeagueCard() {
   const t = useTranslations('LeaguesPage');
   const tLeagues = useTranslations('leagues');
   const { user, isAuthenticated, connectWalletToUser } = useAuth();
-  const { setVisible } = useWalletModal();
+  const { openModal } = useWalletModal();
   const { push } = useLocaleNavigation();
 
   const [leagueData, setLeagueData] = useState<MainLeagueData | null>(null);
@@ -380,7 +380,7 @@ export function MainLeagueCard() {
   }, [profileWallet, leagueData?.activeCompetitionId, isProfileLoading, isAuthenticated]);
 
   const handleConnectWallet = () => {
-    setVisible(true);
+    openModal();
   };
 
   // NOVO: Função para vincular carteira manualmente (Plano B)
@@ -446,7 +446,7 @@ export function MainLeagueCard() {
     // ESTADO 2: NÃO VINCULADO e NÃO CONECTADO
     // Apenas abre o modal de conexão
     if (!connected) {
-      setVisible(true);
+      openModal();
       return;
     }
 
@@ -685,52 +685,70 @@ export function MainLeagueCard() {
   const isEnrolledInCurrentRound = entryStatus?.hasPaid && !isMismatched;
 
   return (
-    <Card className="border-accent border-2 bg-card">
+    <Card className="border-accent border-2 bg-card max-w-[450px] mx-auto shadow-lg overflow-hidden">
       {/* Header */}
-      <CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-accent/5 to-accent/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{leagueData.name}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{leagueData.description}</p>
+      <CardHeader className="pb-4 pt-5 px-5 bg-gradient-to-r from-accent/5 to-accent/10 relative">
+        <div className="flex items-center gap-5">
+          {/* Logo Ampliado (Hero Element) */}
+          <div className="relative w-24 h-24 shrink-0 filter drop-shadow-md">
+            <Image
+              src="/league-logos/main-league-trophy.png"
+              alt="League Trophy"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
-          <Badge className="bg-accent text-white font-bold text-xs px-3 py-1">
-            {tLeagues("officialBadge")}
-          </Badge>
+          
+          <div className="flex-1 flex flex-col justify-center min-w-0 h-24">
+            <div className="flex items-start justify-between w-full mb-1">
+              <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight pr-2">
+                {leagueData.name}
+              </h3>
+              <Badge className="bg-accent text-white font-bold text-[9px] px-2 py-0.5 shadow-sm shrink-0">
+                {tLeagues("officialBadge")}
+              </Badge>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
+              {leagueData.description}
+            </p>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="pb-4 pt-4 space-y-4">
+      <CardContent className="pb-2 pt-2 space-y-2 px-4">
         {/* ══════════════════════════════════════════════════════════════════
             SEÇÃO 1: SELETOR DE TEMPORADA
         ══════════════════════════════════════════════════════════════════ */}
         {leagueData.id && (
           <SeasonSelector
             leagueId={leagueData.id}
-            className="mb-0"
+            className="mb-0 border shadow-sm"
+            variant="slim"
           />
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
             SEÇÃO 2: RODADA ATUAL
         ══════════════════════════════════════════════════════════════════ */}
-        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl">
-          <div className="flex items-center justify-between mb-3">
+        <div className="mb-0 p-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center space-x-2">
-              <div className="p-2 bg-accent/10 rounded-lg">
-                <Clock className="h-5 w-5 text-accent" />
+              <div className="p-1 bg-accent/10 rounded-md">
+                <Clock className="h-3 w-3 text-accent" />
               </div>
-              <div>
-                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 block">
+              <div className="leading-none">
+                <span className="text-xs font-bold text-gray-900 dark:text-gray-100 block">
                   Rodada {leagueData.season?.currentRoundNumber || 'Atual'}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-[9px] text-gray-500 dark:text-gray-400">
                   <RoundTimerInline />
                 </span>
               </div>
             </div>
             <Badge
               variant="outline"
-              className={`text-xs ${
+              className={`text-[9px] h-4 px-1.5 ${
                 competitionState === 'LOCKED'
                   ? 'border-red-300 text-red-600 bg-red-50 dark:bg-red-950/20'
                   : competitionState === 'DRAFT_OPEN'
@@ -738,26 +756,26 @@ export function MainLeagueCard() {
                   : 'border-gray-300 text-gray-600'
               }`}
             >
-              {competitionState === 'LOCKED' && '🔒 Rodada em Andamento'}
-              {competitionState === 'DRAFT_OPEN' && '✏️ Inscrições Abertas'}
+              {competitionState === 'LOCKED' && '🔒 Em Andamento'}
+              {competitionState === 'DRAFT_OPEN' && '✏️ Inscrições'}
               {competitionState === 'FINISHED' && '✅ Finalizada'}
               {competitionState === 'UNKNOWN' && '⏳ Aguardando'}
             </Badge>
           </div>
 
-          {/* Info da Rodada - Grid */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg">
+          {/* Info da Rodada - Grid Compacto */}
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
+            <div className="flex items-center justify-between p-1 px-2 bg-white dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700/50">
               <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                <Users className="h-3 w-3" /> Participantes
+                <Users className="h-2.5 w-2.5" /> Part.
               </span>
               <span className="font-bold text-gray-900 dark:text-gray-100">
                 {leagueData.participantCount}
               </span>
             </div>
-            <div className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center justify-between p-1 px-2 bg-white dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700/50">
               <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                <Trophy className="h-3 w-3" /> Prêmio (70%)
+                <Trophy className="h-2.5 w-2.5" /> Prêmio
               </span>
               <span className="font-bold text-accent">
                 {(leagueData.totalPrizePool * 0.7).toFixed(3)} SOL
@@ -767,33 +785,28 @@ export function MainLeagueCard() {
 
           {/* Entrada - Só mostra se NÃO está inscrito */}
           {!isEnrolledInCurrentRound && competitionState === 'DRAFT_OPEN' && (
-            <div className="mt-3 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Coins className="h-4 w-4 text-accent" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Entrada por Rodada:</span>
-                </div>
-                <span className="text-lg font-bold text-accent">
-                  {leagueData.entryFee} SOL
-                </span>
+            <div className="mt-1.5 p-1.5 bg-accent/5 border border-accent/20 rounded-lg flex items-center justify-between shadow-sm">
+              <div className="flex items-center space-x-1.5">
+                <Coins className="h-3 w-3 text-accent" />
+                <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wide">Entrada:</span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                70% vai para prêmios da rodada • 15% acumula na temporada • 15% protocolo
-              </p>
+              <span className="text-xs font-bold text-accent">
+                {leagueData.entryFee} SOL
+              </span>
             </div>
           )}
 
           {/* Status de Inscrição - Destaque se inscrito */}
           {isEnrolledInCurrentRound && (
-            <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="mt-1.5 p-1.5 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg shadow-sm">
               <div className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                <div>
-                  <span className="text-sm font-bold text-green-700 dark:text-green-300 block">
-                    Você está inscrito nesta rodada!
+                <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                <div className="flex-1 flex justify-between items-center leading-none">
+                  <span className="text-[10px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wide">
+                    Inscrito
                   </span>
-                  <span className="text-xs text-green-600 dark:text-green-400">
-                    Tx: {entryStatus.entry?.transactionHash.slice(0, 12)}...
+                  <span className="text-[9px] text-green-600 dark:text-green-400 font-mono opacity-80">
+                    Tx: {entryStatus.entry?.transactionHash.slice(0, 6)}...
                   </span>
                 </div>
               </div>
@@ -826,24 +839,26 @@ export function MainLeagueCard() {
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-2 pt-2">
+      <CardFooter className="flex flex-col gap-2 pt-0 pb-3 px-4">
         {/* Loading inicial da verificação de entrada */}
         {isCheckingEntry ? (
           <Button
             disabled
-            className="w-full bg-gray-400 text-white cursor-not-allowed"
+            size="sm"
+            className="w-full bg-gray-400 text-white cursor-not-allowed h-8 text-xs font-medium"
           >
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
             {tLeagues('verifying')}
           </Button>
         )
 
         /* Usuário já pagou e está na rodada atual */
         : isEnrolledInCurrentRound && profileWallet ? (
-          <div className="w-full space-y-2">
+          <div className="w-full grid grid-cols-2 gap-2">
             <Button
               asChild
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs font-bold shadow-sm"
             >
               <LocalizedLink href="/teams?league=main">
                 ⚽ {tLeagues("viewMyTeam")}
@@ -852,10 +867,11 @@ export function MainLeagueCard() {
             <Button
               asChild
               variant="outline"
-              className="w-full"
+              size="sm"
+              className="h-8 text-xs shadow-sm bg-white dark:bg-transparent"
             >
               <LocalizedLink href="/ranking">
-                📊 Ver Ranking da Rodada
+                📊 Ranking
               </LocalizedLink>
             </Button>
           </div>
@@ -865,7 +881,8 @@ export function MainLeagueCard() {
         : isMismatched ? (
           <Button
             disabled
-            className="w-full bg-red-600 text-white cursor-not-allowed"
+            size="sm"
+            className="w-full bg-red-600 text-white cursor-not-allowed h-8 text-xs font-bold"
           >
             ⚠️ Carteira Incompatível
           </Button>
@@ -882,16 +899,17 @@ export function MainLeagueCard() {
                 <Button
                   onClick={handleActionClick}
                   disabled={transactionLoading}
-                  className="w-full bg-accent hover:bg-accent/90 text-white disabled:opacity-50 h-12 text-base"
+                  size="sm"
+                  className="w-full bg-accent hover:bg-accent/90 text-white disabled:opacity-50 h-9 text-xs font-bold shadow-md transition-all hover:scale-[1.02]"
                 >
                   {transactionLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                       {tLeagues('processing')}
                     </>
                   ) : (
                     <>
-                      🎮 Entrar na Rodada {leagueData.season?.currentRoundNumber || ''} ({leagueData.entryFee} SOL)
+                      🎮 Entrar ({leagueData.entryFee} SOL)
                     </>
                   )}
                 </Button>
@@ -901,20 +919,22 @@ export function MainLeagueCard() {
             // Estado: Rodada em Andamento (times trancados)
             if (competitionState === 'LOCKED') {
               return (
-                <div className="w-full space-y-2">
+                <div className="w-full space-y-1.5">
                   <Button
                     disabled
-                    className="w-full bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed"
+                    size="sm"
+                    className="w-full bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed h-8 text-[10px] font-bold uppercase tracking-wide"
                   >
-                    🔒 Inscrições Encerradas - Rodada em Andamento
+                    🔒 Inscrições Encerradas
                   </Button>
                   <Button
                     asChild
                     variant="outline"
-                    className="w-full"
+                    size="sm"
+                    className="w-full h-8 text-xs"
                   >
                     <LocalizedLink href="/ranking">
-                      📊 Acompanhar Ranking ao Vivo
+                      📊 Ver Ranking Ao Vivo
                     </LocalizedLink>
                   </Button>
                 </div>
@@ -924,18 +944,20 @@ export function MainLeagueCard() {
             // Estado: Rodada Finalizada
             if (competitionState === 'FINISHED') {
               return (
-                <div className="w-full space-y-2">
+                <div className="w-full space-y-1.5">
                   <Button
                     disabled
                     variant="outline"
-                    className="w-full cursor-not-allowed"
+                    size="sm"
+                    className="w-full cursor-not-allowed h-8 text-[10px] font-bold uppercase tracking-wide bg-gray-50 dark:bg-gray-900"
                   >
-                    ✅ Rodada Finalizada
+                    ✅ Finalizada
                   </Button>
                   <Button
                     asChild
                     variant="outline"
-                    className="w-full"
+                    size="sm"
+                    className="w-full h-8 text-xs bg-white dark:bg-transparent shadow-sm"
                   >
                     <LocalizedLink href="/ranking">
                       🏆 Ver Resultados
@@ -950,7 +972,8 @@ export function MainLeagueCard() {
               <Button
                 disabled
                 variant="outline"
-                className="w-full cursor-not-allowed"
+                size="sm"
+                className="w-full cursor-not-allowed h-8 text-xs"
               >
                 ⏳ {tLeagues('waiting')}
               </Button>
@@ -962,7 +985,8 @@ export function MainLeagueCard() {
         : !connected ? (
           <Button
             onClick={handleActionClick}
-            className="w-full bg-accent hover:bg-accent/90 text-white h-12 text-base"
+            size="sm"
+            className="w-full bg-accent hover:bg-accent/90 text-white h-9 text-xs font-bold shadow-md"
           >
             🔗 {tLeagues('connectWallet')}
           </Button>
@@ -973,11 +997,12 @@ export function MainLeagueCard() {
           <Button
             onClick={handleActionClick}
             disabled={isLinking}
-            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50 h-12"
+            size="sm"
+            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50 h-9 text-xs font-bold shadow-md"
           >
             {isLinking ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                 {tLeagues('linking')}
               </>
             ) : (
@@ -989,8 +1014,9 @@ export function MainLeagueCard() {
         /* Fallback */
         : (
           <Button
-            onClick={() => setVisible(true)}
-            className="w-full bg-accent hover:bg-accent/90 text-white h-12"
+            onClick={() => openModal()}
+            size="sm"
+            className="w-full bg-accent hover:bg-accent/90 text-white h-9 text-xs font-bold shadow-md"
           >
             🔗 {tLeagues('connectWallet')}
           </Button>

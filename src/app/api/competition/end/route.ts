@@ -9,6 +9,7 @@ import {
   canEndCompetition
 } from '@/lib/competition/manager';
 import { getTop100TokensWithSWR } from '@/lib/services/cache';
+import { onReferredUserWon } from '@/lib/referral-service';
 
 // ============================================
 // VALIDATION SCHEMA
@@ -121,6 +122,22 @@ export async function POST(request: NextRequest) {
     console.log('🎯 ETAPA 4: Determinando vencedores e prêmios...');
     const winners = await determineWinners(competitionId);
     console.log(`✅ Vencedores determinados: ${winners.length} times premiados`);
+
+    // 🎯 REFERRAL: Dar pontos para quem indicou os vencedores (FIRST_WIN)
+    for (const winner of winners) {
+      try {
+        // Buscar userId do vencedor pelo teamId
+        const winnerTeam = await prisma.userTeam.findUnique({
+          where: { id: winner.teamId },
+          select: { userId: true }
+        });
+        if (winnerTeam) {
+          await onReferredUserWon(winnerTeam.userId, competitionId);
+        }
+      } catch (refError) {
+        console.error('⚠️ Erro ao processar FIRST_WIN referral:', refError);
+      }
+    }
 
     // ETAPA 5: Atualizar status da competição
     console.log('💾 ETAPA 5: Atualizando status da competição...');

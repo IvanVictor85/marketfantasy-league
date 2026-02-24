@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { onReferredUserPlayed } from '@/lib/referral-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -180,6 +181,14 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('✅ [ENROLL] Time criado com sucesso:', newTeam.id);
+
+    // 🎯 REFERRAL: Notificar que indicado participou de rodada (+10 pts para quem indicou)
+    try {
+      await onReferredUserPlayed(user.id, competitionId);
+    } catch (refError) {
+      console.error('⚠️ [ENROLL] Erro ao processar pontos de referral:', refError);
+      // Não falha a inscrição por erro de referral
+    }
 
     return NextResponse.json({
       success: true,

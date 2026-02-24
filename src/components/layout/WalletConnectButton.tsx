@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useWalletModal as useWalletAdapterModal } from '@solana/wallet-adapter-react-ui';
+import { useWalletModal as useAppWalletModal } from '@/contexts/wallet-modal-context';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertTriangle, Wallet } from 'lucide-react';
@@ -14,7 +15,7 @@ function shorten(address: string) {
 
 export function WalletConnectButton({ className }: { className?: string }) {
   const { publicKey, disconnect, connecting } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { openModal } = useAppWalletModal();
   const { isMismatched, profileWallet, connectedWallet, mismatchDetails, isProfileLoading } = useAppWalletStatus();
   const [mounted, setMounted] = useState(false);
 
@@ -87,7 +88,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
   return (
     <Button
       className={`bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-md ${className ?? ''}`}
-      onClick={() => setVisible(true)}
+      onClick={() => openModal()}
     >
       <Wallet className="w-4 h-4 mr-2" />
       Conectar Carteira

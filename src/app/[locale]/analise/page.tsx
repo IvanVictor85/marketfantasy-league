@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { LocalizedLink } from '@/components/ui/localized-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -532,7 +532,7 @@ Agradecemos sua compreensão! 🙏`)
                   <div className="text-center py-12">
                     <p className="text-slate-600 dark:text-gray-300 mb-4">{t('noTeamCreated')}</p>
                     <Button asChild>
-                      <Link href="/teams">{t('createMyTeam')}</Link>
+                      <LocalizedLink href="/teams">{t('createMyTeam')}</Link>
                     </Button>
                   </div>
                 ) : mainTeam.length !== 10 ? (
@@ -544,7 +544,7 @@ Agradecemos sua compreensão! 🙏`)
                       {t('completeTeamForAI')}
                     </p>
                     <Button asChild>
-                      <Link href="/teams">{t('completeTeam')}</Link>
+                      <LocalizedLink href="/teams">{t('completeTeam')}</Link>
                     </Button>
                   </div>
                 ) : (

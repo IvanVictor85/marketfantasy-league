@@ -49,6 +49,8 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
   const [successModal, setSuccessModal] = useState<ClaimSuccessData | null>(null);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [showTestButton, setShowTestButton] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [sharingTwitter, setSharingTwitter] = useState(false);
   const victoryCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
     }
   }, []);
 
-  // Dispara confete quando o modal abre
+  // Dispara confete e busca código de referral quando o modal abre
   useEffect(() => {
     if (successModal) {
       // Confete dourado e verde (cores da marca)
@@ -94,6 +96,16 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
           requestAnimationFrame(frame);
         }
       }());
+
+      // Buscar código de referral para o compartilhamento
+      fetch('/api/referral/code')
+        .then(res => res.json())
+        .then(data => {
+          if (data.code) {
+            setReferralCode(data.code);
+          }
+        })
+        .catch(console.error);
     }
   }, [successModal]);
 
@@ -163,12 +175,56 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
     return `https://explorer.solana.com/tx/${txHash}?cluster=${network}`;
   };
 
-  const shareOnTwitter = () => {
+  const shareOnTwitter = async () => {
     if (!successModal) return;
 
-    const text = `Acabei de ganhar ${successModal.amount.toFixed(4)} SOL no ${successModal.prizeName} do @MFLProtocol! 🏆⚽\n\n#MFL #Solana #Web3Gaming #RWA #CryptoFantasy`;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank', 'width=600,height=400');
+    setSharingTwitter(true);
+    try {
+      // Registrar compartilhamento e ganhar pontos
+      const response = await fetch('/api/referral/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: 'twitter',
+          type: 'victory',
+          amount: successModal.amount,
+          roundName: successModal.prizeName,
+        }),
+      });
+
+      const data = await response.json();
+
+      // Abrir Twitter com o texto
+      if (data.shareUrl) {
+        window.open(data.shareUrl, '_blank', 'width=600,height=400');
+      } else {
+        // Fallback se API falhar
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const referralLink = referralCode ? `${baseUrl}/ref/${referralCode}` : baseUrl;
+        const text = `Acabei de ganhar ${successModal.amount.toFixed(4)} SOL no ${successModal.prizeName} do @MFLProtocol! 🏆⚽\n\nJogue comigo: ${referralLink}\n\n#MFL #Solana #Web3Gaming #CryptoFantasy`;
+        const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank', 'width=600,height=400');
+      }
+
+      // Mostrar toast de pontos ganhos
+      if (data.pointsEarned) {
+        toast.success(`+${data.pointsEarned} pontos de indicação!`, {
+          description: 'Obrigado por compartilhar!',
+        });
+      } else if (data.alreadyShared) {
+        toast.info(data.message || 'Você já compartilhou hoje');
+      }
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      // Fallback - compartilhar sem registrar pontos
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const referralLink = referralCode ? `${baseUrl}/ref/${referralCode}` : baseUrl;
+      const text = `Acabei de ganhar ${successModal.amount.toFixed(4)} SOL no ${successModal.prizeName} do @MFLProtocol! 🏆⚽\n\nJogue comigo: ${referralLink}\n\n#MFL #Solana #Web3Gaming #CryptoFantasy`;
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank', 'width=600,height=400');
+    } finally {
+      setSharingTwitter(false);
+    }
   };
 
   const generateVictoryImage = async () => {
@@ -539,9 +595,14 @@ export function PrizeClaims({ userId, leagueId, refreshTrigger }: PrizeClaimsPro
                 variant="outline"
                 className="flex-1 bg-[#1DA1F2]/10 border-[#1DA1F2]/30 text-[#1DA1F2] hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2]"
                 onClick={shareOnTwitter}
+                disabled={sharingTwitter}
               >
-                <Twitter className="h-4 w-4 mr-2" />
-                Compartilhar no X
+                {sharingTwitter ? (
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Twitter className="h-4 w-4 mr-2" />
+                )}
+                {sharingTwitter ? 'Abrindo...' : 'Compartilhar no X (+5 pts)'}
               </Button>
               <Button
                 variant="outline"

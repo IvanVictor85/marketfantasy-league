@@ -57,40 +57,49 @@ export function SoccerField({
   // Formation layouts - positions on the field (x, y coordinates as percentages) - 10 players
   const formations: Record<'433' | '442' | '352', Record<number, { x: number; y: number }>> = {
     '433': {
-      1: { x: 50, y: 90 }, // Goalkeeper
-      2: { x: 20, y: 70 }, // Right Back
-      3: { x: 40, y: 70 }, // Center Back
-      4: { x: 60, y: 70 }, // Center Back
-      5: { x: 80, y: 70 }, // Left Back
-      6: { x: 35, y: 45 }, // Defensive Midfielder
-      7: { x: 65, y: 45 }, // Central Midfielder
-      8: { x: 25, y: 15 }, // Left Winger
-      9: { x: 50, y: 10 }, // Striker
-      10: { x: 75, y: 15 }, // Right Winger
+      // 4 Defensores (Linha Inferior) - Subi para 75%
+      1: { x: 20, y: 75 }, 
+      2: { x: 40, y: 75 }, 
+      3: { x: 60, y: 75 }, 
+      4: { x: 80, y: 75 }, 
+      // 3 Meias (Linha Média) - Subi para 45%
+      5: { x: 30, y: 45 }, 
+      6: { x: 50, y: 45 }, 
+      7: { x: 70, y: 45 }, 
+      // 3 Atacantes (Linha Superior) - Mantido ou leve ajuste
+      8: { x: 25, y: 15 }, 
+      9: { x: 50, y: 10 }, 
+      10: { x: 75, y: 15 }, 
     },
     '442': {
-      1: { x: 50, y: 90 }, // Goalkeeper
-      2: { x: 20, y: 70 }, // Right Back
-      3: { x: 40, y: 70 }, // Center Back
-      4: { x: 60, y: 70 }, // Center Back
-      5: { x: 80, y: 70 }, // Left Back
-      6: { x: 30, y: 45 }, // Right Midfielder
-      7: { x: 50, y: 40 }, // Central Midfielder
-      8: { x: 70, y: 45 }, // Left Midfielder
-      9: { x: 40, y: 15 }, // Striker
-      10: { x: 60, y: 15 }, // Striker
+      // 4 Defensores - Subi para 75%
+      1: { x: 20, y: 75 }, 
+      2: { x: 40, y: 75 }, 
+      3: { x: 60, y: 75 }, 
+      4: { x: 80, y: 75 }, 
+      // 4 Meias - Subi para 45%
+      5: { x: 20, y: 45 }, 
+      6: { x: 40, y: 45 }, 
+      7: { x: 60, y: 45 }, 
+      8: { x: 80, y: 45 },
+      // 2 Atacantes
+      9: { x: 35, y: 15 }, 
+      10: { x: 65, y: 15 }, 
     },
     '352': {
-      1: { x: 50, y: 90 }, // Goalkeeper
-      2: { x: 30, y: 70 }, // Right Center Back
-      3: { x: 50, y: 75 }, // Center Back
-      4: { x: 70, y: 70 }, // Left Center Back
-      5: { x: 20, y: 50 }, // Right Wing Back
-      6: { x: 40, y: 45 }, // Central Midfielder
-      7: { x: 60, y: 45 }, // Central Midfielder
-      8: { x: 80, y: 50 }, // Left Wing Back
-      9: { x: 40, y: 15 }, // Striker
-      10: { x: 60, y: 15 }, // Striker
+      // 3 Defensores - Subi para 75%
+      1: { x: 30, y: 75 }, 
+      2: { x: 50, y: 75 }, 
+      3: { x: 70, y: 75 }, 
+      // 5 Meias - Subi para 45%
+      4: { x: 15, y: 45 }, 
+      5: { x: 32.5, y: 45 }, 
+      6: { x: 50, y: 45 }, 
+      7: { x: 67.5, y: 45 },
+      8: { x: 85, y: 45 },
+      // 2 Atacantes
+      9: { x: 35, y: 15 }, 
+      10: { x: 65, y: 15 }, 
     }
   };
 
@@ -109,11 +118,14 @@ export function SoccerField({
   };
 
   const getPositionIcon = (position: number) => {
-    if (position === 1) return Crown; // Goalkeeper
-    if (position >= 2 && position <= 5) return Shield; // Defenders
-    if (position >= 6 && position <= 8) return Zap; // Midfielders
-    if (position >= 9 && position <= 10) return Target; // Forwards
-    return Crown; // Default
+    // Lógica ajustada para 10 jogadores sem goleiro
+    // DEF: 1-4
+    if (position >= 1 && position <= 4) return Shield; 
+    // MID: 5-7 (433) ou 5-8 (442) ou 4-8 (352)
+    if (position >= 5 && position <= 7) return Zap; 
+    // ATA: 8-10 (433) ou 9-10 (442) etc - simplificação: > 7
+    if (position >= 8) return Target;
+    return Crown; 
   };
 
   const formatPrice = (price: number) => {
@@ -152,16 +164,16 @@ export function SoccerField({
     <div className="space-y-4">
       {/* Field Stats - Estatísticas da RODADA ATUAL */}
       <div className="grid grid-cols-3 gap-4">
-        <Card>
+        <Card className="bg-card/50 border-white/10 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-accent">{players.length}/10</div>
             <div className="text-sm text-gray-600 dark:text-gray-300">{t('players')}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-card/50 border-white/10 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {roundScore !== undefined ? roundScore.toFixed(1) : 'N/A'}
+              {roundScore !== undefined ? Number(roundScore).toFixed(1) : 'N/A'}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300">
               {t('roundScore')}
@@ -173,7 +185,7 @@ export function SoccerField({
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-card/50 border-white/10 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {roundRank ? `#${roundRank}` : 'N/A'}
@@ -191,177 +203,267 @@ export function SoccerField({
       </div>
 
       {/* Soccer Field */}
-      <Card className="bg-gradient-to-b from-green-400 to-green-600">
-        <CardContent className="p-6">
-          <div className="relative w-full h-[400px] bg-green-500 rounded-lg border-4 border-white overflow-hidden">
-            {/* Field markings */}
-            <div className="absolute inset-0">
-              {/* Center circle */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white rounded-full"></div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full"></div>
+      <Card className="bg-gradient-to-b from-gray-900 to-gray-800 border-none shadow-2xl overflow-hidden">
+        <CardContent className="p-0">
+          {/* Reduzi a altura para 600px para remover o espaço preto inferior excessivo */}
+          <div className="relative w-full h-[600px] bg-gray-900 overflow-hidden perspective-[1000px] group">
+            
+            {/* 3D Field Container */}
+            {/* Removi margens excessivas: top-0 e h-full com leve escala para caber perfeito */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full transform rotate-x-[25deg] origin-top transition-transform duration-700 ease-in-out py-4">
               
-              {/* Center line */}
-              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white transform -translate-y-1/2"></div>
-              
-              {/* Goal areas */}
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-12 border-2 border-white border-t-0"></div>
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-24 h-12 border-2 border-white border-b-0"></div>
-              
-              {/* Penalty areas */}
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-40 h-20 border-2 border-white border-t-0"></div>
-              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-40 h-20 border-2 border-white border-b-0"></div>
-            </div>
+              {/* Grass Pattern */}
+              <div 
+                className="absolute inset-0 w-full h-full shadow-2xl rounded-lg overflow-hidden"
+                style={{
+                  background: 'repeating-linear-gradient(0deg, #3a7f28 0px, #3a7f28 40px, #2e6b1f 40px, #2e6b1f 80px)',
+                  boxShadow: 'inset 0 0 100px rgba(0,0,0,0.6)'
+                }}
+              >
+                {/* Field Markings - White Lines */}
+                <div className="absolute inset-0 border-[3px] border-white/60 m-4 rounded-sm">
+                  
+                  {/* Center Circle */}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-[3px] border-white/60 rounded-full"></div>
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-white/80 rounded-full shadow-md"></div>
+                  
+                  {/* Center Line */}
+                  <div className="absolute top-1/2 left-0 right-0 h-[3px] bg-white/60 transform -translate-y-1/2"></div>
+                  
+                  {/* Penalty Areas */}
+                  {/* Top (Goalkeeper side in 4-3-3 visual usually) */}
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[40%] h-[15%] border-[3px] border-white/60 border-t-0 bg-white/5"></div>
+                  <div className="absolute top-[12%] left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white/80 rounded-full"></div>
+                  {/* Penalty Arc Top */}
+                  <div className="absolute top-[15%] left-1/2 transform -translate-x-1/2 w-24 h-12 border-[3px] border-white/60 border-t-0 rounded-b-full"></div>
 
-            {/* Players */}
-            {Object.entries(formations[formation]).map(([position, coords]) => {
-              const positionNum = parseInt(position);
-              const player = getPlayerAtPosition(positionNum);
-              const PositionIcon = getPositionIcon(positionNum);
+                  {/* Bottom */}
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-[40%] h-[15%] border-[3px] border-white/60 border-b-0 bg-white/5"></div>
+                  <div className="absolute bottom-[12%] left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white/80 rounded-full"></div>
+                  {/* Penalty Arc Bottom */}
+                  <div className="absolute bottom-[15%] left-1/2 transform -translate-x-1/2 w-24 h-12 border-[3px] border-white/60 border-b-0 rounded-t-full"></div>
 
-              return (
-                <div
-                  key={position}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
-                  style={{
-                    left: `${coords.x}%`,
-                    top: `${coords.y}%`,
-                  }}
-                >
-                  {player ? (
-                    <Popover open={activePlayerCard === positionNum} onOpenChange={(open) => setActivePlayerCard(open ? positionNum : null)}>
-                      <PopoverTrigger asChild>
-                        <div className="flex flex-col items-center">
-                          {/* Círculo do jogador */}
-                          <div
-                            className={`w-16 h-16 rounded-full border-4 ${getRarityColor(player.rarity)} flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg bg-card relative overflow-hidden`}
-                            onDoubleClick={(e) => {
-                              e.stopPropagation();
-                              onRemovePlayer(positionNum);
-                              setActivePlayerCard(null);
-                            }}
-                            title="Clique para ver detalhes • Duplo-clique para remover"
-                          >
-                            {player.image ? (
-                              <>
-                                <img
-                                  src={player.image}
-                                  alt={`${player.name} logo`}
-                                  className="w-10 h-10 rounded-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                                <div className="absolute bottom-0 left-0 right-0 text-xs font-bold text-white bg-black/70 text-center py-0.5">
-                                  {positionNum}
+                  {/* Corner Arcs */}
+                  <div className="absolute top-0 left-0 w-8 h-8 border-[3px] border-white/60 border-l-0 border-t-0 rounded-br-full"></div>
+                  <div className="absolute top-0 right-0 w-8 h-8 border-[3px] border-white/60 border-r-0 border-t-0 rounded-bl-full"></div>
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-[3px] border-white/60 border-l-0 border-b-0 rounded-tr-full"></div>
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-[3px] border-white/60 border-r-0 border-b-0 rounded-tl-full"></div>
+                </div>
+              </div>
+
+              {/* Players Layer (Inside 3D Container but Counter-Transformed) */}
+              {Object.entries(formations[formation]).map(([position, coords]) => {
+                const positionNum = parseInt(position);
+                const player = getPlayerAtPosition(positionNum);
+                const PositionIcon = getPositionIcon(positionNum);
+
+                // Adjust perspective scale based on Y position (closer = bigger)
+                // Inverted Y because 0 is top (far) and 100 is bottom (close)
+                // But we want visual consistency, so we might not need heavy scaling if 3D does it naturally.
+                // However, counter-rotation is essential.
+
+                return (
+                  <div
+                    key={position}
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 hover:z-50 transition-all duration-300"
+                    style={{
+                      left: `${coords.x}%`,
+                      top: `${coords.y}%`,
+                    }}
+                  >
+                    {/* Counter-rotate container to face camera */}
+                    <div className="transform -rotate-x-[25deg] origin-center transition-transform duration-300 hover:scale-110">
+                      {player ? (
+                        <Popover open={activePlayerCard === positionNum} onOpenChange={(open) => setActivePlayerCard(open ? positionNum : null)}>
+                          <PopoverTrigger asChild>
+                            <div className="flex flex-col items-center group/card cursor-pointer">
+                              {/* Card Body */}
+                              <div className={`
+                                relative w-20 h-24 
+                                bg-gradient-to-b from-gray-800 to-black 
+                                border-2 ${player.image ? 'border-blue-500/50' : 'border-gray-600'} 
+                                rounded-lg shadow-xl 
+                                flex flex-col items-center justify-between p-1
+                                overflow-hidden
+                                transition-all duration-300
+                                hover:border-blue-400 hover:shadow-blue-500/20 hover:-translate-y-2
+                              `}>
+                                {/* Header (Position) */}
+                                <div className="w-full text-center border-b border-white/10 pb-0.5">
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                    {/* Lógica dinâmica de labels baseada na formação */}
+                                    {formation === '433' ? (
+                                      positionNum <= 4 ? 'DEF' : positionNum <= 7 ? 'MEI' : 'ATA'
+                                    ) : formation === '442' ? (
+                                      positionNum <= 4 ? 'DEF' : positionNum <= 8 ? 'MEI' : 'ATA'
+                                    ) : (
+                                      positionNum <= 3 ? 'DEF' : positionNum <= 8 ? 'MEI' : 'ATA'
+                                    )}
+                                  </span>
                                 </div>
-                              </>
+
+                                {/* Player Image/Token */}
+                                <div className="flex-1 flex items-center justify-center w-full my-0.5">
+                                  {player.image ? (
+                                    <div className="relative w-10 h-10 rounded-full bg-white/15 p-0.5 shadow-sm backdrop-blur-sm border border-white/10">
+                                      <img
+                                        src={player.image}
+                                        alt={player.name}
+                                        className="w-full h-full rounded-full object-cover"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+                                      <Shield className="w-5 h-5 text-gray-600" />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Footer (Name/Price) */}
+                                <div className="w-full bg-blue-900/40 rounded px-1 min-h-[14px] flex items-center justify-center overflow-hidden">
+                                  <span className="text-[9px] font-bold text-white block truncate leading-none pt-0.5">
+                                    {player.symbol || '?'}
+                                  </span>
+                                </div>
+                                
+                                {/* Top Badge (Points or %7d) */}
+                                <div 
+                                  className={`absolute top-0 right-0 text-white text-[7px] font-bold px-1 py-[1px] rounded-bl shadow-sm ${
+                                    (!competitionStatus || competitionStatus === 'PENDING' || competitionStatus === 'UPCOMING') 
+                                      ? ((player.priceChange7d || 0) >= 0 ? 'bg-green-600' : 'bg-red-600')
+                                      : ((player.points || 0) >= 0 ? 'bg-green-600' : 'bg-red-600')
+                                  }`}
+                                  title={(!competitionStatus || competitionStatus === 'PENDING' || competitionStatus === 'UPCOMING') ? "Variação 7 dias" : "Pontos na rodada"}
+                                >
+                                  {(!competitionStatus || competitionStatus === 'PENDING' || competitionStatus === 'UPCOMING') ? (
+                                    `${(player.priceChange7d || 0).toFixed(2)} %7d`
+                                  ) : (
+                                    `${Number(player.points || 0).toFixed(2)} pts`
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Base Shadow (Ground) */}
+                              <div className="w-16 h-4 bg-black/60 blur-md rounded-full mt-[-8px] -z-10 transform scale-x-150"></div>
+                            </div>
+                          </PopoverTrigger>
+
+                          <PopoverContent side="top" align="center" className="w-48 p-3 bg-gray-900 border-gray-700 text-white">
+                            <div className="font-bold text-base mb-1 text-blue-400">
+                              {player.symbol || '?'}
+                            </div>
+                            {(!competitionStatus || competitionStatus === 'PENDING' || competitionStatus === 'UPCOMING') ? (
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs text-gray-400">%7d:</span>
+                                <span className={`text-sm font-semibold ${
+                                  (player.priceChange7d || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                                }`}>
+                                  {(player.priceChange7d || 0) >= 0 ? '+' : ''}
+                                  {(player.priceChange7d || 0).toFixed(2)}%
+                                </span>
+                              </div>
                             ) : (
                               <>
-                                <div className="text-sm font-bold text-gray-800 dark:text-white">{positionNum}</div>
-                                <div className="text-xs font-semibold text-card-foreground bg-card/80 px-1 rounded">{(player.symbol || player.symbol || '?')}</div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs text-gray-400">Pontuação:</span>
+                                  <span className="text-sm font-semibold text-white">
+                                    {Number(player.points || 0).toFixed(2)} pts
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="text-xs text-gray-400">Variação 7d:</span>
+                                  <span className={`text-sm font-semibold ${
+                                    (player.priceChange7d || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+                                  }`}>
+                                    {(player.priceChange7d || 0) >= 0 ? '+' : ''}
+                                    {(player.priceChange7d || 0).toFixed(2)}%
+                                  </span>
+                                </div>
                               </>
                             )}
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="w-full h-8 text-xs bg-red-900/50 hover:bg-red-900 text-red-200 border border-red-800"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRemovePlayer?.(positionNum);
+                                setActivePlayerCard(null);
+                              }}
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              Remover
+                            </Button>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        // Empty Slot Card
+                        <div
+                          className={`
+                            relative w-20 h-24 
+                            bg-black/40 backdrop-blur-sm
+                            border-2 border-dashed ${
+                              dragOverPosition === positionNum ? 'border-blue-400 bg-blue-900/40' : 
+                              selectedPosition === positionNum ? 'border-yellow-400 bg-yellow-900/20' : 'border-white/20'
+                            }
+                            rounded-lg 
+                            flex flex-col items-center justify-center gap-2
+                            cursor-pointer transition-all duration-200
+                            hover:border-white/50 hover:bg-white/5 hover:-translate-y-1
+                          `}
+                          onClick={() => {
+                            if (selectedToken && onTokenAdd) {
+                              onTokenAdd(selectedToken, positionNum);
+                            } else {
+                              setSelectedPosition(positionNum);
+                              onAddPlayer?.(positionNum);
+                            }
+                          }}
+                          onDragOver={(e) => handleDragOver(e, positionNum)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, positionNum)}
+                        >
+                          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                            {formation === '433' ? (
+                              positionNum <= 4 ? 'DEF' : positionNum <= 7 ? 'MEI' : 'ATA'
+                            ) : formation === '442' ? (
+                              positionNum <= 4 ? 'DEF' : positionNum <= 8 ? 'MEI' : 'ATA'
+                            ) : (
+                              positionNum <= 3 ? 'DEF' : positionNum <= 8 ? 'MEI' : 'ATA'
+                            )}
+                          </div>
+                          
+                          <div className={`
+                            w-8 h-8 rounded-full border border-white/20 flex items-center justify-center
+                            ${selectedPosition === positionNum ? 'bg-yellow-500 text-black' : 'bg-white/10 text-white/50'}
+                          `}>
+                            <Plus className="w-4 h-4" />
                           </div>
 
-                          {/* Ticker abaixo do logo */}
-                          {player.image && (
-                            <div className="mt-1 text-xs font-bold text-white bg-black/80 px-2 py-0.5 rounded-full shadow-lg text-center mx-auto">
-                              {(player.symbol || player.symbol || '?')}
+                          {dragOverPosition === positionNum && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-blue-500/20 rounded-lg">
+                              <span className="text-[10px] font-bold text-blue-200 animate-pulse">SOLTAR</span>
                             </div>
                           )}
                         </div>
-                      </PopoverTrigger>
-
-                      <PopoverContent side="top" align="center" className="w-48 p-3">
-                        {/* Nome do Jogador */}
-                        <div className="font-bold text-base text-card-foreground mb-1">
-                          {player.symbol || player.symbol || '?'}
-                        </div>
-
-                        {/* Pontuação */}
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-muted-foreground">Pontuação:</span>
-                          <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                            {player.points || 0} pts
-                          </span>
-                        </div>
-
-                        {/* Variação 7d */}
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs text-muted-foreground">Variação 7d:</span>
-                          <span className={`text-sm font-semibold ${
-                            (player.priceChange7d || 0) >= 0
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
-                          }`}>
-                            {(player.priceChange7d || 0) >= 0 ? '+' : ''}
-                            {(player.priceChange7d || 0).toFixed(2)}%
-                          </span>
-                        </div>
-
-                        {/* Botão Remover */}
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="w-full h-8 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemovePlayer?.(positionNum);
-                            setActivePlayerCard(null);
-                          }}
-                        >
-                          <X className="w-3 h-3 mr-1" />
-                          Remover
-                        </Button>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <div
-                      className={`w-16 h-16 rounded-full border-4 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${dragOverPosition === positionNum ? 'border-blue-400 bg-blue-400/50 scale-110' : selectedToken ? 'border-green-400 bg-green-400/30 hover:bg-green-400/50' : selectedPosition === positionNum ? 'border-primary bg-primary/30 hover:bg-primary/50' : 'border-white/50 bg-black/30 hover:bg-black/50'}`}
-                      onClick={() => {
-                        if (selectedToken && onTokenAdd) {
-                          onTokenAdd(selectedToken, positionNum);
-                        } else {
-                          setSelectedPosition(positionNum);
-                          onAddPlayer?.(positionNum);
-                        }
-                      }}
-                      onDragOver={(e) => handleDragOver(e, positionNum)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, positionNum)}
-                    >
-                      <Plus className={`w-6 h-6 mb-1 ${dragOverPosition === positionNum ? 'text-blue-100' : selectedToken ? 'text-green-100' : selectedPosition === positionNum ? 'text-primary-foreground' : 'text-white'}`} />
-                      <div className={`text-xs font-bold ${dragOverPosition === positionNum ? 'text-blue-100' : selectedToken ? 'text-green-100' : selectedPosition === positionNum ? 'text-primary-foreground' : 'text-white'}`}>
-                        {positionNum}
-                      </div>
-                      {dragOverPosition === positionNum && (
-                        <div className="text-xs text-blue-100 mt-1 text-center leading-tight">
-                          Soltar<br/>aqui
-                        </div>
-                      )}
-                      {selectedToken && dragOverPosition !== positionNum && (
-                        <div className="text-xs text-green-100 mt-1 text-center leading-tight">
-                          Adicionar<br/>{selectedToken.name.split(' ')[0]}
-                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Formation indicator */}
-            <div className="absolute top-4 left-4">
-              <Badge variant="secondary" className="bg-card/90 text-card-foreground">
-                {t('formation')} {formation.split('').join('-')}
-              </Badge>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Field direction indicator */}
-            <div className="absolute top-4 right-4 text-white text-sm font-medium">
-              ⬆️ {t('attack')}
+            {/* Formation Indicator (Floating) */}
+            <div className="absolute top-4 left-4 z-20">
+              <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span className="text-xs font-bold text-white tracking-widest font-mono">
+                  {formation.split('').join('-')}
+                </span>
+              </div>
             </div>
+
+            {/* League Logo / Watermark Removed */}
           </div>
         </CardContent>
       </Card>

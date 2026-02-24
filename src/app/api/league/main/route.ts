@@ -37,11 +37,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 2. Buscar a competição ATIVA desta liga
+    // 2. Buscar a competição ATIVA ou PENDING desta liga
+    // PENDING = aberta para inscrições, ACTIVE = em andamento
     const activeCompetition = await prisma.competition.findFirst({
       where: {
         leagueId: league.id,
-        status: 'ACTIVE'
+        status: { in: ['ACTIVE', 'PENDING'] }
       },
       include: {
         _count: {
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        startDate: 'desc'
+        startDate: 'asc'  // Pegar a PRIMEIRA rodada PENDING/ACTIVE (mais antiga)
       }
     });
 
