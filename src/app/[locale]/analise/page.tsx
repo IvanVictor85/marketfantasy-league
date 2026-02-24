@@ -532,7 +532,7 @@ Agradecemos sua compreensão! 🙏`);
                   <div className="text-center py-12">
                     <p className="text-slate-600 dark:text-gray-300 mb-4">{t('noTeamCreated')}</p>
                     <Button asChild>
-                      <LocalizedLink href="/teams">{t('createMyTeam')}</Link>
+                      <LocalizedLink href="/teams">{t('createMyTeam')}</LocalizedLink>
                     </Button>
                   </div>
                 ) : mainTeam.length !== 10 ? (
@@ -544,7 +544,7 @@ Agradecemos sua compreensão! 🙏`);
                       {t('completeTeamForAI')}
                     </p>
                     <Button asChild>
-                      <LocalizedLink href="/teams">{t('completeTeam')}</Link>
+                      <LocalizedLink href="/teams">{t('completeTeam')}</LocalizedLink>
                     </Button>
                   </div>
                 ) : (
