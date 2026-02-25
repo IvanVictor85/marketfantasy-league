@@ -12,6 +12,7 @@ import {
   SolflareWalletAdapter,
   LedgerWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
+import { SolanaMobileWalletAdapter } from '@solana-mobile/wallet-adapter-mobile';
 import {
   WalletModalProvider,
   useWalletModal,
@@ -84,11 +85,29 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
 
   const wallets = useMemo<Adapter[]>(
     () => [
+      // Mobile Wallet Adapter - para conexão em dispositivos móveis
+      new SolanaMobileWalletAdapter({
+        appIdentity: {
+          name: 'Market Fantasy League',
+          uri: typeof window !== 'undefined' ? window.location.origin : 'https://mfl.gg',
+          icon: '/icons/LOGO_MFL.png',
+        },
+        addressSelector: {
+          select: async (addresses) => addresses[0], // Seleciona primeiro endereço
+        },
+        authorizationResultCache: {
+          get: async () => null,
+          set: async () => {},
+          clear: async () => {},
+        },
+        cluster: network,
+      }),
+      // Desktop Wallets
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new LedgerWalletAdapter(),
     ],
-    []
+    [network]
   );
 
   const onError = useCallback((error: WalletError) => {
