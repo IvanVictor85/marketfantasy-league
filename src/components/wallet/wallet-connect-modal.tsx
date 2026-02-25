@@ -35,11 +35,17 @@ interface WalletConnectModalProps {
 /* ─── Constants ────────────────────────────────────────────────────────── */
 
 /** Carteiras destacadas como "Top Choice" no grid principal */
-const RECOMMENDED_WALLETS = new Set(['Phantom', 'Solflare']);
+const RECOMMENDED_WALLETS = new Set(['Phantom', 'Solflare', 'Mobile Wallet Adapter']);
 
 /** Tamanho padronizado dos ícones (px) — garante uniformidade visual */
 const ICON_SIZE_RECOMMENDED = 40; // w-10 h-10
 const ICON_SIZE_OTHER = 28;       // w-7 h-7
+
+/** Detecta se está em dispositivo móvel */
+const isMobile = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
 
 /* ─── Component ────────────────────────────────────────────────────────── */
 
@@ -62,12 +68,19 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
 
   /* ── Derived: carteiras instaladas separadas por prioridade ──────── */
   const { recommended, others } = useMemo(() => {
-    const installed = wallets.filter(
-      (w) => w.readyState === 'Installed' || w.readyState === 'Loadable'
-    );
+    const mobile = isMobile();
+
+    // No mobile, incluir wallets "NotDetected" também (serão abertas via deep link)
+    const available = wallets.filter((w) => {
+      if (w.readyState === 'Installed' || w.readyState === 'Loadable') return true;
+      // No mobile, mostrar Phantom/Solflare mesmo se "NotDetected"
+      if (mobile && RECOMMENDED_WALLETS.has(w.adapter.name)) return true;
+      return false;
+    });
+
     return {
-      recommended: installed.filter((w) => RECOMMENDED_WALLETS.has(w.adapter.name)),
-      others: installed.filter((w) => !RECOMMENDED_WALLETS.has(w.adapter.name)),
+      recommended: available.filter((w) => RECOMMENDED_WALLETS.has(w.adapter.name)),
+      others: available.filter((w) => !RECOMMENDED_WALLETS.has(w.adapter.name)),
     };
   }, [wallets]);
 
@@ -86,16 +99,23 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
     setConnectingWallet(walletName);
     setError('');
 
+    const mobile = isMobile();
+
     // Encontrar o adaptador na lista
     const walletInfo = wallets.find(w => w.adapter.name === walletName);
     if (!walletInfo) {
+      // No mobile, tentar abrir via deep link se não encontrar adaptador
+      if (mobile && walletName === 'Phantom') {
+        window.location.href = `https://phantom.app/ul/browse/${encodeURIComponent(window.location.href)}`;
+        return;
+      }
       setError('Carteira não encontrada.');
       setConnectingWallet(null);
       return;
     }
 
     const adapter = walletInfo.adapter;
-    console.log('🔌 [MODAL] Adaptador encontrado:', adapter.name, 'readyState:', adapter.readyState);
+    console.log('🔌 [MODAL] Adaptador encontrado:', adapter.name, 'readyState:', adapter.readyState, 'mobile:', mobile);
 
     // Selecionar no contexto (para o useWallet ficar sincronizado)
     select(walletName as any);
@@ -116,9 +136,19 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
         }
         if (error?.name === 'WalletConnectionError' || error?.message?.includes('User rejected')) {
           setError('Conexão cancelada pelo usuário.');
-        } else {
-          setError('Falha ao conectar. Tente novamente.');
+          return;
         }
+        // Erro de mobile wallet não encontrada - abrir app store ou deep link
+        if (error?.message?.includes('mobile wallet protocol') || error?.name === 'WalletNotReadyError') {
+          if (mobile && walletName === 'Phantom') {
+            // Tentar abrir Phantom via deep link
+            window.location.href = `https://phantom.app/ul/browse/${encodeURIComponent(window.location.href)}`;
+            return;
+          }
+          setError('Abra este site pelo app da carteira.');
+          return;
+        }
+        setError('Falha ao conectar. Tente novamente.');
       });
   };
 
