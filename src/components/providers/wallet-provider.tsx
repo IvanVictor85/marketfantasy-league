@@ -93,14 +93,16 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
           icon: '/icons/LOGO_MFL.png',
         },
         addressSelector: {
-          select: async (addresses) => addresses[0], // Seleciona primeiro endereço
-        },
-        authorizationResultCache: {
-          get: async () => null,
-          set: async () => {},
-          clear: async () => {},
+          select: async (addresses) => addresses[0],
         },
         cluster: network,
+        // Callback quando wallet não é encontrada - abre link para instalar
+        onWalletNotFound: async () => {
+          // Redireciona para página de download do Phantom
+          if (typeof window !== 'undefined') {
+            window.open('https://phantom.app/download', '_blank');
+          }
+        },
       }),
       // Desktop Wallets
       new PhantomWalletAdapter(),
