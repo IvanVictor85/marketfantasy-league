@@ -83,34 +83,40 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
   }, []);
 
 
-  const wallets = useMemo<Adapter[]>(
-    () => [
-      // Mobile Wallet Adapter - para conexão em dispositivos móveis
-      new SolanaMobileWalletAdapter({
-        appIdentity: {
-          name: 'Market Fantasy League',
-          uri: typeof window !== 'undefined' ? window.location.origin : 'https://mfl.gg',
-          icon: '/icons/LOGO_MFL.png',
-        },
-        addressSelector: {
-          select: async (addresses) => addresses[0],
-        },
-        cluster: network,
-        // Callback quando wallet não é encontrada - abre link para instalar
-        onWalletNotFound: async () => {
-          // Redireciona para página de download do Phantom
-          if (typeof window !== 'undefined') {
-            window.open('https://phantom.app/download', '_blank');
-          }
-        },
-      }),
+  const wallets = useMemo<Adapter[]>(() => {
+    const adapters: Adapter[] = [
       // Desktop Wallets
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new LedgerWalletAdapter(),
-    ],
-    [network]
-  );
+    ];
+
+    // Mobile Wallet Adapter - só adiciona no cliente
+    if (typeof window !== 'undefined') {
+      try {
+        adapters.unshift(
+          new SolanaMobileWalletAdapter({
+            appIdentity: {
+              name: 'Market Fantasy League',
+              uri: window.location.origin,
+              icon: '/icons/LOGO_MFL.png',
+            },
+            addressSelector: {
+              select: async (addresses) => addresses[0],
+            },
+            cluster: network,
+            onWalletNotFound: async () => {
+              window.open('https://phantom.app/download', '_blank');
+            },
+          })
+        );
+      } catch (e) {
+        console.warn('⚠️ Mobile Wallet Adapter não disponível:', e);
+      }
+    }
+
+    return adapters;
+  }, [network]);
 
   const onError = useCallback((error: WalletError) => {
 
