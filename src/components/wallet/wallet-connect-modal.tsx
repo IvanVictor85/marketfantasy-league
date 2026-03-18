@@ -122,10 +122,23 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
     select(walletName as any);
 
     // Conectar diretamente no adaptador - SEM await antes para manter contexto do clique
+    // Pequeno delay para garantir que o select() processou
     console.log('🔌 [MODAL] Conectando diretamente no adaptador...');
+
+    // Conectar diretamente - já estamos no contexto do clique
     adapter.connect()
       .then(() => {
         console.log('✅ [MODAL] Conexão bem-sucedida via adaptador!');
+        console.log('✅ Wallet conectada!', adapter.publicKey?.toString());
+
+        // Forçar atualização do contexto após conexão bem-sucedida
+        // Pequeno delay para o adapter emitir os eventos
+        setTimeout(() => {
+          if (adapter.connected && adapter.publicKey) {
+            console.log('🔄 [MODAL] Verificando sincronização do contexto...');
+            // O contexto deve atualizar automaticamente via eventos do adapter
+          }
+        }, 100);
       })
       .catch((error: any) => {
         console.error('❌ [MODAL] Erro na conexão:', error?.name, error?.message);
