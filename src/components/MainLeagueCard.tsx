@@ -157,6 +157,7 @@ export function MainLeagueCard() {
   // 🛡️ SAFEGUARD: Prevent duplicate calls
   const lastCheckRef = useRef<string | null>(null);
   const checkInProgressRef = useRef<boolean>(false);
+  const transactionInProgressRef = useRef<boolean>(false); // 🛡️ Prevenir double-click na transação
 
   const fetchLeagueData = async (retryCount = 0) => {
     const maxRetries = 3;
@@ -459,6 +460,12 @@ export function MainLeagueCard() {
   };
 
   const handleEnterLeague = async () => {
+    // 🛡️ SAFEGUARD: Prevenir double-click (ref é síncrono, diferente do state)
+    if (transactionInProgressRef.current) {
+      console.log('🛡️ SAFEGUARD: Transação já em andamento, ignorando clique duplicado');
+      return;
+    }
+
     // Verificar se pode executar a ação
     if (!canExecuteAction()) {
       return;
@@ -468,6 +475,9 @@ export function MainLeagueCard() {
       handleConnectWallet();
       return;
     }
+
+    // 🔒 Marcar transação como em andamento ANTES de qualquer operação async
+    transactionInProgressRef.current = true;
 
     console.log('🚀 MainLeagueCard: Iniciando processo de entrada na liga');
     console.log('🚀 MainLeagueCard: Usuário:', publicKey.toString());
@@ -637,6 +647,7 @@ export function MainLeagueCard() {
       setError(errorMessage);
     } finally {
       setTransactionLoading(false);
+      transactionInProgressRef.current = false; // 🔓 Liberar para novas transações
     }
   };
 
