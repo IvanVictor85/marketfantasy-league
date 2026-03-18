@@ -50,7 +50,7 @@ const isMobile = () => {
 /* ─── Component ────────────────────────────────────────────────────────── */
 
 export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnectModalProps) {
-  const { connectWalletToUser, user, isLoading: authLoading } = useAuth();
+  const { connectWalletToUser, user, isLoading: authLoading, loginWithWallet } = useAuth();
   const { connected, publicKey, disconnect, wallets, select, connect, wallet } = useWallet();
   const { setVisible: setWalletModalVisible } = useWalletModal();
 
@@ -131,14 +131,21 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
         console.log('✅ [MODAL] Conexão bem-sucedida via adaptador!');
         console.log('✅ Wallet conectada!', adapter.publicKey?.toString());
 
-        // Forçar atualização do contexto após conexão bem-sucedida
-        // Pequeno delay para o adapter emitir os eventos
+        // Forçar o fluxo SIWS se estamos em modo login (sem usuário)
+        // O contexto useWallet pode não atualizar na primeira conexão
         setTimeout(() => {
-          if (adapter.connected && adapter.publicKey) {
-            console.log('🔄 [MODAL] Verificando sincronização do contexto...');
-            // O contexto deve atualizar automaticamente via eventos do adapter
+          if (adapter.connected && adapter.publicKey && !user && wasLoginModeRef.current) {
+            console.log('🚀 [MODAL] Forçando fluxo SIWS manualmente...');
+            loginWithWallet().catch((err: Error) => {
+              console.error('❌ [MODAL] Erro no SIWS forçado:', err.message);
+              // Não mostrar erro se usuário cancelou
+              if (!err.message?.includes('rejected') && !err.message?.includes('cancelled')) {
+                setError('Erro ao autenticar. Tente novamente.');
+              }
+              setConnectingWallet(null);
+            });
           }
-        }, 100);
+        }, 300); // 300ms para dar tempo do contexto tentar atualizar primeiro
       })
       .catch((error: any) => {
         console.error('❌ [MODAL] Erro na conexão:', error?.name, error?.message);
