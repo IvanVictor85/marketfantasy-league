@@ -58,6 +58,7 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
   const wasLoginModeRef = useRef(false);
   const hasTriggeredCloseRef = useRef(false);
   const pendingConnectRef = useRef<string | null>(null);
+  const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   /* ── State ────────────────────────────────────────────────────────── */
   const [isLinking, setIsLinking] = useState(false);
@@ -263,6 +264,11 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
       setWasConnectedBefore(connected);
       wasLoginModeRef.current = !user;
       hasTriggeredCloseRef.current = false;
+      // Limpar timer de fechamento anterior
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -275,12 +281,19 @@ export function WalletConnectModal({ isOpen, onClose, onSuccess }: WalletConnect
       setConnectingWallet(null);
       toast.success('Login realizado com sucesso!');
 
-      const timer = setTimeout(() => {
+      // Limpar timer anterior se existir
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+
+      // Timer para fechar - guardado em ref para não ser afetado por re-renders
+      closeTimerRef.current = setTimeout(() => {
         if (onSuccess) onSuccess();
         onClose();
-      }, 800);
-      return () => clearTimeout(timer);
+        closeTimerRef.current = null;
+      }, 500);
     }
+    // Sem cleanup aqui - o timer é gerenciado via ref e limpo no reset do modal
   }, [isOpen, user, authLoading, onSuccess, onClose]);
 
   // Auto-vincular (modo VINCULAR, não LOGIN)
